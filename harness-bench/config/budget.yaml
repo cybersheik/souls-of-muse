@@ -1,0 +1,20 @@
+# Budget guard for Souls of Muse Harness - $150 lifetime Meta API credits.
+# Operational cap is conservative: 150 * 0.95 = $142.50. Holds + settled count.
+total_usd: 150.0
+warn_pct: 0.80
+hard_stop_pct: 0.95
+ledger: .budget_ledger.sqlite3
+legacy_ledger: .budget_ledger.json
+
+prices_usd_per_mtok:
+  muse-spark-1.3: {input: 1.25, output: 4.25, cached_input: 0.15}
+  muse-spark-1.2: {input: 1.25, output: 4.25, cached_input: 0.15}
+  muse-wonder-1.0: {input: 4.00, output: 20.00, cached_input: 0.20}
+asr_usd_per_1000min:
+  muse-voice-transcribe-1.0: 3.0
+
+policy: >
+  Standard mode only. Contributor modes are not enabled. Mock adapter is $0.
+  Development uses the existing Muse Code subscription and must not call the
+  product Meta API. This ledger only bounds calls routed through it on this
+  machine; other clients or keys are outside its control.

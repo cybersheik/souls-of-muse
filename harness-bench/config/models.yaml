@@ -1,0 +1,42 @@
+# Souls of Muse - model roles. Only /chat/completions is implemented by the
+# budget-safe Meta adapter. /responses intentionally raises ConfigError before
+# HTTP until a verified contract is implemented separately.
+base_url: https://api.meta.ai/v1
+api_key_env: MODEL_API_KEY
+
+roles:
+  orchestrator:
+    model: muse-wonder-1.0
+    endpoint: /responses
+    reasoning_effort: low
+    temperature: 0.1
+    max_tokens: 300
+  interpreter:
+    model: muse-spark-1.3
+    endpoint: /chat/completions
+    temperature: 0.1
+    max_tokens: 300
+  reviewer:
+    model: muse-spark-1.3
+    endpoint: /chat/completions
+    temperature: 0.0
+    max_tokens: 120
+  asr:
+    model: muse-voice-transcribe-1.0
+    endpoint_ws: /asr/realtime
+    endpoint_file: /asr/transcribe
+    sample_rate: 24000
+    mode: ENDPOINTING
+  vision_mask:
+    model: sam-3.1
+    endpoint: null
+  tts:
+    model: null
+
+fallbacks:
+  interpreter: [muse-spark-1.2]
+  asr: []
+notes: >
+  Product runtime uses Meta models only. SAM/TTS are unimplemented in the
+  budget-safe adapter. ASR paid route is disabled until its usage contract is
+  verified. No local machine fallback or system TTS is claimed here.

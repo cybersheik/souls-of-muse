@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Souls of Muse · событие урока (единый JSON-контракт Harness v0.1)",
+  "type": "object",
+  "required": ["event_id", "lesson_id", "seq", "ts", "type", "actor", "payload"],
+  "properties": {
+    "event_id":  {"type": "string", "description": "UUIDv4, идемпотентность: повтор с тем же id не исполняется дважды (T-08)"},
+    "lesson_id": {"type": "string"},
+    "seq":       {"type": "integer", "minimum": 0, "description": "монотонный номер внутри урока"},
+    "ts":        {"type": "string", "format": "date-time"},
+    "type": {"type": "string", "enum": [
+      "lesson.created", "match.accepted", "invite.sent.watch",
+      "asr.final", "interpret.done", "validator.fail", "reviewer.escalated",
+      "reply.tts.start", "reply.delivered", "performance.chunk",
+      "metronome.tick", "lesson.completed", "badge.awarded"
+    ]},
+    "actor": {"type": "string", "enum": ["mentor", "learner", "muse", "server", "watch", "web"]},
+    "lang":  {"type": "string", "enum": ["en", "vi", "ru", "music", "none"], "default": "none"},
+    "payload": {"type": "object"},
+    "trace": {"type": "object", "description": "замеры этапов, мс: asr/interpreter/validator/reviewer/tts/delivery"}
+  },
+  "additionalProperties": false
+}

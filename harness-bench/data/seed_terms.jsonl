@@ -1,0 +1,30 @@
+{"term_id": "TEMPO", "en": "tempo", "vi": "nhịp độ", "category": "rhythm", "legacy_it": "tempo", "verification": "unverified"}
+{"term_id": "BEAT", "en": "beat", "vi": "phách", "category": "rhythm", "legacy_it": "battuta", "verification": "unverified"}
+{"term_id": "MEASURE", "en": ["measure", "bar", "measures", "bars"], "vi": "ô nhịp", "category": "rhythm", "legacy_it": "battuta", "verification": "unverified"}
+{"term_id": "RHYTHM", "en": "rhythm", "vi": "nhịp điệu", "category": "rhythm", "legacy_it": "ritmo", "verification": "unverified"}
+{"term_id": "MELODY", "en": "melody", "vi": "giai điệu", "category": "pitch", "legacy_it": "melodia", "verification": "unverified"}
+{"term_id": "HARMONY", "en": "harmony", "vi": "hòa âm", "category": "pitch", "legacy_it": "armonia", "verification": "unverified"}
+{"term_id": "CHORD", "en": "chord", "vi": "hợp âm", "category": "pitch", "legacy_it": "accordo", "verification": "unverified"}
+{"term_id": "SCALE", "en": "scale", "vi": "gam", "category": "pitch", "legacy_it": "scala", "verification": "unverified"}
+{"term_id": "NOTE", "en": "note", "vi": "nốt nhạc", "category": "pitch", "legacy_it": "nota", "verification": "unverified"}
+{"term_id": "KEY_MAJOR", "en": "major", "vi": "trưởng", "category": "pitch", "legacy_it": "maggiore", "verification": "unverified"}
+{"term_id": "KEY_MINOR", "en": "minor", "vi": "thứ", "category": "pitch", "legacy_it": "minore", "verification": "unverified"}
+{"term_id": "SHARP", "en": "sharp", "vi": "thăng", "category": "pitch", "legacy_it": "diesis", "verification": "unverified"}
+{"term_id": "FLAT", "en": "flat", "vi": "giáng", "category": "pitch", "legacy_it": "bemolle", "verification": "unverified"}
+{"term_id": "OCTAVE", "en": "octave", "vi": "quãng tám", "category": "pitch", "legacy_it": "ottava", "verification": "unverified"}
+{"term_id": "INTONATION", "en": "intonation", "vi": "cao độ", "category": "pitch", "legacy_it": "intonazione", "verification": "unverified"}
+{"term_id": "STRING", "en": ["string", "strings"], "vi": "dây đàn", "category": "instrument", "legacy_it": "corda", "verification": "unverified"}
+{"term_id": "FRET", "en": "fret", "vi": "phím đàn", "category": "instrument", "legacy_it": "tasto", "verification": "unverified"}
+{"term_id": "CAPO", "en": "capo", "vi": "capo", "category": "instrument", "legacy_it": "capotasto", "verification": "unverified"}
+{"term_id": "STRUM", "en": "strumming", "vi": "rải hợp âm", "category": "technique", "legacy_it": "strumming", "verification": "unverified"}
+{"term_id": "FINGERPICK", "en": "fingerpicking", "vi": "gảy ngón", "category": "technique", "legacy_it": "fingerpicking", "verification": "unverified"}
+{"term_id": "STACCATO", "en": "staccato", "vi": "staccato", "category": "technique", "legacy_it": "staccato", "verification": "unverified"}
+{"term_id": "LEGATO", "en": "legato", "vi": "legato", "category": "technique", "legacy_it": "legato", "verification": "unverified"}
+{"term_id": "VERSE", "en": "verse", "vi": "đoạn đầu", "category": "form", "legacy_it": "strofa", "verification": "unverified"}
+{"term_id": "CHORUS", "en": "chorus", "vi": "điệp khúc", "category": "form", "legacy_it": "ritornello", "verification": "unverified"}
+{"term_id": "BRIDGE", "en": "bridge", "vi": "đoạn chuyển", "category": "form", "legacy_it": "bridge", "verification": "unverified"}
+{"term_id": "METRONOME", "en": "metronome", "vi": "máy đếm nhịp", "category": "device", "legacy_it": "metronomo", "verification": "unverified"}
+{"term_id": "BPM", "en": "bpm", "vi": "BPM", "category": "device", "legacy_it": "bpm", "verification": "unverified"}
+{"term_id": "DYNAMICS", "en": "dynamics", "vi": "cường độ", "category": "expression", "legacy_it": "dinamica", "verification": "unverified"}
+{"term_id": "REHEARSAL", "en": "rehearsal", "vi": "diễn tập", "category": "process", "legacy_it": "prova", "verification": "unverified"}
+{"term_id": "TUNING", "en": "tuning", "vi": "lên dây", "category": "process", "legacy_it": "accordatura", "verification": "unverified"}

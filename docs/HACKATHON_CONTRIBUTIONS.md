@@ -1,0 +1,19 @@
+# Hackathon contribution boundaries
+
+Event: Meta Global AI Developer Hackathon 2026, Startup track.
+
+## Before the event
+
+The Soul of Music / Souls of Muse concept, founder requirements, teacher/student lesson flow and most Muse Lesson 2.0 interface design existed before the event. They are context, not claimed as newly built hackathon features.
+
+## Work on 27 October 2026
+
+- Reproducible static prototype deployment preparation, reviewed by Meta Muse Spark after implementation by Meta Muse Wonder.
+- Review of the initial Python Harness bench and replacement of post-request JSON accounting with pre-request atomic SQLite budget reservations.
+- Guard regression tests for missing history, parallel processes, timeouts, idempotence, usage validation and unsafe configuration.
+- Correction of bench reporting: estimated ASR/TTS latency is not a measured voice round trip; an empty ASR corpus is blocked.
+- Public source publication and automatic source hash/time evidence integration (implementation status is recorded in its workflow and evidence release).
+
+## Unfinished
+
+Real ASR/TTS lesson integration, server-side media roles/anonymity, production hosting, load tests, mobile adaptation, real watch and tactile metronome acceptance. The checked-in interface and mock latency are not proof that these features work.

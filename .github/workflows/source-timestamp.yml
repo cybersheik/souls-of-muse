@@ -1,0 +1,167 @@
+name: source-timestamp
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "stamp or upgrade"
+        type: choice
+        options: [stamp, upgrade]
+        default: stamp
+        required: false
+      target_sha:
+        description: "Full 40-char commit SHA on main to timestamp (default: current main)"
+        required: false
+        default: ""
+concurrency:
+  group: source-timestamp
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  stamp:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'stamp')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      TARGET_INPUT: "${{ inputs.target_sha }}"
+      PUSH_SHA: "${{ github.sha }}"
+      REPO_FULL: "${{ github.repository }}"
+      GH_TOKEN: "${{ github.token }}"
+    steps:
+      # Official actions pinned to verified upstream tag commit SHAs.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Install OpenTimestamps client
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check "opentimestamps-client==0.7.2"
+      - name: Resolve and validate target SHA
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, re, sys
+          candidate = os.environ.get("TARGET_INPUT", "") or os.environ.get("PUSH_SHA", "")
+          repo = os.environ.get("REPO_FULL", "")
+          if not re.fullmatch(r"[0-9a-f]{40}", candidate or ""):
+              print("target SHA must be a 40-char lowercase hex SHA", file=sys.stderr); sys.exit(1)
+          if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo or ""):
+              print("repository must be owner/name", file=sys.stderr); sys.exit(1)
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:
+              f.write(f"TARGET_SHA={candidate}\nSHORT_SHA={candidate[:12]}\nEVIDENCE_TAG=evidence-{candidate[:12]}\n")
+          PY
+      - name: Validate target ancestry
+        run: |
+          set -euo pipefail
+          git rev-parse --verify "$TARGET_SHA" >/dev/null
+          if ! git merge-base --is-ancestor "$TARGET_SHA" HEAD; then
+            echo "target SHA is not in main ancestry" >&2; exit 1
+          fi
+      - name: Check complete existing evidence release
+        id: existing
+        run: |
+          set -euo pipefail
+          if ! [[ "$EVIDENCE_TAG" =~ ^evidence-[0-9a-f]{12}$ ]]; then echo "bad tag" >&2; exit 1; fi
+          complete=false
+          if gh release view "$EVIDENCE_TAG" --repo "$REPO_FULL" >/dev/null 2>&1; then
+            assets="$(gh release view "$EVIDENCE_TAG" --repo "$REPO_FULL" --json assets --jq '[.assets[].name]|sort|join(",")')"
+            expected="manifest-${SHORT_SHA}.json,manifest-${SHORT_SHA}.json.ots,manifest-${SHORT_SHA}.ots-status.json,snapshot-${SHORT_SHA}.tar.gz"
+            complete=true
+            for file in "manifest-${SHORT_SHA}.json" "manifest-${SHORT_SHA}.json.ots" "manifest-${SHORT_SHA}.ots-status.json" "snapshot-${SHORT_SHA}.tar.gz"; do
+              if ! printf '%s\n' "$assets" | tr ',' '\n' | grep -Fqx "$file"; then complete=false; fi
+            done
+          fi
+          echo "complete=$complete" >> "$GITHUB_OUTPUT"
+      - name: Build deterministic snapshot and manifest
+        if: steps.existing.outputs.complete != 'true'
+        run: |
+          set -euo pipefail
+          git archive --format=tar --prefix=source/ "$TARGET_SHA" | gzip -n > "snapshot-${SHORT_SHA}.tar.gz"
+          ARCH_SHA="$(sha256sum "snapshot-${SHORT_SHA}.tar.gz" | cut -d' ' -f1)"
+          CREATED_UTC="$(git show -s --format=%ct "$TARGET_SHA" | xargs -I{} date -u -d "@{}" +%Y-%m-%dT%H:%M:%SZ)"
+          python3 scripts/provenance_manifest.py --commit "$TARGET_SHA" --repo "$REPO_FULL" --archive-sha "$ARCH_SHA" --archive-name "snapshot-${SHORT_SHA}.tar.gz" --manifest-name "manifest-${SHORT_SHA}.json" --created-utc "$CREATED_UTC" --out "manifest-${SHORT_SHA}.json"
+      - name: Stamp manifest with OpenTimestamps calendar
+        if: steps.existing.outputs.complete != 'true'
+        run: |
+          set -euo pipefail
+          ots --no-cache stamp "manifest-${SHORT_SHA}.json"
+          test -f "manifest-${SHORT_SHA}.json.ots"
+          printf '%s\n' '{"status":"calendar_receipt","bitcoin_anchoring":"pending","note":"calendar receipt, Bitcoin anchoring pending"}' > "manifest-${SHORT_SHA}.ots-status.json"
+      - name: Publish evidence prerelease
+        if: steps.existing.outputs.complete != 'true'
+        run: |
+          set -euo pipefail
+          if ! gh release view "$EVIDENCE_TAG" --repo "$REPO_FULL" >/dev/null 2>&1; then
+            gh release create "$EVIDENCE_TAG" --repo "$REPO_FULL" --target "$TARGET_SHA" --prerelease --latest=false --title "Calendar receipt, Bitcoin anchoring pending: $SHORT_SHA" --notes "Calendar receipt, Bitcoin anchoring pending. Hash-only evidence; claimed commit date is not a proven timestamp. No copyright or authorship claim."
+          fi
+          existing_assets="$(gh release view "$EVIDENCE_TAG" --repo "$REPO_FULL" --json assets --jq '[.assets[].name][]')"
+          for file in "manifest-${SHORT_SHA}.json" "manifest-${SHORT_SHA}.json.ots" "manifest-${SHORT_SHA}.ots-status.json" "snapshot-${SHORT_SHA}.tar.gz"; do
+            if printf '%s\n' "$existing_assets" | grep -qx "$file"; then continue; fi
+            gh release upload "$EVIDENCE_TAG" --repo "$REPO_FULL" "$file"
+          done
+  upgrade:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'upgrade')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      REPO_FULL: "${{ github.repository }}"
+      GH_TOKEN: "${{ github.token }}"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Install OpenTimestamps client
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check "opentimestamps-client==0.7.2"
+      - name: Upgrade pending proofs
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, re, sys
+          if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", os.environ.get("REPO_FULL", "")):
+              print("repository must be owner/name", file=sys.stderr); sys.exit(1)
+          PY
+          work="$(mktemp -d /tmp/cx1-ots.XXXXXXXX)"
+          echo "workdir=$work (kept, not auto-deleted)"
+          gh release list --repo "$REPO_FULL" --limit 100 --json tagName --jq '.[].tagName' > "$work/tags.txt"
+          while IFS= read -r tag; do
+            if ! [[ "$tag" =~ ^evidence-[0-9a-f]{12}$ ]]; then continue; fi
+            short="${tag#evidence-}"
+            manifest="manifest-${short}.json"
+            proof="${manifest}.ots"
+            final="${manifest}.bitcoin.ots"
+            status="${manifest}.bitcoin-status.json"
+            dir="$work/$tag"; mkdir -p "$dir"
+            assets="$(gh release view "$tag" --repo "$REPO_FULL" --json assets --jq '[.assets[].name][]' || true)"
+            if printf '%s\n' "$assets" | grep -qx "$final"; then continue; fi
+            if ! gh release download "$tag" --repo "$REPO_FULL" --dir "$dir" --pattern "$manifest" --pattern "$proof"; then continue; fi
+            if [ ! -f "$dir/$proof" ]; then continue; fi
+            cp -- "$dir/$proof" "$dir/$final"
+            if ! ots --no-cache upgrade "$dir/$final"; then echo "still pending: $tag"; continue; fi
+            # Official opentimestamps 0.4.5 timestamp.str_tree renders this attestation class name.
+            ots --no-cache info "$dir/$final" > "$dir/ots-info.txt" || continue
+            if ! grep -q "BitcoinBlockHeaderAttestation" "$dir/ots-info.txt"; then echo "no Bitcoin attestation yet: $tag"; continue; fi
+            printf '%s\n' '{"bitcoin_attestation_present":true,"independent_full_node_verified":false}' > "$dir/$status"
+            gh release upload "$tag" --repo "$REPO_FULL" "$dir/$final" "$dir/$status"
+            gh release edit "$tag" --repo "$REPO_FULL" --title "Bitcoin attestation included; independent verification required"
+          done < "$work/tags.txt"

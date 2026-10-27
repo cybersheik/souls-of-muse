@@ -1,0 +1,14 @@
+[
+  {"id": "R01", "en": "Play the F chord, not the B chord, in measure 12.", "fault": "none"},
+  {"id": "R02", "en": "Slow down to 60 BPM and count the beats out loud.", "fault": "none"},
+  {"id": "R03", "en": "Don't press the third string so hard.", "fault": "drop_negation"},
+  {"id": "R04", "en": "Repeat bars 5 to 8, then stop.", "fault": "none"},
+  {"id": "R05", "en": "Your tempo is fine — keep 120 BPM.", "fault": "none", "adversarial": "control_no_negation"},
+  {"id": "R06", "en": "Switch from C major to A minor in the chorus.", "fault": "none"},
+  {"id": "R07", "en": "Mute the strings with your left hand, not your right hand.", "fault": "none"},
+  {"id": "R08", "en": "Sing the melody one octave higher in the bridge.", "fault": "none"},
+  {"id": "R09", "en": "The second beat of bar 3 comes late.", "fault": "wrong_number"},
+  {"id": "R10", "en": "Use a capo on the second fret.", "fault": "none"},
+  {"id": "R11", "en": "Do not stop before the bridge.", "fault": "none"},
+  {"id": "R12", "en": "Strumming here, fingerpicking in the verse.", "fault": "none"}
+]
