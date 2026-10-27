@@ -6,6 +6,7 @@ Music education with teacher-led lessons, a Muse AI mediator and bilingual music
 
 - `web/`: interactive Muse Lesson 2.0 design prototype. Student indicators, messages, video and lesson metrics are simulated. It is not a live lesson service.
 - `harness-bench/`: Python terminology validator, event schema, model adapters and budget reservation guard. 19 offline tests pass.
+- `runtime/`: durable single-VM admission and lifecycle control for up to five simultaneous lessons. Counts include starting and closing rooms; restart does not free occupied slots. See `runtime/README.md` for the internal integration contract and future scaling boundary. Admission concurrency tests are not a five-room media benchmark.
 - Real EN/VI audio, Meta voice delivery, live media rooms, real watch integration, tactile metronome and production load capacity are pending integration and verification. They remain project requirements.
 
 Preview: https://preview.soulsofmuse.com/
@@ -13,6 +14,7 @@ Preview: https://preview.soulsofmuse.com/
 ## Run offline checks
 
 ```sh
+python3 -m unittest discover -s tests -v
 cd harness-bench
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
