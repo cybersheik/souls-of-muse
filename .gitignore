@@ -7,6 +7,10 @@
 *credentials*
 *auth.json
 .budget*
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
 *.sqlite3
 *.sqlite3-*
 __pycache__/
