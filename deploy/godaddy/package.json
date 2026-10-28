@@ -1,0 +1,15 @@
+{
+  "name": "souls-of-muse",
+  "version": "1.0.0",
+  "main": "server.mjs",
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "build": "node --check server.mjs",
+    "start": "node server.mjs",
+    "test": "node --test test/server.test.mjs"
+  },
+  "dependencies": {}
+}
