@@ -29,6 +29,26 @@ def _reserve_worker(db_path, result_queue):
         result_queue.put('error:' + type(exc).__name__)
 
 
+def _exit_worker(code):
+    raise SystemExit(code)
+
+
+def _child_failures(processes):
+    """Explicit per-child failure report; empty list means every child ok."""
+    failures = []
+    for index, process in enumerate(processes):
+        if process.is_alive():
+            failures.append(
+                'child %d pid=%s still running after join timeout'
+                % (index, process.pid)
+            )
+        elif process.exitcode != 0:
+            failures.append(
+                'child %d pid=%s exitcode=%r' % (index, process.pid, process.exitcode)
+            )
+    return failures
+
+
 def _tables(db_path):
     conn = sqlite3.connect(db_path)
     try:
@@ -58,25 +78,71 @@ class LessonAdmissionTests(unittest.TestCase):
         return rows
 
     def test_admission_control_concurrency_only_twelve_processes_five_slots(self):
-        # ADMISSION CONTROL CONCURRENCY only: this is not a media/load
-        # benchmark and does not claim five real voice calls passed.
+        # ADMISSION CONTROL CONCURRENCY only: capacity=5 here is a test
+        # fixture (one explicit operator configuration), not a product
+        # limit and not a media/load benchmark; it does not claim five
+        # real voice calls passed. spawn is used (never fork): forked
+        # children crashed natively in this environment (AI3-935).
         _, db_path = self.make_service(capacity=5)
-        ctx = multiprocessing.get_context('fork')
+        ctx = multiprocessing.get_context('spawn')
         queue = ctx.Queue()
         processes = [
             ctx.Process(target=_reserve_worker, args=(db_path, queue))
             for _ in range(12)
         ]
-        for process in processes:
-            process.start()
-        for process in processes:
-            process.join(timeout=30)
-        results = [queue.get(timeout=5) for _ in processes]
+        try:
+            for process in processes:
+                process.start()
+            for process in processes:
+                process.join(timeout=60)
+            failures = _child_failures(processes)
+            self.assertEqual(
+                failures, [],
+                'every child must terminate with exitcode 0 before '
+                'results are read; failures: %s' % (failures,),
+            )
+            results = []
+            for _ in processes:
+                try:
+                    results.append(queue.get(timeout=5))
+                except Exception as exc:
+                    self.fail(
+                        'child results missing after all children exited 0: '
+                        '%r (collected %r)' % (exc, results)
+                    )
+        finally:
+            for process in processes:
+                if process.is_alive():
+                    process.terminate()
+                process.join(timeout=10)
+            queue.close()
+            queue.join_thread()
         self.assertEqual(results.count('accepted'), 5)
         self.assertEqual(results.count('capacity'), 7)
         snapshot = LessonAdmission(db_path).snapshot()
         self.assertEqual(snapshot['active_count'], 5)
         self.assertEqual(snapshot['counts']['STARTING'], 5)
+
+    def test_nonzero_child_exit_is_reported_explicitly(self):
+        # Regression: an ordinary child exit(1) (never a native crash)
+        # must surface as an explicit per-child failure, not a masked
+        # queue timeout. If this detection ever breaks, this test fails
+        # and the suite exits nonzero.
+        ctx = multiprocessing.get_context('spawn')
+        process = ctx.Process(target=_exit_worker, args=(1,))
+        try:
+            process.start()
+            process.join(timeout=30)
+        finally:
+            if process.is_alive():
+                process.terminate()
+            process.join(timeout=10)
+        self.assertFalse(process.is_alive())
+        self.assertEqual(process.exitcode, 1)
+        failures = _child_failures([process])
+        self.assertEqual(len(failures), 1)
+        self.assertIn('child 0', failures[0])
+        self.assertIn('exitcode=1', failures[0])
 
     def test_normal_restart_preserves_five_starting(self):
         service, db_path = self.make_service(capacity=5)
@@ -158,17 +224,32 @@ class LessonAdmissionTests(unittest.TestCase):
             initialize_database(str(corrupt), capacity=5)
 
     def test_corrupt_capacity_and_invalid_states_blocked(self):
+        # Corrupt stored capacity (non-positive / non-numeric) fails
+        # closed. A merely larger positive value is no longer corrupt:
+        # it can be a legitimate operator-selected capacity.
         service, db_path = self.make_service()
         conn = sqlite3.connect(db_path)
         try:
             conn.execute(
-                "UPDATE admission_meta SET value='99' WHERE key='capacity'"
+                "UPDATE admission_meta SET value='0' WHERE key='capacity'"
             )
             conn.commit()
         finally:
             conn.close()
         with self.assertRaises(AdmissionError):
             LessonAdmission(db_path)
+        service0, db_path0 = self.make_service()
+        conn = sqlite3.connect(db_path0)
+        try:
+            conn.execute(
+                "UPDATE admission_meta SET value='not-a-number' "
+                "WHERE key='capacity'"
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        with self.assertRaises(AdmissionError):
+            LessonAdmission(db_path0)
         service2, db_path2 = self.make_service()
         service2.reserve(_uid(), _uid())
         conn = sqlite3.connect(db_path2)
@@ -180,15 +261,37 @@ class LessonAdmissionTests(unittest.TestCase):
         with self.assertRaises(AdmissionError):
             LessonAdmission(db_path2)
 
-    def test_changing_capacity_constructor_above_five_fails(self):
+    def test_capacity_above_five_is_an_operator_choice(self):
+        # No product maximum remains: an operator may explicitly select
+        # capacity for our own media workers above the old fixture of 5.
         _, db_path = self.make_service(capacity=5)
         with self.assertRaises(AdmissionError):
             LessonAdmission(db_path, capacity=6)
         directory = mkdtemp(prefix='cx1-lesson-')
         with self.assertRaises(AdmissionError):
-            initialize_database(str(Path(directory) / 'x.db'), capacity=6)
-        with self.assertRaises(AdmissionError):
             initialize_database(str(Path(directory) / 'y.db'), capacity=0)
+        with self.assertRaises(AdmissionError):
+            initialize_database(str(Path(directory) / 'z.db'), capacity=-3)
+        with self.assertRaises(AdmissionError):
+            initialize_database(str(Path(directory) / 'w.db'), capacity=True)
+        service12, _ = self.make_service(capacity=12)
+        self.fill(service12, 12)
+        self.assertEqual(service12.snapshot()['capacity'], 12)
+        self.assertEqual(service12.snapshot()['active_count'], 12)
+        with self.assertRaises(CapacityExceeded):
+            service12.reserve(_uid(), _uid())
+
+    def test_fresh_database_requires_explicit_capacity(self):
+        directory = mkdtemp(prefix='cx1-lesson-')
+        db_path = str(Path(directory) / 'fresh.db')
+        with self.assertRaises(AdmissionError):
+            initialize_database(db_path)
+        # The rejected attempt created no schema; explicit retry works.
+        service = initialize_database(db_path, capacity=4)
+        self.assertEqual(service.snapshot()['capacity'], 4)
+        # Omitting capacity for an existing DB preserves stored capacity.
+        again = initialize_database(db_path)
+        self.assertEqual(again.snapshot()['capacity'], 4)
 
     def test_capacity_cannot_increase_by_restart(self):
         _, db_path = self.make_service(capacity=3)
@@ -398,7 +501,7 @@ class LessonAdmissionTests(unittest.TestCase):
         other = Path(mkdtemp(prefix='cx1-lesson-'))
         try:
             os.chdir(base)
-            initialized = initialize_database('lessons.db')
+            initialized = initialize_database('lessons.db', capacity=2)
             reopened = LessonAdmission('lessons.db')
             os.chdir(other)
             initialized.reserve(_uid(), _uid())
