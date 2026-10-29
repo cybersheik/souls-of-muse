@@ -1,6 +1,10 @@
 # Souls of Muse
 
-Music education with teacher-led lessons, a Muse AI mediator and bilingual musical instruction. This public repository contains the current prototype and the model test bench prepared for the Meta Global AI Developer Hackathon 2026.
+Souls of Muse is a service for the international community of musicians, dedicated to keeping the human skills of playing musical instruments and singing alive.
+
+Music education is one part of this broader mission. The current prototype focuses on teacher-led lessons, a Muse AI mediator and bilingual musical instruction.
+
+This public repository contains the current prototype and the model test bench prepared for the Meta Global AI Developer Hackathon 2026.
 
 ## Current state
 
