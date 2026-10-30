@@ -1,9 +1,11 @@
-"""Durable admission control for at most five simultaneous lessons.
+"""Durable admission control for operator-configured own-media lessons.
 
 SQLite is supported only on a single persistent VM whose processes share
-one database file. This module controls lesson slots only; it does not
-provide media, room, ASR, or video runtime behaviour. It is internal
-only and must not be exposed as a public unauthenticated endpoint.
+one database file. This module controls a bounded number of slots for
+OUR OWN media workers only; it does not limit accounts, chats, matching,
+agent jobs, or participant conversations, and it provides no media,
+room, ASR, or video runtime behaviour. It is internal only and must not
+be exposed as a public unauthenticated endpoint.
 """
 from __future__ import annotations
 
@@ -15,7 +17,6 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-MAX_CAPACITY = 5
 SCHEMA_VERSION = '1'
 ACTIVE_STATES = ('STARTING', 'ACTIVE', 'CLOSING')
 ALL_STATES = ACTIVE_STATES + ('COMPLETED', 'CANCELLED')
@@ -63,8 +64,8 @@ def _utc_now():
 def _check_capacity(value):
     if isinstance(value, bool) or not isinstance(value, int):
         raise AdmissionError('capacity must be an integer')
-    if value < 1 or value > MAX_CAPACITY:
-        raise AdmissionError('capacity must be between 1 and 5')
+    if value < 1:
+        raise AdmissionError('capacity must be a positive integer')
     return value
 
 
@@ -189,8 +190,8 @@ def _validate_database(conn):
         stored = int(meta.get('capacity', ''))
     except (TypeError, ValueError):
         raise AdmissionError('stored capacity is invalid')
-    if stored < 1 or stored > MAX_CAPACITY:
-        raise AdmissionError('stored capacity is outside 1..5')
+    if stored < 1:
+        raise AdmissionError('stored capacity must be a positive integer')
     rows = conn.execute(
         'SELECT state, provision_started, lesson_id, request_id, '
         'reservation_id FROM reservations'
@@ -233,22 +234,30 @@ _SCHEMA = (
 )
 
 
-def initialize_database(db_path, capacity=MAX_CAPACITY):
+def initialize_database(db_path, capacity=None):
     """Explicit operator action: create a fresh DB or validate an existing one.
 
-    Creation happens in one BEGIN IMMEDIATE transaction only when the
-    file has no user tables. Any non-empty partial or unrelated schema
-    is validated without DDL and fails closed if invalid; it is never
-    healed and its stored capacity is never changed. An explicit
-    capacity that differs from stored capacity always fails.
+    A fresh database requires an explicitly selected positive capacity:
+    there is no hidden default and no product-wide maximum. Creation
+    happens in one BEGIN IMMEDIATE transaction only when the file has no
+    user tables. Any non-empty partial or unrelated schema is validated
+    without DDL and fails closed if invalid; it is never healed and its
+    stored capacity is never changed. An explicit capacity that differs
+    from stored capacity always fails; omitting capacity for an existing
+    database validates and preserves its stored capacity.
     """
-    _check_capacity(capacity)
+    if capacity is not None:
+        _check_capacity(capacity)
     path = _resolved_path_text(db_path)
     with _connection(path, create=True) as conn:
         try:
             conn.execute('BEGIN IMMEDIATE')
             tables = _user_tables(conn)
             if not tables:
+                if capacity is None:
+                    raise AdmissionError(
+                        'capacity must be explicitly selected for a fresh database'
+                    )
                 for statement in _SCHEMA:
                     conn.execute(statement)
                 now = _utc_now()
@@ -270,7 +279,7 @@ def initialize_database(db_path, capacity=MAX_CAPACITY):
                 conn.commit()
             else:
                 stored = _validate_database(conn)
-                if stored != capacity:
+                if capacity is not None and stored != capacity:
                     raise AdmissionError('capacity mismatch with existing database')
                 _safe_rollback(conn)
         except AdmissionError:

@@ -10,7 +10,8 @@ This public repository contains the current prototype and the model test bench p
 
 - `web/`: interactive Muse Lesson 2.0 design prototype. Student indicators, messages, video and lesson metrics are simulated. It is not a live lesson service.
 - `harness-bench/`: Python terminology validator, event schema, model adapters and budget reservation guard. 19 offline tests pass.
-- `runtime/`: durable single-VM admission and lifecycle control for up to five simultaneous lessons. Counts include starting and closing rooms; restart does not free occupied slots. See `runtime/README.md` for the internal integration contract and future scaling boundary. Admission concurrency tests are not a five-room media benchmark.
+- `deploy/godaddy/`: dependency-free Node 22 wrapper and HTTP checks for uploading the existing design preview to GoDaddy Web Hosting. This is deployment tooling, not the live lesson backend.
+- `runtime/`: durable single-VM admission and lifecycle control for a bounded number of own-media lesson slots, with the positive capacity explicitly selected by an operator (no product-wide maximum; some tests use five slots purely as a fixture). Counts include starting and closing rooms; restart does not free occupied slots. This bounds only our own media workers — participant matching, chats and agent jobs are separate and do not consume these slots. See `runtime/README.md` for the internal integration contract and future scaling boundary. Admission concurrency tests are not a media benchmark.
 - Real EN/VI audio, Meta voice delivery, live media rooms, real watch integration, tactile metronome and production load capacity are pending integration and verification. They remain project requirements.
 
 Preview: https://preview.soulsofmuse.com/
