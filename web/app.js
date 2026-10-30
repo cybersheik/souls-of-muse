@@ -523,8 +523,10 @@ function bindStudio(){
 
 /* ---------- router with unified page cleanup ---------- */
 let focusTabOnRender=false;
-function cleanupPage(){ stopPlay(); cleanupStudio(); }
-const routes=[[/^#?\/?$/,vHome,"ceremony"],[/^#\/convention$/,vConvention,"ceremony"],[/^#\/welcome$/,vWelcome,"ceremony"],
+function cleanupPage(){ stopPlay(); cleanupStudio(); if(window.P01) P01.stop(); }
+const routes=[[/^#?\/?$/,vHome,"ceremony"],[/^#\/convention$/,vConvention,"ceremony"],[/^#\/welcome$/,()=>P01.welcome(),"ceremony"],
+ [/^#\/space(?:\/(artist|maestro|admirer))?$/,m=>P01.space(ROLE_HASH[m[1]||"artist"]),"workshop"],
+ [/^#\/components$/,()=>P01.components(),"workshop"],
  [/^#\/leagues$/,vLeagues,"workshop"],[/^#\/league\/([^/]+)(?:\/([^/]+))?$/,m=>vLeague(decodeURIComponent(m[1]), m[2]||"topics"),"workshop"],
  [/^#\/cabinet\/(student|teacher|listener)$/,m=>vCabinet(m[1]),"workshop"],[/^#\/studio$/,vStudio,"workshop"]];
 function render(){
@@ -535,7 +537,7 @@ function render(){
     document.body.innerHTML=fn(m);
     bindCommon();
     if(h==="#/convention") bindConvention();
-    else if(h==="#/welcome") bindWelcome();
+    else if(h==="#/welcome"||h.startsWith("#/space")||h==="#/components") P01.bind();
     else if(h==="#/leagues") bindLeagues();
     else if(h.startsWith("#/league/")){ const seg=h.slice("#/league/".length).split("/"); bindLeague(seg[1]||"topics", seg[0]); }
     else if(h==="#/studio") bindStudio();
