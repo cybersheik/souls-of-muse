@@ -20,3 +20,7 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - run: python -m unittest discover -s tests -v
         working-directory: harness-bench
+      - name: Install private pilot test dependencies
+        run: python -m pip install -r service/requirements.txt modal==1.6.3
+      - name: Verify private pilot offline (no credentials or model calls)
+        run: python -m unittest discover -s service/tests -v
