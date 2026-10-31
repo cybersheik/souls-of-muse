@@ -12,7 +12,7 @@ from pathlib import Path
 import httpx
 
 from harness.budget import BudgetGuard, UsageValidationError
-from harness.adapters.meta import MetaAdapter, MetaResponseError
+from harness.adapters.meta import MetaAdapter, MetaResponseError, ConfigError
 
 FAKE_ENV = {"MODEL_API_KEY": "cx1-fake-key-not-a-real-secret"}
 OFFICIAL = "https://api.meta.ai/v1"
@@ -151,6 +151,77 @@ class ReasoningMetaAdapterTests(unittest.TestCase):
                 self.assertEqual(status["spent_usd"], 0.0)
                 self.assertGreater(status["held_usd"], 0.0)
                 self.assertEqual(status["calls"], 0)
+
+
+OBSERVED_USAGE = {"prompt_tokens": 112, "completion_tokens": 300, "total_tokens": 412,
+                  "completion_tokens_details": {"reasoning_tokens": 298}}
+OBSERVED_COST_USD = 1415 / 1e6  # 112*1.25 + 300*4.25 micro-USD
+
+
+def make_adapter_full(guard, handler, role_cfg=None):
+    cfg = models_cfg()
+    if role_cfg is not None:
+        cfg["roles"]["interpreter"] = role_cfg
+    return MetaAdapter(cfg, guard, transport=httpx.MockTransport(handler), environ=FAKE_ENV)
+
+
+class TruncationAndReasoningEffortTests(unittest.TestCase):
+    def test_observed_truncated_none_content_rejected_usage_settled(self):
+        guard, _ = make_guard(); calls = []
+        def handler(request):
+            calls.append(1)
+            return httpx.Response(200, json={"choices": [{"message": {"content": None}, "finish_reason": "length"}], "usage": OBSERVED_USAGE})
+        adapter = make_adapter_full(guard, handler)
+        with self.assertRaises(MetaResponseError) as cm:
+            adapter.complete("interpreter", "sys", "hello")
+        self.assertIn("length", str(cm.exception))
+        self.assertEqual(len(calls), 1)
+        st = guard.status()
+        self.assertEqual(st["spent_usd"], OBSERVED_COST_USD); self.assertEqual(st["held_usd"], 0.0); self.assertEqual(st["calls"], 1)
+
+    def test_truncated_partial_content_rejected_usage_settled(self):
+        guard, _ = make_guard(); calls = []
+        def handler(request):
+            calls.append(1)
+            return httpx.Response(200, json={"choices": [{"message": {"content": "partial translation"}, "finish_reason": "length"}], "usage": OBSERVED_USAGE})
+        adapter = make_adapter_full(guard, handler)
+        with self.assertRaises(MetaResponseError) as cm:
+            adapter.complete("interpreter", "sys", "hello")
+        self.assertIn("length", str(cm.exception))
+        self.assertEqual(len(calls), 1)
+        st = guard.status()
+        self.assertEqual(st["spent_usd"], OBSERVED_COST_USD); self.assertEqual(st["held_usd"], 0.0)
+
+    def test_low_and_1024_in_outgoing_json_and_reservation_ceiling(self):
+        import json as _json, math
+        guard, _ = make_guard(); captured = {}
+        def handler(request):
+            captured["body"] = request.content
+            captured["held_usd"] = guard.status()["held_usd"]
+            return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}], "usage": documented_usage()})
+        role = {"model": "muse-spark-1.3", "endpoint": "/chat/completions", "temperature": 0.1, "max_tokens": 1024, "reasoning_effort": "low"}
+        adapter = make_adapter_full(guard, handler, role)
+        result = adapter.complete("interpreter", "sys", "hello")
+        self.assertEqual(result["text"], "ok")
+        payload = _json.loads(captured["body"])
+        self.assertEqual(payload["reasoning_effort"], "low"); self.assertEqual(payload["max_tokens"], 1024)
+        expected_micro = math.ceil((len(captured["body"]) + 2048) * 1.25 + 1024 * 4.25)
+        self.assertAlmostEqual(captured["held_usd"], expected_micro / 1e6, places=9)
+
+    def test_unsupported_reasoning_effort_fails_before_http_and_reservation(self):
+        for bad in ("none", "NONE", "", "extreme", 0, 1, True, None, ["low"], {"effort": "low"}):
+            with self.subTest(bad=bad):
+                guard, _ = make_guard(); calls = []
+                def handler(request):
+                    calls.append(1)
+                    return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}}], "usage": documented_usage()})
+                role = {"model": "muse-spark-1.3", "endpoint": "/chat/completions", "temperature": 0.1, "max_tokens": 1024, "reasoning_effort": bad}
+                adapter = make_adapter_full(guard, handler, role)
+                with self.assertRaises(ConfigError):
+                    adapter.complete("interpreter", "sys", "hello")
+                self.assertEqual(calls, [])
+                st = guard.status()
+                self.assertEqual(st["held_usd"], 0.0); self.assertEqual(st["spent_usd"], 0.0); self.assertEqual(st["calls"], 0)
 
 
 if __name__ == "__main__":

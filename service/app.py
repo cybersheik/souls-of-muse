@@ -201,7 +201,7 @@ def _build_real_adapter(data_dir, environ, on_write=None, transport=None):
         if guard.total_micro > PILOT_TOTAL_MAX_MICRO or guard.stop_micro > PILOT_STOP_MAX_MICRO:
             return None, False
         models = yaml.safe_load((_BENCH / "config" / "models.yaml").read_text(encoding="utf-8")) or {}
-        cfg = dict(models); cfg["roles"] = {"interpreter": {"model": "muse-spark-1.3", "endpoint": "/chat/completions", "temperature": 0.1, "max_tokens": 300}}
+        cfg = dict(models); cfg["roles"] = {"interpreter": {"model": "muse-spark-1.3", "endpoint": "/chat/completions", "reasoning_effort": "low", "temperature": 0.1, "max_tokens": 1024}}
         wrapped = PersistentBudgetGuard(guard, on_write)
         return MetaAdapter(cfg, wrapped, transport=transport, environ=environ), True
     except Exception:

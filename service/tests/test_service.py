@@ -499,6 +499,26 @@ class TestProvisionAndBuild(unittest.TestCase):
         ad, ready = _build_real_adapter(d, {"MODEL_API_KEY": "offline-fake"})
         self.assertFalse(ready); self.assertIsNone(ad)
 
+class TestRealBuilderReasoning(unittest.TestCase):
+    def test_build_real_adapter_sends_low_1024(self):
+        import httpx, json as _json
+        from pathlib import Path
+        from harness.budget import BudgetGuard
+        d = tempfile.mkdtemp()
+        cfgp = Path(d) / "budget.yaml"
+        cfgp.write_text("total_usd: 1.0\nwarn_pct: 0.80\nhard_stop_pct: 0.95\nledger: budget_ledger.sqlite3\nprices_usd_per_mtok:\n  muse-spark-1.3: {input: 1.25, output: 4.25, cached_input: 0.15}\n")
+        BudgetGuard.initialize_ledger(str(cfgp), str(Path(d) / "budget_ledger.sqlite3"))
+        captured = {}
+        def handler(request):
+            captured["body"] = request.content
+            return httpx.Response(200, json={"choices":[{"message":{"content":"ok"},"finish_reason":"stop"}], "usage":{"prompt_tokens":20,"completion_tokens":6,"total_tokens":26}})
+        ad, ready = _build_real_adapter(d, {"MODEL_API_KEY": "offline-fake"}, transport=httpx.MockTransport(handler))
+        self.assertTrue(ready); self.assertIsNotNone(ad)
+        result = ad.complete("interpreter", "sys", "user")
+        self.assertEqual(result["text"], "ok")
+        payload = _json.loads(captured["body"])
+        self.assertEqual(payload["reasoning_effort"], "low"); self.assertEqual(payload["max_tokens"], 1024)
+
 class TestStaticSurfaces(unittest.TestCase):
     def test_pilot_html_no_innerhtml_per_message_approve(self):
         from pathlib import Path
