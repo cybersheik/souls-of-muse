@@ -26,6 +26,7 @@ If `.budget_ledger.json` exists, execution blocks. Do not delete or reset it bli
 - Network timeout/error, HTTP error, malformed JSON, and missing/invalid usage retain the full HOLD. There is no retry and no TTL release.
 - If trusted usage exceeds the reservation, the reservation becomes BLOCKED at the conservative reserved amount and new reservations are disabled.
 - Cached prompt tokens are part of prompt tokens and are charged once at the full input rate; they are not added again.
+- `completion_tokens_details.reasoning_tokens` (Meta Chat Completions documented usage) is accepted only as a non-boolean integer `0 <= reasoning_tokens <= completion_tokens`. It is a subset of `completion_tokens`, never an added charge. Malformed values, unknown nested keys, or out-of-bound counts retain the full HOLD.
 - Corrupt, missing, or schema/total-mismatched ledgers fail closed.
 
 ## Operator reconcile

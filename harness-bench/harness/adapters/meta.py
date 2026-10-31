@@ -40,6 +40,9 @@ class MetaResponseError(RuntimeError):
 MAX_REQUEST_BYTES = 32768
 FRAMING_TOKENS = 2048
 MAX_OUTPUT_TOKENS = 8192
+# Documented Chat Completions reasoning_effort values (dev.meta.ai/docs/reasoning).
+# "none" is not supported (upstream returns 400) and is rejected here first.
+SUPPORTED_REASONING_EFFORTS = frozenset({"low", "medium", "high"})
 ASR_DISABLED_REASON = "ASR paid route disabled: Meta ASR usage/billing contract is unverified, so no reservation or POST is made"
 
 
@@ -130,14 +133,21 @@ class MetaAdapter(Adapter):
         temp = rc.get("temperature", 0.1)
         if isinstance(temp, bool) or not isinstance(temp, (int, float)) or not math.isfinite(float(temp)) or temp < 0 or temp > 2:
             raise ConfigError("temperature must be a finite number in [0, 2]")
-        return model, max_tokens, float(temp)
+        reasoning_effort = None
+        if "reasoning_effort" in rc:
+            reasoning_effort = rc.get("reasoning_effort")
+            if not isinstance(reasoning_effort, str) or reasoning_effort not in SUPPORTED_REASONING_EFFORTS:
+                raise ConfigError("reasoning_effort must be one of 'low', 'medium', 'high'; 'none' and other values are unsupported")
+        return model, max_tokens, float(temp), reasoning_effort
 
     def complete(self, role, system, user, fault="none"):
         rc = self._role(role)
-        model, max_tokens, temp = self._validate_chat_role(rc)
+        model, max_tokens, temp, reasoning_effort = self._validate_chat_role(rc)
         if not isinstance(system, str) or not isinstance(user, str):
             raise ConfigError("system and user prompts must be strings")
         payload = {"model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}], "temperature": temp, "max_tokens": max_tokens}
+        if reasoning_effort is not None:
+            payload["reasoning_effort"] = reasoning_effort
         try:
             body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         except Exception as exc:
@@ -173,9 +183,18 @@ class MetaAdapter(Adapter):
             raise MetaResponseError("response usage invalid or unknown; full budget reservation remains on HOLD") from None
         # BudgetExceeded from settle means BLOCKED/excess and must propagate.
         try:
-            text = data["choices"][0]["message"]["content"]
+            choice = data["choices"][0]
+            finish_reason = choice.get("finish_reason") if isinstance(choice, dict) else None
         except Exception as exc:
             # Usage was trusted and settled, but payload shape is unusable.
+            raise MetaResponseError("malformed response choices; usage was settled from trusted usage") from None
+        if finish_reason == "length":
+            # Truncated output (reasoning may consume the whole budget) must
+            # never be delivered as a complete translation, even if partial.
+            raise MetaResponseError("response truncated: finish_reason=length; usage was settled from trusted usage")
+        try:
+            text = choice["message"]["content"]
+        except Exception as exc:
             raise MetaResponseError("malformed response choices; usage was settled from trusted usage") from None
         if not isinstance(text, str):
             raise MetaResponseError("malformed response text; usage was settled from trusted usage")

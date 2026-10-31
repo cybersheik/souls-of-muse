@@ -62,7 +62,7 @@ KNOWN_CHAT_PRICES_USD_PER_MTOK = {
 KNOWN_ASR_PRICES_USD_PER_1000MIN = {
     "muse-voice-transcribe-1.0": Decimal("3.0"),
 }
-_ALLOWED_USAGE_KEYS = {"prompt_tokens", "completion_tokens", "total_tokens", "prompt_cache_hit_tokens", "prompt_tokens_details"}
+_ALLOWED_USAGE_KEYS = {"prompt_tokens", "completion_tokens", "total_tokens", "prompt_cache_hit_tokens", "prompt_tokens_details", "completion_tokens_details"}
 
 
 def _dec(value):
@@ -318,6 +318,16 @@ class BudgetGuard:
                 if not _is_int(dcached) or dcached < 0 or dcached > prompt:
                     raise UsageValidationError("cached token details invalid; reservation remains on HOLD")
                 cached = max(cached, dcached)
+        if "completion_tokens_details" in usage:
+            cdetails = usage["completion_tokens_details"]
+            if not isinstance(cdetails, dict) or set(cdetails.keys()) - {"reasoning_tokens"}:
+                raise UsageValidationError("usage details unknown; reservation remains on HOLD")
+            if "reasoning_tokens" in cdetails:
+                reasoning = cdetails["reasoning_tokens"]
+                # Reasoning tokens are a subset of completion_tokens (Meta
+                # Chat Completions docs); never an added charge.
+                if not _is_int(reasoning) or reasoning < 0 or reasoning > completion:
+                    raise UsageValidationError("reasoning token details invalid; reservation remains on HOLD")
         # Conservative rule: cached tokens are already inside prompt_tokens and
         # are charged at the full input rate. They are never added a second time.
         _ = cached
