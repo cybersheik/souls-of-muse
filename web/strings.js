@@ -100,14 +100,16 @@ const T = {
 };
 
 
+/* Muse Cabinet 1.4, frame 9 "Seven Leagues": split by instrument family.
+   Tuple: [icon, EN name, RU name, EN instruments, RU instruments, EN family, RU family]. */
 const P01_LEAGUES = [
-  ['ph-guitar', 'Guitar', 'Гитара', 'acoustic · electric · bass', 'акустика · электро · бас'],
-  ['ph-piano-keys', 'Keys', 'Клавишные', 'piano · organ · synth', 'фортепиано · орган · синт'],
-  ['ph-wind', 'Winds', 'Духовые', 'flute · sax · brass', 'флейта · сакс · медь'],
-  ['ph-metronome', 'Drums', 'Ударные', 'kit · hand · percussion', 'установка · перкуссия'],
-  ['ph-waveform', 'Electronic', 'Электроника', 'production · live sets', 'продакшн · лайв-сеты'],
-  ['ph-microphone-stage', 'Vocal', 'Вокал', 'solo · choir', 'соло · хор'],
-  ['dombra', 'Folk', 'Фолк', 'dombra · kobza · koto', 'домбра · кобза · кото'],
+  ['ph-guitar', 'League of the String', 'Лига струны', 'guitar · balalaika · dombra · kobza · mandolin · ukulele · koto', 'гитара · балалайка · домбра · кобза · мандолина · укулеле · кото', 'plucked strings', 'щипковые струнные'],
+  ['ph-wave-sine', 'League of the Bow', 'Лига смычка', 'violin · viola · cello · double bass · kyl-kobyz', 'скрипка · альт · виолончель · контрабас · кыл-кобыз', 'bowed strings', 'смычковые струнные'],
+  ['ph-piano-keys', 'Keys', 'Клавишные', 'piano · organ · synth', 'фортепиано · орган · синт', 'keyboards', 'клавишные'],
+  ['ph-wind', 'Winds', 'Духовые', 'flute · sax · brass · duduk', 'флейта · сакс · медь · дудук', 'woodwind and brass', 'деревянные и медные духовые'],
+  ['ph-hand-tap', 'Drums', 'Ударные', 'kit · hand · percussion', 'установка · перкуссия', 'percussion', 'ударные'],
+  ['ph-waveform', 'Electronic', 'Электроника', 'production · live sets', 'продакшн · лайв-сеты', 'electronic music', 'электронная музыка'],
+  ['ph-microphone-stage', 'Vocal', 'Вокал', 'solo · choir', 'соло · хор', 'voice', 'голос'],
 ];
 
 const ORIGIN = {
@@ -120,13 +122,13 @@ const ROLE = {
     en: { today: { kicker: 'Guitar · Session 3 · with Ramires95', title: 'F → C changes, strumming in 4/4', meta: 'Today · 19:00–19:45', chip: 'Starts in 1 h 40 min', chipIcon: 'ph-clock', peopleNote: 'Ramires95 + 3 artists', action: 'Enter session' },
       modes: { indiv: 'One-to-one with Ramires95 · 30 min', group: 'With Aidar, Mai and Minji · 45 min' },
       muse: { intro: 'Ramires95 left you a note after Session 2, in Portuguese. Translated:', quote: '“Slow the F → C change down to 60 bpm. Lift all fingers together, then land them at once.”', meta: 'Session 2 · clean 6/10 · on beat 81%', a1: 'Practise at 60 bpm', a2: 'Reply to Ramires95' },
-      league: { name: 'Guitar League', events: [['Oct', '31', 'Open jam, Lisbon + online', 'Thu · 20:00 · 41 going'], ['Nov', '2', 'Fingerstyle circle with Minji', 'Sat · 18:00 · 12 seats']] },
+      league: { name: 'League of the String', events: [['Oct', '31', 'Open jam, Lisbon + online', 'Thu · 20:00 · 41 going'], ['Nov', '2', 'Fingerstyle circle with Minji', 'Sat · 18:00 · 12 seats']] },
       recsTitle: 'My recordings', place: 'You: Artist · session 3 of 8 · a voice in League votes',
       recs: [['sig', 'My signature', 'Hip-hop · 88 bpm · 0:07'], ['sk', 'Session 2 · F → C change', '30 Oct · 0:42', 'Waiting for Maestro’s OK'], ['sk', 'Practice · Am–F–C–G', '29 Oct · 1:15']] },
     ru: { today: { kicker: 'Гитара · Встреча 3 · с Ramires95', title: 'Смена F → C, бой на 4/4', meta: 'Сегодня · 19:00–19:45', chip: 'Через 1 ч 40 мин', chipIcon: 'ph-clock', peopleNote: 'Ramires95 и ещё 3 артиста', action: 'Войти во встречу' },
       modes: { indiv: 'Один на один с Ramires95 · 30 мин', group: 'С Айдаром, Май и Минджи · 45 мин' },
       muse: { intro: 'Ramires95 оставил вам заметку после встречи 2, на португальском. Перевод:', quote: '«Замедлите смену F → C до 60 ударов. Поднимайте все пальцы вместе и ставьте их разом».', meta: 'Встреча 2 · чисто 6/10 · в долю 81%', a1: 'Заниматься на 60', a2: 'Ответить Ramires95' },
-      league: { name: 'Лига гитары', events: [['окт', '31', 'Открытый джем, Лиссабон + онлайн', 'Чт · 20:00 · идут 41'], ['ноя', '2', 'Фингерстайл-круг с Минджи', 'Сб · 18:00 · 12 мест']] },
+      league: { name: 'Лига струны', events: [['окт', '31', 'Открытый джем, Лиссабон + онлайн', 'Чт · 20:00 · идут 41'], ['ноя', '2', 'Фингерстайл-круг с Минджи', 'Сб · 18:00 · 12 мест']] },
       recsTitle: 'Мои записи', place: 'Вы: Артист · встреча 3 из 8 · голос в решениях Лиги',
       recs: [['sig', 'Моя подпись', 'Хип-хоп · 88 · 0:07'], ['sk', 'Встреча 2 · смена F → C', '30 окт · 0:42', 'Ждёт одобрения Маэстро'], ['sk', 'Практика · Am–F–C–G', '29 окт · 1:15']] },
     people: [['RA', 'Ramires95', 'Maestro', 'Маэстро', 'PT · EN'], ['АК', 'Айдар Кожахметов', 'Artist', 'Артист', 'KK · RU'], ['NM', 'Nguyễn Thị Mai', 'Artist', 'Артист', 'VI'], ['김', '김민지', 'Maestro · fingerstyle', 'Маэстро · фингерстайл', 'KO · EN']],
@@ -136,27 +138,27 @@ const ROLE = {
     en: { today: { kicker: 'Vocal · Session 1 · you lead', title: 'Breath and the first phrase', meta: 'Today · 21:00–21:45', chip: 'Starts in 3 h 40 min', chipIcon: 'ph-clock', peopleNote: 'Sakura, Haydn, Aidar · all confirmed', action: 'Open session' },
       modes: { indiv: 'One artist at a time · 30 min', group: 'Sakura, Haydn and Aidar · 45 min' },
       muse: { intro: 'Sakura wrote to you in Japanese. Translated:', quote: '“Could I try one session one-to-one first? I’m shy to sing in a circle.”', meta: 'From Session 0 · Sakura clean 7/10 · Haydn 5/10 · Aidar 8/10', a1: 'Offer one-to-one Sat 10:30', a2: 'Reply, MUSE translates' },
-      league: { name: 'Vocal League', events: [['Nov', '1', 'Choir warm-up for new Maestros', 'Fri · 19:00 · online'], ['Nov', '9', 'Open mic, Almaty + online', 'Sat · 20:00 · 28 going']] },
+      league: { name: 'Vocal', events: [['Nov', '1', 'Choir warm-up for new Maestros', 'Fri · 19:00 · online'], ['Nov', '9', 'Open mic, Almaty + online', 'Sat · 20:00 · 28 going']] },
       recsTitle: 'Artists’ recordings', place: 'You: Maestro · 3 artists · a voice in League votes',
       recs: [['br', 'Sakura · first phrase, practice', '30 Oct · 0:52', 'Waiting for your OK'], ['br', 'Haydn · breath on 4 counts', '29 Oct · 0:41', 'Waiting for your OK'], ['br', 'Aidar · first phrase', '29 Oct · 0:47']] },
     ru: { today: { kicker: 'Вокал · Встреча 1 · вы ведёте', title: 'Дыхание и первая фраза', meta: 'Сегодня · 21:00–21:45', chip: 'Через 3 ч 40 мин', chipIcon: 'ph-clock', peopleNote: 'Сакура, Haydn, Айдар · все подтвердили', action: 'Открыть встречу' },
       modes: { indiv: 'По одному артисту · 30 мин', group: 'Сакура, Haydn и Айдар · 45 мин' },
       muse: { intro: 'Сакура написала вам по-японски. Перевод:', quote: '«Можно сначала одну встречу один на один? Мне неловко петь в кругу».', meta: 'Встреча 0 · Сакура чисто 7/10 · Haydn 5/10 · Айдар 8/10', a1: 'Предложить один на один, сб 10:30', a2: 'Ответить, MUSE переведёт' },
-      league: { name: 'Лига вокала', events: [['ноя', '1', 'Распевка хора для новых маэстро', 'Пт · 19:00 · онлайн'], ['ноя', '9', 'Открытый микрофон, Алматы + онлайн', 'Сб · 20:00 · идут 28']] },
+      league: { name: 'Вокал', events: [['ноя', '1', 'Распевка хора для новых маэстро', 'Пт · 19:00 · онлайн'], ['ноя', '9', 'Открытый микрофон, Алматы + онлайн', 'Сб · 20:00 · идут 28']] },
       recsTitle: 'Записи артистов', place: 'Вы: Маэстро · 3 артиста · голос в решениях Лиги',
       recs: [['br', 'Сакура · первая фраза, практика', '30 окт · 0:52', 'Ждёт вашего одобрения'], ['br', 'Haydn · дыхание на 4 счёта', '29 окт · 0:41', 'Ждёт вашего одобрения'], ['br', 'Айдар · первая фраза', '29 окт · 0:47']] },
     people: [['さ', 'さくら', 'Artist', 'Артист', 'JA'], ['HA', 'Haydn', 'Artist', 'Артист', 'EN · DE'], ['АК', 'Айдар Кожахметов', 'Artist', 'Артист', 'KK · RU'], ['OL', 'Olga Petrenko', 'Maestro · choir', 'Маэстро · хор', 'UK · RU']],
     todayPeople: ['さ', 'HA', 'АК'], lesson: true,
   },
   listener: {
-    en: { today: { kicker: 'Folk League · small concert, online', title: 'Aidar Kozhakhmetov · dombra, kyui of the steppe', meta: 'Today · 20:30 · online · 64 seats', chip: 'Seat held · confirm by 19:30', chipIcon: 'ph-seal-question', peopleNote: 'Aidar + 2 guest players', action: 'Confirm my seat' },
+    en: { today: { kicker: 'League of the String · small concert, online', title: 'Aidar Kozhakhmetov · dombra, kyui of the steppe', meta: 'Today · 20:30 · online · 64 seats', chip: 'Seat held · confirm by 19:30', chipIcon: 'ph-seal-question', peopleNote: 'Aidar + 2 guest players', action: 'Confirm my seat' },
       muse: { intro: 'Aidar introduces each kyui in Kazakh. I’ll subtitle the intros in English during the evening.', quote: '“A kyui is a story told without words. Each one has a title and a legend.”', meta: 'Subtitles: English · Kazakh original', a1: 'Keep subtitles on', a2: 'Ask Aidar a question' },
-      league: { name: 'Folk League', events: [['Oct', '31', 'Open jam near you · Lisbon, Café Ritornello', 'Thu · 20:00 · 2.1 km · 41 going'], ['Nov', '3', 'Small concert online · koto and kobza', 'Sun · 19:30 · 48 seats left']] },
+      league: { name: 'League of the String', events: [['Oct', '31', 'Open jam near you · Lisbon, Café Ritornello', 'Thu · 20:00 · 2.1 km · 41 going'], ['Nov', '3', 'Small concert online · koto and kobza', 'Sun · 19:30 · 48 seats left']] },
       recsTitle: 'Shared for listening', place: 'You: Admirer · since 30 Oct · 3 evenings · a voice in League votes',
       recs: [['sk', 'Aidar · kyui “Adai”, live', 'Aidar · 4:12'], ['br', 'Sakura · koto miniature', 'Sakura · 2:30'], ['sk', 'Open jam Lisbon · last week', 'Taras · 18:05']] },
-    ru: { today: { kicker: 'Лига фолка · камерный концерт, онлайн', title: 'Айдар Кожахметов · домбра, кюи степи', meta: 'Сегодня · 20:30 · онлайн · 64 места', chip: 'Место за вами · подтвердить до 19:30', chipIcon: 'ph-seal-question', peopleNote: 'Айдар и 2 гостя', action: 'Подтвердить место' },
+    ru: { today: { kicker: 'Лига струны · камерный концерт, онлайн', title: 'Айдар Кожахметов · домбра, кюи степи', meta: 'Сегодня · 20:30 · онлайн · 64 места', chip: 'Место за вами · подтвердить до 19:30', chipIcon: 'ph-seal-question', peopleNote: 'Айдар и 2 гостя', action: 'Подтвердить место' },
       muse: { intro: 'Айдар представляет каждый кюй по-казахски. Я дам субтитры к вступлениям на русском.', quote: '«Кюй — это история без слов. У каждого есть название и легенда».', meta: 'Субтитры: русский · оригинал на казахском', a1: 'Оставить субтитры', a2: 'Спросить Айдара' },
-      league: { name: 'Лига фолка', events: [['окт', '31', 'Открытый джем рядом · Лиссабон, Café Ritornello', 'Чт · 20:00 · 2,1 км · идут 41'], ['ноя', '3', 'Камерный концерт онлайн · кото и кобза', 'Вс · 19:30 · осталось 48 мест']] },
+      league: { name: 'Лига струны', events: [['окт', '31', 'Открытый джем рядом · Лиссабон, Café Ritornello', 'Чт · 20:00 · 2,1 км · идут 41'], ['ноя', '3', 'Камерный концерт онлайн · кото и кобза', 'Вс · 19:30 · осталось 48 мест']] },
       recsTitle: 'Открыто для прослушивания', place: 'Вы: Ценитель · с 30 окт · 3 вечера · голос в решениях Лиги',
       recs: [['sk', 'Айдар · кюй «Адай», живьём', 'Айдар · 4:12'], ['br', 'Сакура · миниатюра на кото', 'Сакура · 2:30'], ['sk', 'Открытый джем, Лиссабон · прошлая неделя', 'Тарас · 18:05']] },
     people: [['АК', 'Айдар Кожахметов', 'Maestro · dombra', 'Маэстро · домбра', 'KK · RU'], ['さ', 'さくら', 'koto', 'кото', 'JA'], ['TB', 'Taras Bondar', 'Maestro · kobza', 'Маэстро · кобза', 'UK · EN'], ['NM', 'Nguyễn Thị Mai', 'Admirer', 'Ценитель', 'VI']],
@@ -165,19 +167,19 @@ const ROLE = {
 };
 
 
-/* Muse Cabinet 1.3 — home (frames 0a/0b/7) and session screens (frames 1-5).
-   EN/RU pairs taken from the 1.3 frames; example people/data are labelled. */
+/* Muse Cabinet 1.4 — home and session screens.
+   EN/RU pairs taken from the 1.4 frames; example people/data are labelled. */
 const CAB = {
   people: { artist: ["London_hippie", "SOM-000042"], maestro: ["Ramires95", "SOM-000007"], admirer: ["Blue Cadenza", "SOM-000113"] },
   en: {
     exampleData: "example data", brand: "Souls of Muse",
-    myLeague: "My League", guitar: "Guitar", myRole: "My role",
+    myLeague: "My League", leagueName: "League of the String", leagueFamily: "plucked strings · my instrument: guitar", myRole: "My role",
     myConvention: "My Convention", history: "History of participation", myNotes: "My notes",
     notesPrivate: "Your private notes stay yours. The Maestro’s notes and the Artist’s notes are kept apart.",
     playToday: "What shall we play today?",
     subArtist: "My goal · next session · practice",
     subMaestro: "My circle · next session · what Muse heard in practice",
-    subAdmirer: "Sessions open to listen · the League’s music",
+    subAdmirer: "Sessions open to listen · League of the String",
     session: "Session", oneToOne: "one-to-one", inCircle: "in a circle",
     nextSession: "Next session · in a circle", openListen: "Open to listen · in a circle",
     today1830: "Today · 18:30", enter: "Enter", soundPress: "Sound starts when you press",
@@ -196,7 +198,7 @@ const CAB = {
     opensNext: "opens next",
     tile2: "Music session", tile2Title: "Play together", tile2Body: "A small group plays and practises with a lead, a goal and chosen music.",
     tile3: "Music stream", tile3Title: "Perform and listen", tile3Body: "An Artist performs, Admirers listen. Repertoire and sound are checked before going live.",
-    tile4: "My League", tile4Title: "League chat, topics, decisions", tile4Body: "The League’s shared home: find partners, talk practice, decide together.",
+    tile4: "My League", tile4Title: "League of the String", tile4Sub: "plucked strings · chat, topics, decisions", tile4Body: "The League’s shared home: find partners, talk practice, decide together.",
     homeFoot: "First a finished session. Music sessions, streams and the League open after their own check.",
     /* session */
     backCabinet: "Cabinet home", endSession: "End session", leave: "Leave",
@@ -213,7 +215,7 @@ const CAB = {
     presenceArtist: "Ramires95 is listening to you", latency: "Ramires95 · 38 ms",
     voiceTrans: "voice: Muse translation PT → RU", micOff: "Your microphone is off — the circle doesn’t hear you",
     video: "Video", videoCheck: "Video check", videoChoose: "Video check — choose an artist",
-    videoDemo: "Video demonstration", videoMaestro: "The Maestro turns on video when needed",
+    videoDemo: "Video demo", videoMaestro: "The Maestro turns on video when needed",
     videoAdmirer: "Video appears when the Maestro demonstrates",
     videoWait: "Waiting for the camera", videoNotConnected: "Video is not connected in this example — nothing is sent anywhere.",
     sessionPlan: "Session plan", practicePlan: "Practice plan",
@@ -262,13 +264,13 @@ const CAB = {
   },
   ru: {
     exampleData: "пример данных", brand: "Souls of Muse",
-    myLeague: "Моя Лига", guitar: "Гитара", myRole: "Моя роль",
+    myLeague: "Моя Лига", leagueName: "Лига струны · гитара", leagueFamily: "щипковые струнные", myRole: "Моя роль",
     myConvention: "Моя Конвенция", history: "История участия", myNotes: "Мои заметки",
     notesPrivate: "Личные заметки видны только вам. Заметки Маэстро и Артиста хранятся раздельно.",
     playToday: "Что сыграем сегодня?",
     subArtist: "Моя цель · ближайшая встреча · практика",
     subMaestro: "Мой круг · ближайшая встреча · что Muse услышала в практике",
-    subAdmirer: "Встречи, открытые для слушателей · музыка Лиги",
+    subAdmirer: "Встречи, открытые для слушателей · Лига струны",
     session: "Встреча", oneToOne: "один на один", inCircle: "в кругу",
     nextSession: "Ближайшая встреча · в кругу", openListen: "Открыто для слушателей · в кругу",
     today1830: "Сегодня · 18:30", enter: "Войти", soundPress: "Звук — только по нажатию",
@@ -287,7 +289,7 @@ const CAB = {
     opensNext: "откроется следом",
     tile2: "Музыкальная сессия", tile2Title: "Играть вместе", tile2Body: "Небольшая группа играет вместе: есть ведущий, цель и выбранная музыка.",
     tile3: "Музыкальный стрим", tile3Title: "Выступать и слушать", tile3Body: "Артист выступает, Ценители слушают. Репертуар и звук проверяются до эфира.",
-    tile4: "Моя Лига", tile4Title: "Чат Лиги, топики, решения", tile4Body: "Общий дом Лиги: найти партнёров, обсудить практику, решать вместе.",
+    tile4: "Моя Лига", tile4Title: "Лига струны", tile4Sub: "щипковые струнные · чат, топики, решения", tile4Body: "Общий дом Лиги: найти партнёров, обсудить практику, решать вместе.",
     homeFoot: "Сначала — законченная встреча. Сессии, стримы и Лига откроются после собственной проверки.",
     backCabinet: "Главная кабинета", endSession: "Завершить встречу", leave: "Выйти",
     session3: "Встреча 3 · Гитара",
@@ -303,7 +305,7 @@ const CAB = {
     presenceArtist: "Ramires95 слушает вас", latency: "Ramires95 · 38 мс",
     voiceTrans: "голос: перевод Muse PT → RU", micOff: "Ваш микрофон выключен — круг вас не слышит",
     video: "Видео", videoCheck: "Видео контроль", videoChoose: "Видео контроль — выберите артиста",
-    videoDemo: "Видео демонстрация", videoMaestro: "Видео включит Маэстро, когда понадобится",
+    videoDemo: "Показ", videoMaestro: "Видео включит Маэстро, когда понадобится",
     videoAdmirer: "Видео появится, когда Маэстро будет показывать",
     videoWait: "Ждём камеру", videoNotConnected: "Видео в этом примере не подключено — ничего никуда не отправляется.",
     sessionPlan: "План встречи", practicePlan: "План упражнений",

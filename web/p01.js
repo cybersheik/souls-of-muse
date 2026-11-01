@@ -1,6 +1,6 @@
 "use strict";
 /* Portal views: Entrance v4, 02 Welcome, 04 Components. The personal
-   cabinet (03) moved to web/cabinet.js (Muse Cabinet 1.3, #/space).
+   cabinet (03) moved to web/cabinet.js (Muse Cabinet 1.4, #/space).
    All user text comes from web/strings.js (window.P01Strings).
    Demo member is the mock's Lina Khairullina; no backend success is claimed:
    votes are "not open yet", session entry points at the preserved lesson page
@@ -91,10 +91,13 @@ function medalCard() {
       <button data-medal="classic" aria-pressed="${state.medal === "classic"}">${escP(tt.classic)}</button>
     </div></div>`;
 }
-/* Dombra contour (triangular body, long neck) — Folk emblem, not a feather/leaf. */
-const DOMBRA_SVG = `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:1.35em;height:1.35em"><path d="M30 4l4 4-13 13"/><path d="M34 8l6-2-2 6"/><circle cx="15" cy="33" r="2.2" fill="currentColor" stroke="none"/><path d="M21 21L8 34a5 5 0 0 0 7 7l13-13a5 5 0 0 0-7-7z"/><path d="M13 36l6-6"/></svg>`;
+/* Cabinet 1.4 frame 9: neutral placeholder icons per instrument family. */
 function leagueGlyph(icon) {
-  return icon === "dombra" ? DOMBRA_SVG : `<i class="ph ${icon}"></i>`;
+  return `<i class="ph ${icon}"></i>`;
+}
+function leagueCaption([, , , eIns, rIns, eFam, rFam]) {
+  const en = state.lang === "en";
+  return `${escP(en ? eFam : rFam)} · ${escP(en ? eIns : rIns)}`;
 }
 function roleTabs(activeKey) {
   const tt = t();
@@ -164,7 +167,7 @@ function entrance() {
     </div>
     <p class="p01-ent-about">${escP(tt.about)}</p>
     <div class="p01-ent-leagueshead"><h2 class="serif">${escP(tt.leaguesTitle)}</h2><span>${escP(tt.leaguesNote)}</span></div>
-    <div class="p01-ent-leagues">${PS.LEAGUES.map(([ic, e, r]) => `<div class="p01-ent-league"><span class="p01-emblem p01-emblem-lg"><img src="assets/frame-classic.png" alt="">${leagueGlyph(ic)}</span><span>${escP(state.lang === "en" ? e : r)}</span></div>`).join("")}</div>
+    <div class="p01-ent-leagues">${PS.LEAGUES.map((L) => { const [ic, e, r] = L; return `<div class="p01-ent-league"><span class="p01-emblem p01-emblem-lg"><img src="assets/frame-classic.png" alt="">${leagueGlyph(ic)}</span><span>${escP(state.lang === "en" ? e : r)}</span><span class="p01-league-fam">${leagueCaption(L)}</span></div>`; }).join("")}</div>
   </main>
   <footer class="p01-foot">${escP(tt.footer)}</footer></div>`;
 }
@@ -235,7 +238,7 @@ function components() {
       <div><h2>Card</h2><div style="margin-top:12px">${memberCard(false)}</div></div>
       <div><h2>${en ? "Medal · member's choice" : "Медаль · выбор участника"}</h2><div style="margin-top:12px">${medalCard()}</div></div>
       <div><h2>${en ? "League emblem frame" : "Рамка эмблемы Лиги"}</h2>
-        <div class="p01-leagues" style="margin-top:12px">${PS.LEAGUES.map(([ic, e, r]) => `<span class="p01-league"><span class="p01-emblem"><img src="assets/frame-classic.png" alt="">${leagueGlyph(ic)}</span>${escP(en ? e : r)}</span>`).join("")}</div></div>
+        <div class="p01-leagues" style="margin-top:12px">${PS.LEAGUES.map((L) => { const [ic, e, r] = L; return `<span class="p01-league"><span class="p01-emblem"><img src="assets/frame-classic.png" alt="">${leagueGlyph(ic)}</span>${escP(en ? e : r)}<span class="p01-league-fam">${leagueCaption(L)}</span></span>`; }).join("")}</div></div>
       <div><h2>${en ? "Status chips" : "Чипы статусов"}</h2><div class="p01-chips" style="margin-top:12px">${chipL.map(c => `<span class="p01-chip">${escP(c)}</span>`).join("")}</div></div>
     </section>
     <section class="dark">
@@ -248,7 +251,7 @@ function components() {
         <span style="display:flex;gap:10px;align-items:center"><img src="assets/muse-badge.png" alt="MUSE" style="width:40px">MUSE · mediator</span>
         <span style="display:flex;gap:10px;align-items:center"><img src="assets/lyre.png" alt="Golden Lyre" style="height:40px">Souls of Muse · community</span></div></div>
       <div><h2>${en ? "League emblem frame · compact" : "Рамка эмблемы Лиги · компактно"}</h2>
-        <div style="display:flex;gap:12px;align-items:center;margin-top:12px"><span class="p01-emblem"><img src="assets/frame-classic.png" alt=""><i class="ph ph-guitar"></i></span><div><div class="p01-kicker">${escP(tt.league)}</div><div style="font-size:18px;font-weight:500">${en ? "Guitar League" : "Лига гитары"}</div></div></div></div>
+        <div style="display:flex;gap:12px;align-items:center;margin-top:12px"><span class="p01-emblem"><img src="assets/frame-classic.png" alt=""><i class="ph ph-guitar"></i></span><div><div class="p01-kicker">${escP(tt.league)}</div><div style="font-size:18px;font-weight:500">${en ? "League of the String" : "Лига струны"}</div></div></div></div>
       <div><h2>${en ? "Status chips" : "Чипы статусов"}</h2><div class="p01-chips" style="margin-top:12px">${chipD.map(c => `<span class="p01-chip" style="background:var(--p01-n900);border-color:var(--p01-n800);color:var(--p01-n300)">${escP(c)}</span>`).join("")}</div></div>
     </section>
   </main></div>`;

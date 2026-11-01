@@ -9,7 +9,7 @@ const $ = (s, r=document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 /* ---------- local UI preferences only (never an account/member/vote store) ---------- */
-let prefs = { role:"listener", league:"guitar" };
+let prefs = { role:"listener", league:"string" };
 try { Object.assign(prefs, JSON.parse(localStorage.getItem("som_ui_prefs")||"{}")); } catch(e){}
 const savePrefs = () => { try{ localStorage.setItem("som_ui_prefs", JSON.stringify(prefs)); }catch(e){} };
 
@@ -18,15 +18,16 @@ const savePrefs = () => { try{ localStorage.setItem("som_ui_prefs", JSON.stringi
 const ceremony = { name:"", reading:"", preview:null };
 const EXAMPLE = { name:"Haydn" };
 
-/* ---------- canonical seven leagues (emblem slot is neutral: each League chooses its own) ---------- */
+/* ---------- Cabinet 1.4 frame 9: seven Leagues by instrument family
+   (emblem slot is neutral: each League chooses its own) ---------- */
 const LEAGUES = [
- {id:"guitar", name:"Лига гитары", desc:"Классическая, акустическая и электрогитара: от первых аккордов до концертных программ.", tags:["гитара","ансамбль"]},
- {id:"keys", name:"Лига клавишных", desc:"Фортепиано и клавишные: чтение с листа, ансамбль, импровизация.", tags:["фортепиано","импровизация"]},
- {id:"winds", name:"Лига духовых", desc:"Деревянные и медные духовые: дыхание, строй и ансамблевая игра.", tags:["духовые","ансамбль"]},
- {id:"drums", name:"Лига ударных", desc:"Ритм, перкуссия и ударные установки: пульс живой музыки.", tags:["ритм","перкуссия"]},
- {id:"electronic", name:"Лига электронных", desc:"Синтезаторы, электронное звучание и живое исполнение с технологиями.", tags:["синтезатор","лайв"]},
- {id:"voice", name:"Лига вокала", desc:"Пение, хор и вокальные ансамбли: голос как инструмент.", tags:["вокал","хор"]},
- {id:"folk", name:"Лига народных", desc:"Народные инструменты и традиции живой музыки разных стран.", tags:["традиции","ансамбль"]},
+ {id:"string", name:"Лига струны", desc:"Щипковые струнные: гитара · балалайка · домбра · кобза · мандолина · укулеле · кото.", tags:["гитара","щипковые"]},
+ {id:"bow", name:"Лига смычка", desc:"Смычковые струнные: скрипка · альт · виолончель · контрабас · кыл-кобыз.", tags:["скрипка","смычковые"]},
+ {id:"keys", name:"Клавишные", desc:"Клавишные: фортепиано · орган · синт.", tags:["фортепиано","клавишные"]},
+ {id:"winds", name:"Духовые", desc:"Деревянные и медные духовые: флейта · сакс · медь · дудук.", tags:["духовые","флейта"]},
+ {id:"drums", name:"Ударные", desc:"Ударные: установка · перкуссия.", tags:["ритм","перкуссия"]},
+ {id:"electronic", name:"Электроника", desc:"Электронная музыка: продакшн · лайв-сеты.", tags:["синтезатор","лайв"]},
+ {id:"vocal", name:"Вокал", desc:"Голос: соло · хор.", tags:["вокал","хор"]},
 ];
 const DATA = {
  topics:[

@@ -1,4 +1,4 @@
-/* Muse Cabinet 1.3 — home (#/space) and session screens (#/session/...).
+/* Muse Cabinet 1.4 — home (#/space) and session screens (#/session/...).
    Uses Souls of Muse DS tokens from web/styles.css :root (mirroring
    web/_ds/nocturne styles.css). Gold = main action/participation/signature,
    red = needs help (fills/dots; text --color-red-text), lavender = Muse,
@@ -6,6 +6,9 @@
 .cab{font-family:Inter,system-ui,sans-serif;background:var(--color-bg);color:var(--color-text);min-height:100vh}
 .cab *{box-sizing:border-box}
 .cab :focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+/* routed <main tabindex="-1"> takes programmatic focus on navigation:
+   no ring for that; interactive controls keep :focus-visible above */
+.cab main[tabindex="-1"]:focus,.cab main[tabindex="-1"]:focus-visible{outline:none}
 .cab .mono{font-family:'JetBrains Mono',monospace}
 .cab-tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.02em;padding:3px 10px;border-radius:6px;white-space:nowrap}
 .cab-tag-neutral{background:var(--color-neutral-800);color:var(--color-neutral-100)}
@@ -33,7 +36,7 @@
 .cab-btn:hover{background:color-mix(in srgb,var(--color-text) 7%,transparent)}
 .cab-btn-primary{color:var(--color-accent-300);border-color:var(--color-accent)}
 .cab-btn-ghost{border-color:transparent;color:var(--color-accent-300)}
-.cab-baton{width:14px;height:14px;display:inline-block;flex:none;background:currentColor;-webkit-mask:url(assets/baton.svg) center/contain no-repeat;mask:url(assets/baton.svg) center/contain no-repeat}
+.cab-baton{width:14px;height:14px;display:inline-block;flex:none;background:currentColor;-webkit-mask:url(assets/baton-v2.svg) center/contain no-repeat;mask:url(assets/baton-v2.svg) center/contain no-repeat}
 /* header */
 .cab-head{display:flex;align-items:center;gap:16px;min-height:56px;padding:8px 22px;border-bottom:1px solid var(--color-divider);flex-wrap:wrap}
 .cab-brand{display:flex;align-items:center;gap:10px;color:var(--color-text);text-decoration:none;font-size:15px;font-weight:500}
@@ -48,6 +51,8 @@
 .cab-home{display:grid;grid-template-columns:256px minmax(0,1fr);max-width:1440px;margin:0 auto;min-height:calc(100vh - 56px)}
 .cab-side{display:flex;flex-direction:column;gap:22px;padding:22px;border-right:1px solid var(--color-divider)}
 .cab-league-name{font-size:26px;font-weight:500;letter-spacing:-.02em;margin-top:6px}
+.cab-league-fam{font-size:13px;color:var(--color-neutral-400);margin-top:4px}
+.cab-tile-sub{font-size:13px;color:var(--color-neutral-300)}
 .cab-roles{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .cab-role{display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--color-neutral-700);background:transparent;color:var(--color-neutral-300);font-size:13px;cursor:pointer}
 .cab-role:hover{border-color:var(--color-gold-600)}
@@ -58,7 +63,7 @@
 .cab-sidenav i{font-size:16px;color:var(--color-neutral-400)}
 .cab-side-note{margin-top:auto;font-size:12px;line-height:1.5;color:var(--color-neutral-500)}
 .cab-main{display:flex;flex-direction:column;gap:22px;padding:22px 40px;min-width:0}
-.cab-main h1{margin:0;font-size:34px;font-weight:500;letter-spacing:-.025em;line-height:1.12}
+.cab-main h1{margin:0;font-family:Inter,system-ui,sans-serif;font-size:34px;font-weight:500;letter-spacing:-.025em;line-height:1.12}
 .cab-sub{font-size:14px;color:var(--color-neutral-400);margin-top:8px}
 .cab-tiles{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);grid-template-rows:repeat(3,minmax(0,1fr));gap:11px;flex:1}
 .cab-tile-session{grid-row:1/span 3;display:flex;flex-direction:column;gap:16px;padding:22px;border-radius:var(--radius-lg);background:var(--color-surface);border:1px solid var(--color-neutral-700)}

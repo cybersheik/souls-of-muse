@@ -1,6 +1,6 @@
 "use strict";
-/* Muse Cabinet 1.3 views: home on #/space (frames 0a/0b/7) and session
-   screens (frames 1-5) built on the approved session layout preserved in
+/* Muse Cabinet 1.4 views: home on #/space and session
+   screens built on the approved session layout preserved in
    web/lesson.html (plan in the centre, notebook as a drawer on the right).
    All user text comes from web/strings.js (P01Strings.CAB + T role words).
    Example people and data only; no live connection is claimed, and sound
@@ -78,13 +78,13 @@ function home(role) {
         <span class="cab-line"><i class="ph ph-headphones"></i>${cabEsc(C.admirerLine1)}</span>
         <span class="cab-line muse"><i class="ph ph-sparkle"></i>${cabEsc(C.admirerLine2)}</span>
       </div>`;
-  const tile = (num, name, title, body) => `<section class="cab-tile" aria-disabled="true">
+  const tile = (num, name, title, body, sub) => `<section class="cab-tile" aria-disabled="true">
       <div class="cab-tile-head"><span class="cab-tile-num dim"><span class="num-gold">${num}</span> · ${cabEsc(name)}</span><span style="flex:1"></span><span class="cab-tag cab-tag-neutral">${cabEsc(C.opensNext)}</span></div>
-      <div class="cab-tile-title">${cabEsc(title)}</div><div class="cab-tile-body">${cabEsc(body)}</div></section>`;
+      <div class="cab-tile-title">${cabEsc(title)}</div>${sub ? `<div class="cab-tile-sub">${cabEsc(sub)}</div>` : ""}<div class="cab-tile-body">${cabEsc(body)}</div></section>`;
   return `<div class="cab" data-cab-screen="home-${role}">${cabHead(role)}
   <div class="cab-home">
     <aside class="cab-side">
-      <div><span class="rule-gold">${cabEsc(C.myLeague)}</span><div class="cab-league-name">${cabEsc(C.guitar)}</div></div>
+      <div><span class="rule-gold">${cabEsc(C.myLeague)}</span><div class="cab-league-name">${cabEsc(C.leagueName)}</div><div class="cab-league-fam">${cabEsc(C.leagueFamily)}</div></div>
       <div class="divider-fade"></div>
       <div><span class="rule-gold">${cabEsc(C.myRole)}</span><div class="cab-roles" role="group" aria-label="${cabEsc(C.myRole)}">${roleButtons(role)}</div></div>
       <div class="divider-fade"></div>
@@ -108,7 +108,7 @@ function home(role) {
         </section>
         ${tile("02", C.tile2, C.tile2Title, C.tile2Body)}
         ${tile("03", C.tile3, C.tile3Title, C.tile3Body)}
-        ${tile("04", C.tile4, C.tile4Title, C.tile4Body)}
+        ${tile("04", C.tile4, C.tile4Title, C.tile4Body, C.tile4Sub)}
       </div>
       <p class="cab-home-foot">${cabEsc(C.homeFoot)}</p>
     </main>
@@ -273,7 +273,7 @@ function session(role, mode) {
       <div style="display:flex;flex-direction:column;gap:11px">
         <span class="cab-label">${cabEsc(C.video)}</span>
         <div class="cab-video-box"><span><i class="ph ph-video-camera-slash" style="font-size:22px"></i><br>${cabEsc(isM ? (mode === "circle" && F === "all" ? C.videoChoose : C.videoWait + (focusName ? ` · ${focusName}` : "")) : isAd ? C.videoAdmirer : C.videoMaestro)}</span></div>
-        ${isAd ? "" : `<button type="button" class="cab-btn" data-cab-video><i class="ph ${isM ? "ph-video-camera" : "ph-monitor-play"}"></i>${cabEsc(isM ? C.videoCheck : C.videoDemo)}</button>`}
+        ${isAd ? "" : isM ? `<button type="button" class="cab-btn" data-cab-video><i class="ph ph-video-camera"></i>${cabEsc(C.videoCheck)}</button><button type="button" class="cab-btn" data-cab-video><i class="ph ph-monitor-play"></i>${cabEsc(C.videoDemo)}</button>` : `<button type="button" class="cab-btn" data-cab-video><i class="ph ph-monitor-play"></i>${cabEsc(C.videoDemo)}</button>`}
         <p class="cab-status" role="status" data-cab-video-out></p>
       </div>`;
   const chatLabel = isAd ? C.circleChatRO : isM ? (F === "all" ? C.circleChat : C.privateChat(focusName)) : C.circleChat;
@@ -361,8 +361,7 @@ function bind() {
     cabState.chords[i] = lib[(lib.indexOf(cabState.chords[i]) + 1) % lib.length];
     cabRerender();
   });
-  const vid = document.querySelector("[data-cab-video]");
-  if (vid) vid.onclick = () => { const o = document.querySelector("[data-cab-video-out]"); if (o) o.textContent = cabT().videoNotConnected; };
+  document.querySelectorAll("[data-cab-video]").forEach(vid => vid.onclick = () => { const o = document.querySelector("[data-cab-video-out]"); if (o) o.textContent = cabT().videoNotConnected; });
   const hand = document.querySelector("[data-cab-hand]");
   if (hand) hand.onclick = () => { cabState.hand = !cabState.hand; cabRerender(); };
   const rec = document.querySelector("[data-cab-rec]");

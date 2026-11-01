@@ -32,7 +32,7 @@ assert.match(app, /#\/components/);
 assert.match(app, /P01\.welcome\(\)/);
 
 // assets from the P0.1 archive exist
-for (const a of ["lyre.png", "medal-playful.png", "medal-classic.png", "frame-classic.png", "muse-badge.png", "baton.svg",
+for (const a of ["lyre.png", "medal-playful.png", "medal-classic.png", "frame-classic.png", "muse-badge.png", "baton.svg", "baton-v2.svg",
   "sig-latin.png", "sig-cyrillic.png", "sig-viet.png", "sig-korean.png", "sig-japanese.png", "sig-short.png"]) {
   assert.ok(fs.existsSync(path.join(web, "assets", a)), `asset ${a}`);
 }
@@ -49,11 +49,16 @@ assert.match(app, /navConv/, "chrome nav uses Convention · Leagues · My space"
 assert.ok(!app.includes("Student/Teacher") && !app.includes('data-role='), "no global Student/Teacher/Listener switch");
 assert.match(p01, /ph-music-notes/, "Artist role uses paired music notes");
 assert.ok(!p01.includes('"student", tt.roleS, "ph-microphone"'), "Artist is not a microphone (reserved for Vocal League)");
-assert.match(read("p01.css"), /baton\.svg/, "Maestro uses the actual baton asset (mask over assets/baton.svg)");
-assert.ok(!strings.includes("ph-feather") && !p01.includes("ph-feather"), "Folk emblem is not feather/leaf");
-assert.match(p01, /DOMBRA_SVG/, "Folk emblem uses a dombra contour");
+assert.match(read("p01.css"), /baton-v2\.svg/, "Maestro uses the Cabinet 1.4 baton-v2 asset (mask over assets/baton-v2.svg)");
+assert.ok(!strings.includes("ph-feather") && !p01.includes("ph-feather"), "no feather/leaf emblem");
+// Cabinet 1.4: the Folk League and its dombra emblem were intentionally removed;
+// folk instruments join their family (dombra/kobza/koto -> plucked strings).
+assert.ok(!p01.includes("DOMBRA_SVG"), "Folk dombra emblem removed with the Folk League in 1.4");
 const p01css = read("p01.css");
 assert.match(p01css, /\.p01-cta\{[^}]*height:60px/, "Welcome desktop CTA is 60px, content width, left aligned");
-assert.match(p01css, /grid-template-columns:minmax\(0,1fr\) 360px/, "Artist Today right column is 360px");
+// Cabinet 1.3/1.4: the P0.1 Personal-space grid (incl. the 360px Artist Today
+// right column) was intentionally replaced by the Cabinet home; p01.css now
+// keeps the two-column space grid at 8fr/4fr.
+assert.match(p01css, /\.p01-grid\{grid-template-columns:minmax\(0,8fr\) minmax\(0,4fr\)/, "space grid is 8fr/4fr after the Cabinet replacement");
 assert.match(p01css, /1px solid var\(--p01-line\)/, "Ceremony divider #E3D8C2 line present");
 console.log("test_p01: all assertions passed");

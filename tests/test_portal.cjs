@@ -57,8 +57,11 @@ test("portal files and relative references exist", () => {
 });
 test("canonical seven leagues, ceremony/workshop modes, no invented emblem", () => {
   const app = fs.readFileSync(path.join(root, "web/app.js"), "utf8");
-  for (const name of ["Лига гитары","Лига клавишных","Лига духовых","Лига ударных","Лига электронных","Лига вокала","Лига народных"])
+  // Cabinet 1.4 frame 9: Leagues split by instrument family
+  for (const name of ["Лига струны","Лига смычка","Клавишные","Духовые","Ударные","Электроника","Вокал"])
     assert.ok(app.includes(name), name);
+  for (const old of ["Лига гитары","Лига народных","Лига фолка"])
+    assert.ok(!app.includes(old), "pre-1.4 league name removed: " + old);
   assert.ok(!app.includes("Лига струнных") && !app.includes("Лига голоса"), "invented leagues removed");
   assert.ok(app.includes('"ceremony"') && app.includes('"workshop"'), "two modes");
   assert.ok(app.includes("Эмблему каждая Лига выбирает сама"), "league emblem choice text");
@@ -115,10 +118,10 @@ test("league deep links: validated tab segment, cabinet links target intended ta
 });
 test("resolveLeague/tabIndexForKey behavior (unit)", () => {
   const U = require("../web/portal-utils.js");
-  const ids = ["guitar","keys","winds","drums","electronic","voice","folk"];
-  assert.deepStrictEqual(U.resolveLeague("keys","events",ids,"guitar"), {id:"keys",tab:"events",idValid:true});
-  assert.deepStrictEqual(U.resolveLeague("keys","Events",ids,"guitar"), {id:"keys",tab:"events",idValid:true}, "uppercase tab normalized");
-  assert.deepStrictEqual(U.resolveLeague("keys","bogus",ids,"guitar"), {id:"keys",tab:"topics",idValid:true}, "unknown tab -> topics");
+  const ids = ["string","bow","keys","winds","drums","electronic","vocal"];
+  assert.deepStrictEqual(U.resolveLeague("keys","events",ids,"string"), {id:"keys",tab:"events",idValid:true});
+  assert.deepStrictEqual(U.resolveLeague("keys","Events",ids,"string"), {id:"keys",tab:"events",idValid:true}, "uppercase tab normalized");
+  assert.deepStrictEqual(U.resolveLeague("keys","bogus",ids,"string"), {id:"keys",tab:"topics",idValid:true}, "unknown tab -> topics");
   assert.deepStrictEqual(U.resolveLeague("nope","media",ids,"keys"), {id:"keys",tab:"media",idValid:false}, "unknown league keeps saved, not guitar fallback");
   assert.deepStrictEqual(U.resolveLeague("keys/Events",undefined,ids,"keys"), {id:"keys",tab:"topics",idValid:false}, "swallowed segment is not a valid id");
   assert.equal(U.tabIndexForKey("ArrowRight",4,5),0);
