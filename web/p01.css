@@ -36,6 +36,8 @@
 .p01-kicker{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--p01-gold-ink);font-weight:500}
 .p01-workshop .p01-kicker{color:var(--p01-n400)}
 /* Welcome */
+.p01-example-note{margin:4px 0 0;font-size:13px;line-height:1.5;color:var(--p01-muted)}
+.p01-workshop .p01-example-note{color:var(--p01-n300)}
 .p01-welcome-hero{padding:34px 0 0;display:flex;flex-direction:column;gap:12px}
 .p01-welcome-hero h1{margin:0;font-family:'Cormorant Garamond','Noto Serif JP','Noto Serif KR',Georgia,serif;font-weight:500;font-size:40px;line-height:1.02;text-wrap:balance}
 .p01-sigframe{background:var(--p01-card);border:1px solid var(--p01-line);border-radius:18px;padding:16px 10px 8px;box-shadow:0 24px 48px -30px rgba(70,50,10,.55),inset 0 0 0 4px var(--p01-card),inset 0 0 0 5px #EADFC6}
@@ -144,6 +146,7 @@
 .p01-ent-play{width:46px;height:46px;font-size:17px}
 .p01-ent-preview{border-top:1px solid var(--p01-line);padding-top:14px;display:flex;flex-direction:column;gap:10px}
 .p01-ent-preview label{display:grid;gap:6px;font-size:14px;color:var(--p01-muted)}
+.p01-ent-preview label[hidden]{display:none}
 .p01-ent-preview input{font:500 16px Inter,system-ui,sans-serif;padding:10px 12px;border-radius:10px;border:1px solid #D8CBB0;background:#fff;color:var(--p01-ink);width:100%}
 .p01-ent-notes{margin:0;font-size:14px;color:var(--p01-muted)}
 .p01-ent-score{background:#fff;border:1px solid #EFE6D2;border-radius:10px;padding:8px;overflow-x:auto}
@@ -212,7 +215,9 @@
   .p01-grid{display:flex;flex-direction:column}
   .p01-col{display:contents}
   .p01-panel-today{order:1}.p01-panel-muse{order:2}.p01-panel-league{order:3}.p01-panel-recs{order:4}.p01-minicard{order:5}
-  .p01-ent-leagues{display:grid;grid-template-columns:repeat(4,1fr)}
-  .p01-ent-league{width:auto}
+  .p01-ent-leagues{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+  .p01-ent-league{width:auto;min-width:0}
+  .p01-ent-league>span:last-child{max-width:100%;overflow-wrap:break-word}
+  .p01-ent-leagues .p01-emblem-lg{width:min(92px,100%);height:auto;aspect-ratio:92/88}
 }
 @media (prefers-reduced-motion: reduce){.p01 *{transition:none!important;animation:none!important}}

@@ -105,12 +105,12 @@ function roleTabs(activeKey) {
 /* Approved Convention text (verbatim, bilingual) + Entrance v4 first screen. */
 const CONV = {
   en: { title: 'Convention of the Keepers of Live Music',
-    first: 'I, the undersigned, pay tribute to music, that great gift of humankind, by undertaking to preserve and develop people\'s ability to compose and perform musical works and to pass them on to others.',
+    first: 'I, the undersigned, honour music as one of humanity’s greatest gifts by pledging to preserve and develop people’s ability to compose, perform and pass musical works on to others.',
     rest: [
-      'Generation after generation, the musicians who came before us have built the great musical universe in which we live today. I am ready to carry this tradition forward by sharing with other members of the Convention — or gratefully receiving from them — the skills of playing an instrument and singing, knowledge of music theory, the practice of performing music together, and of listening to live music together.',
-      'As a member of the Convention, I will do all I can to uphold the copyright of those who create musical works, and take care to preserve musical knowledge.',
-      'I will try to play live music more often than I do now, so as to give as many people around me as possible the experience of hearing music made by a musician playing right before them.',
-      'Taking part in the life of the Convention\'s community, I undertake to observe all the rules of communication adopted among its members — but I reserve the right to freedom of artistic expression in whatever musical direction I choose!'],
+      'Many generations of musicians before us have built, generation after generation, the great musical universe in which we live today. I am ready to carry this tradition forward by sharing with other participants in this Convention—or gratefully learning from them—instrumental and vocal skills, knowledge of music theory, the practice of making music together, and the shared experience of listening to live music.',
+      'As a participant in this Convention, I will respect and uphold the copyright of those who create musical works, and help preserve musical knowledge.',
+      'I will strive to play live music more often than I do now, so that as many people around me as possible may experience music performed live, directly by a musician.',
+      'In taking part in the Convention’s community, I pledge to follow all its adopted rules for communication between participants, while retaining my right to freedom of artistic expression in the musical direction I choose.'],
     readAll: 'Read the full Convention', collapse: 'Collapse' },
   ru: { title: 'Конвенция хранителей живой музыки',
     first: 'Я, нижеподписавшийся, отдаю дань уважения такому великому дару человечества, как музыка, и обязуюсь сохранять и развивать умение людей сочинять, исполнять и передавать другим людям музыкальные произведения.',
@@ -124,7 +124,7 @@ const CONV = {
 const ENT_SIGS = [["latin", "assets/sig-latin.png"], ["korean", "assets/sig-korean.png"], ["japanese", "assets/sig-japanese.png"], ["cyrillic", "assets/sig-cyrillic.png"]];
 function entrance() {
   const tt = t(), cv = CONV[state.lang];
-  return `<div class="p01 p01-ceremony">${head("ceremony", tt.navConv)}
+  return `<div class="p01 p01-ceremony">${head("ceremony", tt.navConv, true)}
   <main id="main" tabindex="-1" class="p01-wrap p01-ent">
     <h1 class="p01-ent-promise">${escP(tt.promise)}</h1>
     <div class="p01-ent-grid">
@@ -170,11 +170,12 @@ function entrance() {
 
 function welcome() {
   const tt = t();
-  return `<div class="p01 p01-ceremony">${head("ceremony", tt.navSpace)}
+  return `<div class="p01 p01-ceremony">${head("ceremony", tt.navSpace, true)}
   <main id="main" tabindex="-1" class="p01-wrap">
     <div class="p01-welcome-hero">
       <span class="p01-kicker">${escP(tt.wKicker)}</span>
       <h1>${escP(tt.wTitle)}</h1>
+      <p class="p01-example-note" role="note">${escP(tt.exampleProfileNote)}</p>
     </div>
     <div style="padding-top:22px">
       <div class="p01-sigframe">
@@ -218,7 +219,8 @@ function space(roleKey) {
   <main id="main" tabindex="-1" class="p01-wrap">
     <div class="p01-space-top">
       <div><div class="mono" style="font-size:12.5px;color:var(--p01-n400)">${escP(tt.dateLine)}</div>
-      <h1>${escP(tt.greet)}</h1></div>
+      <h1>${escP(tt.greet)}</h1>
+      <p class="p01-example-note" role="note">${escP(tt.exampleProfileNote)}</p></div>
       <div class="p01-spacer"></div>
       <div class="p01-roles-wrap">
         <span class="p01-rolehint">${escP(tt.roleHint)}</span>${roleTabs(roleKey)}
@@ -342,7 +344,7 @@ function bindEntrance() {
     const notesEl = document.getElementById("entNotes");
     if (notesEl) notesEl.textContent = preview.need_reading ? tt.needReading : (preview.notes.length ? tt.yourNotes + ": " + preview.note_names_ru.join(" – ") : tt.notesEmpty);
     const score = document.getElementById("entScore");
-    if (score) score.innerHTML = window.SoulScoreSVG ? window.SoulScoreSVG(preview.notes) : "";
+    if (score) score.innerHTML = preview.notes.length && window.SoulScoreSVG ? window.SoulScoreSVG(preview.notes) : "";
   };
   const nmEl = document.getElementById("entName"), rdEl = document.getElementById("entReading");
   if (nmEl) nmEl.addEventListener("input", updPreview);

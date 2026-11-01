@@ -45,7 +45,6 @@ assert.match(S.T.ru.chipVote, /ещё не открыто/);
 // Entrance v4 home + DW1 corrections (navigation / roles / inline CTA)
 assert.match(p01, /P01 = \{ entrance/, "entrance view exported");
 assert.match(app, /P01\.entrance\(\)/, "root and convention route to Entrance v4");
-assert.ok(!app.includes('href="#/welcome">Welcome</a><a href="#/leagues"') || true);
 assert.match(app, /navConv/, "chrome nav uses Convention · Leagues · My space");
 assert.ok(!app.includes("Student/Teacher") && !app.includes('data-role='), "no global Student/Teacher/Listener switch");
 assert.match(p01, /ph-music-notes/, "Artist role uses paired music notes");
