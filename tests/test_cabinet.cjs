@@ -107,4 +107,57 @@ assert.match(css, /\.cab-main h1\{[^}]*font-family:Inter/, "home heading uses In
 assert.match(css, /main\[tabindex="-1"\][^{]*\{outline:none\}/, "no ring on programmatic main focus");
 assert.match(css, /\.cab :focus-visible\{outline:2px/, "keyboard :focus-visible kept");
 
+// --- GAP 2: #/leagues rebuilt per frame 9 (cabinet style, EN/RU) ---
+assert.match(app, /Cabinet\.leagues\(\)/, "app routes #/leagues to Cabinet.leagues");
+assert.ok(!/\bvLeagues\b|\bbindLeagues\b|leagueGrid/.test(app), "old portal leagues view removed");
+window.P01.state.lang = "en";
+const lgEn = Cabinet.leagues();
+assert.equal(gold(lgEn), 1, "#/leagues EN: exactly one filled gold button");
+assert.ok(lgEn.includes("Join League of the String"), "EN gold button label");
+assert.ok(lgEn.includes("Choose your League") && lgEn.includes("Seven Leagues · after Welcome"), "EN frame-9 heading");
+assert.ok(lgEn.includes("example data"), "example data label");
+assert.ok(lgEn.includes('data-cab-screen="leagues"') && lgEn.includes('tabindex="-1"'), "leagues screen + routed main");
+assert.equal((lgEn.match(/cab-league-card/g) || []).length, 7, "seven league cards");
+assert.equal((lgEn.match(/data-cab-join=/g) || []).length, 6, "six outline Join buttons");
+assert.ok(lgEn.includes("frame-gold") && lgEn.includes("my instrument: guitar"), "member league marked frame-gold + my instrument");
+assert.ok(lgEn.includes("cab-lg-icon") && lgEn.includes("num-gold") && lgEn.includes("ph-guitar"), "neutral ring icon + gold number");
+assert.ok(lgEn.includes("Muse: you play guitar, so your family is plucked strings."), "EN Muse note");
+for (const l of S.LEAGUES) { assert.ok(lgEn.includes(l[1]) && lgEn.includes(l[5]) && lgEn.includes(l[3]), "EN card: " + l[1]); }
+for (const ru of ["Лига струны", "Лига смычка", "Клавишные", "Духовые", "Ударные", "Электроника", "Вокал", "Выберите свою Лигу"])
+  assert.ok(!lgEn.includes(ru), "EN leagues has no RU text: " + ru);
+window.P01.state.lang = "ru";
+const lgRu = Cabinet.leagues();
+assert.equal(gold(lgRu), 1, "#/leagues RU: exactly one filled gold button");
+assert.ok(lgRu.includes("Вступить в Лигу струны") && lgRu.includes("Выберите свою Лигу"), "RU frame-9 heading + gold button");
+assert.ok(lgRu.includes("мой инструмент: гитара") && lgRu.includes("пример данных"), "RU my instrument + example label");
+for (const l of S.LEAGUES) { assert.ok(lgRu.includes(l[2]) && lgRu.includes(l[6]) && lgRu.includes(l[4]), "RU card: " + l[2]); }
+
+// --- GAP 1: 390 px fit — no fixed width above 390 px without a mobile override.
+// Equivalent static check (no browser available): (a) every literal
+// width/min-width in the base cabinet CSS is <= 390 px (max-width caps and
+// min()/calc() viewport-bounded values are not fixed widths); (b) every base
+// grid-template-columns using px tracks (auto-fill wraps, exempt) has a
+// minmax(0,1fr) override for the same selector in a <=899/560px block;
+// (c) header stacks, chips may wrap, drawer stays a drawer. ---
+window.P01.state.lang = "en";
+const mediaAt = css.indexOf("@media (max-width:899px)");
+assert.ok(mediaAt > 0, "mobile media block exists");
+const baseCss = css.slice(0, mediaAt), mobileCss = css.slice(mediaAt);
+for (const m of baseCss.matchAll(/(?:^|[;{])\s*(width|min-width)\s*:\s*(\d+)px/g))
+  assert.ok(+m[2] <= 390, `base ${m[1]}:${m[2]}px exceeds 390px`);
+assert.match(baseCss, /\.cab-drawer-panel\{[^}]*width:min\(420px,86vw\)/, "drawer panel viewport-bounded, not fixed 420px");
+for (const m of baseCss.matchAll(/([^{}]+)\{[^}]*grid-template-columns:([^;}]+)/g)) {
+  const [, sel, val] = m;
+  if (!/\d+px/.test(val) || /auto-fill|auto-fit/.test(val)) continue;
+  const s = sel.trim().split("\n").pop().split(",").pop().trim();
+  const re = new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\{[^}]*grid-template-columns:[^}]*minmax\\(0,1fr\\)");
+  assert.match(mobileCss, re, `mobile minmax(0,1fr) override for ${s}`);
+}
+assert.match(mobileCss, /\.cab-head-right\{[^}]*flex:1 1 100%/, "header items stack at mobile width");
+assert.match(mobileCss, /\.cab-tag\{white-space:normal\}/, "chips wrap at mobile width");
+assert.match(mobileCss, /\.cab-league-grid\{grid-template-columns:minmax\(0,1fr\)\}/, "league grid single column at 390px");
+assert.ok(!/\.cab-drawer\{[^}]*position:static/.test(mobileCss), "notebook stays a drawer (not static) on mobile");
+assert.match(mobileCss, /\.cab-drawer-panel\{[^}]*calc\(100vw - 32px\)/, "drawer panel fits 390px beside its tab");
+assert.match(baseCss, /min-width:0\}/, "flex/grid children get min-width:0");
+
 console.log("test_cabinet: all assertions passed");

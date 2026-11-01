@@ -9,6 +9,11 @@
 /* routed <main tabindex="-1"> takes programmatic focus on navigation:
    no ring for that; interactive controls keep :focus-visible above */
 .cab main[tabindex="-1"]:focus,.cab main[tabindex="-1"]:focus-visible{outline:none}
+/* flex/grid children may shrink below min-content: nothing forces the
+   page wider than the viewport (desktop layout is unaffected) */
+.cab-home>*,.cab-tiles>*,.cab-grid>*,.cab-roster>*,.cab-head>*,.cab-head-right>*,.cab-tile-head>*,.cab-enter-row>*,.cab-metro>*,.cab-side>*,.cab-col>*,.cab-chat-col>*,.cab-league-grid>*,.cab-muse-row>*{min-width:0}
+.cab img,.cab svg{max-width:100%}
+.cab-who,.cab-brand span,.cab-sess-title{overflow-wrap:anywhere}
 .cab .mono{font-family:'JetBrains Mono',monospace}
 .cab-tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.02em;padding:3px 10px;border-radius:6px;white-space:nowrap}
 .cab-tag-neutral{background:var(--color-neutral-800);color:var(--color-neutral-100)}
@@ -41,8 +46,8 @@
 .cab-head{display:flex;align-items:center;gap:16px;min-height:56px;padding:8px 22px;border-bottom:1px solid var(--color-divider);flex-wrap:wrap}
 .cab-brand{display:flex;align-items:center;gap:10px;color:var(--color-text);text-decoration:none;font-size:15px;font-weight:500}
 .cab-brand img{height:26px}
-.cab-head-right{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.cab-who{display:flex;align-items:center;gap:8px;font-size:14px}
+.cab-head-right{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0}
+.cab-who{display:flex;align-items:center;gap:8px;font-size:14px;flex-wrap:wrap;min-width:0}
 .cab-who .soul{font-family:'JetBrains Mono',monospace;font-size:13px}
 .cab-lang{display:flex;border:1px solid var(--color-neutral-800);border-radius:999px;padding:2px;gap:2px}
 .cab-lang button{border:0;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:var(--color-neutral-400);min-height:28px}
@@ -92,7 +97,8 @@
 .cab-home-foot{font-size:12px;color:var(--color-neutral-500)}
 /* session screens (frames 1-5, layout of the approved session screen):
    roster strip on top (Maestro), plan in the centre, notebook drawer right */
-.cab-session{position:relative;max-width:1440px;margin:0 auto;min-height:calc(100vh - 56px);display:flex;flex-direction:column}
+.cab-session{position:relative;max-width:1440px;margin:0 auto;min-height:calc(100vh - 56px);display:flex;flex-direction:column;min-width:0}
+.cab-sess-bar{display:flex;align-items:center;gap:12px;padding:10px 54px 0 22px;flex-wrap:wrap;min-width:0}
 .cab-sess-title{font-size:14px;font-weight:500}
 .cab-sess-title span{color:var(--color-neutral-500);font-weight:400}
 .cab-elapsed{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-400);font-family:'JetBrains Mono',monospace}
@@ -172,7 +178,8 @@
 .cab-drawer{position:absolute;top:0;right:0;bottom:0;display:flex;z-index:5}
 .cab-drawer-tab{width:32px;flex:none;cursor:pointer;border:0;border-left:1px solid var(--color-neutral-800);background:var(--color-surface);color:var(--color-accent-300);display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 0}
 .cab-drawer-tab span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:12px;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
-.cab-drawer-panel{width:min(420px,86vw);background:var(--color-surface);box-shadow:var(--shadow-lg);padding:20px;display:flex;flex-direction:column;gap:14px;overflow:auto}
+.cab-drawer-panel{width:min(420px,86vw);background:var(--color-surface);box-shadow:var(--shadow-lg);padding:20px;display:flex;flex-direction:column;gap:14px;overflow:auto;min-width:0}
+.cab-drawer-panel>*{min-width:0;max-width:100%}
 .cab-drawer[hidden]{display:none}
 .cab-ntabs{display:flex;gap:2px;flex-wrap:wrap}
 .cab-ntabs button{border:0;background:transparent;cursor:pointer;padding:6px 9px;font-size:13px;color:var(--color-neutral-500);box-shadow:inset 0 -1px 0 transparent}
@@ -184,25 +191,69 @@ button.cab-chord{cursor:pointer}
 .cab-chord .ch{font-size:28px;font-weight:500;letter-spacing:-.02em}
 .cab-tabtext{margin:0;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.7;color:var(--color-neutral-300);overflow-x:auto;white-space:pre}
 .cab-drawer-note{font-size:12px;color:var(--color-neutral-500)}
+/* frame 9 · Seven Leagues catalogue (#/leagues) */
+.cab-leagues-main{max-width:1440px;width:100%}
+.cab-leagues-sub{font-size:14px;line-height:1.5;color:var(--color-neutral-400);max-width:640px;margin-top:8px}
+.cab-league-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
+.cab-league-card{display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:var(--radius-lg);border:1px solid var(--color-neutral-800);min-width:0}
+.cab-league-card.is-mine{background:var(--color-surface)}
+.cab-lg-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cab-lg-icon{width:40px;height:40px;flex:none;border-radius:50%;border:1px solid var(--color-neutral-700);display:grid;place-items:center}
+.cab-lg-icon i{font-size:20px;color:var(--color-neutral-300)}
+.cab-league-card.is-mine .cab-lg-icon{border-color:var(--color-neutral-600)}
+.cab-league-card.is-mine .cab-lg-icon i{color:var(--color-neutral-200)}
+.cab-lg-num{font-family:'JetBrains Mono',monospace;font-size:12px}
+.cab-lg-name{font-size:18px;font-weight:500;color:var(--color-text);overflow-wrap:anywhere}
+.cab-lg-fam{font-size:12px;color:var(--color-neutral-400);margin-top:4px}
+.cab-league-card.is-mine .cab-lg-fam{color:var(--color-gold-200)}
+.cab-lg-inst{font-size:13px;line-height:1.5;color:var(--color-neutral-300)}
+.cab-lg-mine{margin-top:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-400)}
+.cab-lg-mine i{color:var(--color-gold);flex:none}
+.cab-league-card .cab-btn{margin-top:auto;align-self:flex-start}
+.cab-league-card.is-mine .cab-lg-mine{margin-top:auto}
+.cab-league-cta{display:flex;flex-direction:column;justify-content:flex-end;gap:12px;padding:18px;min-width:0}
+.cab-lg-muse{display:flex;gap:8px;align-items:flex-start;padding:10px 14px;font-size:12px;line-height:1.5;color:var(--color-accent-200)}
+.cab-lg-muse i{flex:none;margin-top:2px}
+.cab-league-cta .btn-gold{width:100%}
 @media (max-width:899px){
-  .cab-head{padding:8px 14px;gap:10px}
-  .cab-home{grid-template-columns:minmax(0,1fr)}
-  .cab-side{border-right:0;border-bottom:1px solid var(--color-divider);padding:16px 14px}
-  .cab-side-note{margin-top:0}
-  .cab-main{padding:16px 14px 28px}
+  .cab-head{padding:8px 14px;gap:10px;align-items:flex-start}
+  .cab-brand{flex:1 1 auto}
+  .cab-sess-title{flex:1 1 100%;order:2}
+  .cab-head-right{margin-left:0;flex:1 1 100%;order:3;gap:8px}
+  .cab-tag{white-space:normal}
+  .cab-home{grid-template-columns:minmax(0,1fr);width:100%}
+  .cab-side{border-right:0;border-bottom:1px solid var(--color-divider);padding:16px 14px;width:100%}
+  .cab-side-note{margin-top:0;overflow-wrap:break-word}
+  .cab-main{padding:16px 14px 28px;width:100%}
   .cab-main h1{font-size:28px}
   .cab-tiles{grid-template-columns:minmax(0,1fr);grid-template-rows:none}
-  .cab-tile-session{grid-row:auto}
-  .cab-roster{flex-direction:column;padding:12px 14px 0}
-  .cab-roster-card.everyone{flex:none;width:auto}
-  .cab-grid{grid-template-columns:minmax(0,1fr);padding:14px 14px 28px}
+  .cab-tile-session{grid-row:auto;padding:16px}
+  .cab-tile-head{row-gap:6px}
+  .cab-enter-row{gap:10px}
+  .cab-league-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cab-sess-bar{padding:10px 46px 0 14px}
+  .cab-roster{flex-direction:column;padding:12px 46px 0 14px}
+  .cab-roster-card{width:100%}
+  .cab-roster-card.everyone{flex:none;width:100%}
+  .cab-grid{grid-template-columns:minmax(0,1fr);padding:14px 46px 28px 14px}
   .cab-chat-col{border-left:0;border-top:1px solid var(--color-divider);padding-left:0;padding-top:14px}
-  .cab-notlive{margin:10px 14px 0}
-  .cab-drawer{position:static;margin:0 14px 14px}
-  .cab-drawer-tab{flex-direction:row;width:auto;padding:10px 12px;border:1px solid var(--color-neutral-800);border-radius:var(--radius-md)}
-  .cab-drawer-tab span{writing-mode:horizontal-tb;transform:none}
-  .cab-drawer{flex-direction:column;gap:8px}
-  .cab-drawer-panel{width:auto}
+  .cab-notlive{margin:10px 46px 0 14px}
+  .cab-plan-note{margin-left:0}
+  .cab-metro{gap:10px;padding:8px 12px}
+  .cab-metro .btn-gold{min-width:0}
+  /* notebook stays a drawer: absolute overlay at the right edge */
+  .cab-drawer-panel{width:min(420px,calc(100vw - 32px))}
   .cab-who{font-size:13px}
+}
+@media (max-width:560px){
+  .cab-head{padding:8px 12px}
+  .cab-main{padding:16px 12px 28px}
+  .cab-side{padding:16px 12px}
+  .cab-main h1{font-size:26px}
+  .cab-next-time{font-size:24px}
+  .cab-step-goal,.cab-tip{padding-left:0}
+  .cab-league-grid{grid-template-columns:minmax(0,1fr)}
+  .cab-league-card .cab-btn{align-self:stretch}
+  .cab-brand img{height:22px}
 }
 @media (prefers-reduced-motion:reduce){.cab *{transition:none!important;animation:none!important}}

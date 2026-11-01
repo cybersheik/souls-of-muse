@@ -233,14 +233,6 @@ function vWelcome(){
  <p><a class="btn" href="#/leagues">Выбрать Лигу и войти →</a></p></section></div>`);
 }
 
-function vLeagues(){
-  return chrome("workshop", `<p class="eyebrow">Каталог · Мастерская</p><h1>Семь Лиг сообщества</h1>
-  <p class="lede">Эмблему каждая Лига выбирает сама. Мы предлагаем основу — и с уважением примем любой выбор Лиги. Выберите свою:</p>
-  <div class="toolbar"><label>Поиск <input id="q" type="search" placeholder="Название или занятие"></label>
-  <label>Фильтр <select id="tag"><option value="">Все Лиги</option>${[...new Set(LEAGUES.flatMap(l=>l.tags))].map(t=>`<option>${t}</option>`).join("")}</select></label></div>
-  <div class="grid c2" id="leagueGrid"></div>`);
-}
-
 function vLeague(id, tab){
   const resolved = U.resolveLeague(id, tab, LEAGUES.map(l=>l.id), prefs.league);
   const l = LEAGUES.find(x=>x.id===resolved.id) || LEAGUES[0];
@@ -248,7 +240,7 @@ function vLeague(id, tab){
   const TABS=[["topics","Обсуждения"],["events","События"],["media","Медиатека"],["members","Участники"],["votes","Голосования"]];
   const initial = resolved.tab;
   return chrome("workshop", `<p class="eyebrow">Пространство Лиги</p><h1>${esc(l.name)}</h1><p class="lede">${esc(l.desc)}</p>
-  <div class="emblem-slot">Эмблема Лиги появится здесь — её выберет сама Лига.</div>
+  <div class="emblem-slot">Эмблему каждая Лига выбирает сама — она появится здесь.</div>
   <p><a class="btn ghost" href="#/leagues">← Каталог Лиг</a> <a class="btn ghost" href="#/welcome">Welcome</a> <a class="btn" href="#/space/${ROLE_SPACE[prefs.role]}">Моё пространство (${ROLES[prefs.role]})</a></p>
   <div class="tabs" role="tablist" aria-label="Разделы Лиги">${TABS.map(([k,v])=>`<button role="tab" data-tab="${k}" id="tab-${k}" aria-controls="tabBody" aria-selected="${k===initial}" tabindex="${k===initial?"0":"-1"}">${v}</button>`).join("")}</div>
   <div class="toolbar"><label>Поиск по разделу <input id="lq" type="search"></label></div>
@@ -364,13 +356,6 @@ function bindWelcome(){
   renderCard($("#cardCanvas"), p.name, p.preview.notes);
   $("#playBtn").onclick=()=>playNotes(p.preview.notes);
   $("#dlCard").onclick=()=>downloadCard(p.name, p.preview.notes);
-}
-function bindLeagues(){
-  const draw=()=>{ const q=$("#q").value.toLowerCase(), tg=$("#tag").value;
-    const list=LEAGUES.filter(l=>(!tg||l.tags.includes(tg))&&(!q||(l.name+l.desc+l.tags.join(" ")).toLowerCase().includes(q)));
-    $("#leagueGrid").innerHTML=list.length?list.map(l=>`<article class="card"><div class="emblem-slot small">Эмблему выберет сама Лига</div><h3>${esc(l.name)}</h3><p>${esc(l.desc)}</p><p>${l.tags.map(t=>`<span class="badge dim">${esc(t)}</span>`).join(" ")}</p><button class="btn" data-enter="${l.id}" type="button">Войти в Лигу</button></article>`).join(""):`<p>Ничего не нашлось. Попробуйте другое слово.</p>`;
-    document.querySelectorAll("[data-enter]").forEach(b=>b.onclick=()=>{ prefs.league=b.dataset.enter; savePrefs(); location.hash="#/league/"+prefs.league; }); };
-  $("#q").addEventListener("input",draw); $("#tag").addEventListener("change",draw); draw();
 }
 function bindLeague(initialTab, leagueId){
   const resolved = U.resolveLeague(leagueId, initialTab, LEAGUES.map(l=>l.id), prefs.league);
@@ -524,7 +509,7 @@ const routes=[[/^#?\/?$/,()=>P01.entrance(),"ceremony"],[/^#\/convention$/,()=>P
  [/^#\/session\/(maestro|artist)\/(circle|one-to-one)$/,m=>Cabinet.session(m[1],m[2]==="circle"?"circle":"one"),"workshop"],
  [/^#\/session\/(admirer)\/(circle)$/,m=>Cabinet.session(m[1],"circle"),"workshop"],
  [/^#\/components$/,()=>P01.components(),"workshop"],
- [/^#\/leagues$/,vLeagues,"workshop"],[/^#\/league\/([^/]+)(?:\/([^/]+))?$/,m=>vLeague(decodeURIComponent(m[1]), m[2]||"topics"),"workshop"],
+ [/^#\/leagues$/,()=>Cabinet.leagues(),"workshop"],[/^#\/league\/([^/]+)(?:\/([^/]+))?$/,m=>vLeague(decodeURIComponent(m[1]), m[2]||"topics"),"workshop"],
  [/^#\/cabinet\/(student|teacher|listener)$/,m=>vCabinet(m[1]),"workshop"],[/^#\/studio$/,vStudio,"workshop"]];
 function render(){
   cleanupPage();
@@ -534,8 +519,7 @@ function render(){
     document.body.innerHTML=fn(m);
     bindCommon();
     if(h==="#/"||h===""||h==="#/convention"||h==="#/welcome"||h==="#/components") P01.bind();
-    else if(h.startsWith("#/space")||h.startsWith("#/session/")) Cabinet.bind();
-    else if(h==="#/leagues") bindLeagues();
+    else if(h.startsWith("#/space")||h.startsWith("#/session/")||h==="#/leagues") Cabinet.bind();
     else if(h.startsWith("#/league/")){ const seg=h.slice("#/league/".length).split("/"); bindLeague(seg[1]||"topics", seg[0]); }
     else if(h==="#/studio") bindStudio();
     window.scrollTo(0,0);

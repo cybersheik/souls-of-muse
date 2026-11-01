@@ -293,7 +293,7 @@ function session(role, mode) {
       </div>`;
   return `<div class="cab" data-cab-screen="session-${role}-${mode}">${cabHead(role, C.session3, sub)}
   <div class="cab-session">
-    <div style="display:flex;align-items:center;gap:12px;padding:10px 54px 0 22px;flex-wrap:wrap">
+    <div class="cab-sess-bar">
       <a class="cab-btn" href="#/space/${role}"><i class="ph ph-arrow-left"></i>${cabEsc(C.backCabinet)}</a>
       <span class="cab-elapsed"><i></i>12:34</span><span style="flex:1"></span>
       <a class="cab-btn" href="#/space/${role}"><i class="ph ph-sign-out"></i>${cabEsc(isM ? C.endSession : C.leave)}</a>
@@ -307,6 +307,37 @@ function session(role, mode) {
     </main>
     ${drawerHTML(role, mode, C)}
   </div></div>`;
+}
+
+/* ---- frame 9 · Seven Leagues catalogue (#/leagues) ---- */
+const CAB_LEAGUE_IDS = ["string", "bow", "keys", "winds", "drums", "electronic", "vocal"];
+function leagues() {
+  const C = cabT();
+  const en = cabLang() === "en";
+  const cards = CabPS.LEAGUES.map((l, i) => {
+    const [icon, enName, ruName, enInst, ruInst, enFam, ruFam] = l;
+    const name = en ? enName : ruName;
+    const mine = i === 0;
+    const num = String(i + 1).padStart(2, "0");
+    return `<section class="cab-league-card${mine ? " is-mine frame-gold" : ""}"${mine ? ' aria-pressed="true"' : ""} aria-label="${cabEsc(name)}">
+      <div class="cab-lg-top"><span class="cab-lg-icon"><i class="ph ${cabEsc(icon)}" aria-hidden="true"></i></span><span class="cab-lg-num num-gold">${num}</span></div>
+      <div><div class="cab-lg-name">${cabEsc(name)}</div><div class="cab-lg-fam">${cabEsc(en ? enFam : ruFam)}</div></div>
+      <div class="cab-lg-inst">${cabEsc(en ? enInst : ruInst)}</div>
+      ${mine
+        ? `<div class="cab-lg-mine"><i class="ph ph-check" aria-hidden="true"></i>${cabEsc(C.myInstrument)}</div>`
+        : `<button type="button" class="cab-btn" data-cab-join="${CAB_LEAGUE_IDS[i]}" aria-label="${cabEsc(C.joinLeague(name))}">${cabEsc(C.join)}</button>`}
+    </section>`;
+  }).join("");
+  return `<div class="cab" data-cab-screen="leagues">${cabHead("artist")}
+  <main id="main" tabindex="-1" class="cab-main cab-leagues-main">
+    <div><span class="rule-gold">${cabEsc(C.leaguesKicker)}</span><h1>${cabEsc(C.chooseLeague)}</h1><p class="cab-leagues-sub">${cabEsc(C.leaguesSub)}</p></div>
+    <div class="cab-league-grid">${cards}
+      <div class="cab-league-cta">
+        <div class="cab-lg-muse bar-muse"><i class="ph ph-sparkle" aria-hidden="true"></i><span>${cabEsc(C.museLeagueNote)}</span></div>
+        <a class="btn-gold" href="#/space/artist">${cabEsc(C.joinMine)}<i class="ph ph-arrow-right" aria-hidden="true"></i></a>
+      </div>
+    </div>
+  </main></div>`;
 }
 
 /* ---- metronome: sound only after the press ---- */
@@ -344,6 +375,7 @@ function bind() {
     cabRerender();
   });
   document.querySelectorAll("[data-cab-role]").forEach(b => b.onclick = () => { location.hash = "#/space/" + b.dataset.cabRole; });
+  document.querySelectorAll("[data-cab-join]").forEach(b => b.onclick = () => { location.hash = "#/league/" + b.dataset.cabJoin; });
   document.querySelectorAll("[data-cab-soon]").forEach(a => a.addEventListener("click", e => {
     e.preventDefault();
     cabState.soon = a.dataset.cabSoon + " · " + cabT().opensNext;
@@ -399,4 +431,4 @@ function bind() {
   });
 }
 function stop() { cabMetroStop(); cabState.rec = false; }
-window.Cabinet = { home, session, bind, stop, state: cabState };
+window.Cabinet = { home, session, leagues, bind, stop, state: cabState };
