@@ -2,7 +2,7 @@
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.55;overflow-x:hidden}
 img,canvas,svg,video{max-width:100%}
 /* Ceremony mode: light festive paper for home, convention, welcome, card */
-body.ceremony{--bg:#f1f2f6;--surface:#ffffff;--surface2:#f7f5ee;--text:#16141f;--muted:#4c485e;--accent:#3346d9;--accent2:#3346d9;--divider:#d8d9e3;--section:#e6e2d2}
+body.ceremony{--bg:#f1f2f6;--surface:#ffffff;--surface2:#f7f5ee;--text:#16141f;--muted:#4c485e;--accent:#7A5A12;--accent2:#7A5A12;--divider:#E3D8C2;--section:#e6e2d2}
 body.ceremony .topbar{background:rgba(241,242,246,.92)}
 body.ceremony .brand{color:var(--text)}body.ceremony nav.main a[aria-current]{background:#e9e4cf}
 body.ceremony .card{background:var(--surface)}
@@ -15,13 +15,13 @@ body.ceremony .card{background:var(--surface)}
 .emblem-slot.small{margin:0 0 12px;padding:10px;font-size:12px}
 body.ceremony .emblem-slot{color:#7a5808}
 body.ceremony .seal-slot{color:#7a5808}
-body.ceremony .eyebrow{color:#4c3fc0}
-body.ceremony .demo-banner{color:#3f3d8f;background:#ece8f7;border-color:#8b85c9}
+body.ceremony .eyebrow{color:#7A5A12}
+body.ceremony .demo-banner{color:#5A4A20;background:#FBF3E0;border-color:#D9C69A}
 body.ceremony .badge.soft{color:#7a5808;border-color:#a8832a;background:rgba(201,162,39,.10)}
 body.ceremony .btn{color:#fff}body.ceremony .btn.ghost{color:var(--accent)}
 body.ceremony .role-switch button[aria-pressed="true"]{color:#fff}
 body.ceremony footer.site a{color:var(--accent)}
-.medal{border-top:1px solid var(--divider);margin-top:16px;padding-top:12px}
+.medal{margin-top:16px;padding-top:12px}
 .demo-banner{border:1px dashed #c9a227;border-radius:var(--radius);padding:12px 16px;color:#7a5c08;background:rgba(201,162,39,.10);margin-bottom:18px}
 body.workshop .demo-banner{color:var(--gold)}
 a{color:var(--accent2)}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:6px}
@@ -70,3 +70,8 @@ figure{margin:12px 0}figcaption{font-size:13px;color:var(--muted);margin-top:6px
   h1{font-size:34px}
   .demo-banner{margin-bottom:12px;padding:10px 12px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+.topbar .p01-lang{display:flex;border:1px solid var(--divider);border-radius:999px;padding:2px;gap:2px}
+.topbar .p01-lang button{border:0;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:var(--muted);min-height:28px}
+.topbar .p01-lang button[aria-pressed="true"]{background:var(--text);color:var(--bg)}
+body.ceremony footer.site{border-top:1px solid #E3D8C2}

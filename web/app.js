@@ -66,6 +66,7 @@ function scoreSVG(notes){
   });
   return `<svg viewBox="0 0 ${L.width} ${L.height}" role="img" aria-label="Нотная подпись">${s}</svg>`;
 }
+window.SoulScoreSVG = scoreSVG;
 
 /* ---------- audio playback (only on user gesture) with page cleanup ---------- */
 let actx=null, playTimers=[];
@@ -151,32 +152,25 @@ async function downloadCard(name, notes){
   c.toBlob(b=>{ if(!b) return; const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download="souls-of-muse-card-preview.png"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); },"image/png");
 }
 
-/* ---------- shared chrome: mode decides Ceremony (light) vs Workshop (dark) ---------- */
-const ROLES={student:"Ученик",teacher:"Учитель",listener:"Слушатель"};
+/* ---------- shared chrome: Convention · Leagues · My space + EN/RU (no global role switch) ---------- */
+const ROLES={student:"Артист",teacher:"Маэстро",listener:"Ценитель"};
+const ROLE_SPACE={student:"artist",teacher:"maestro",listener:"admirer"};
 function chrome(mode, inner){
+  const lang = (window.P01 && P01.state.lang) || "en";
+  const navT = window.P01Strings ? P01Strings.T[lang] : {navConv:"Convention",navLeagues:"Leagues",navSpace:"My space"};
   return `<a class="skip" href="#main">К содержанию</a>
   <header class="topbar"><a class="brand" href="#/">Souls of <em>Muse</em></a>
-  <nav class="main" aria-label="Основная навигация">
-    <a href="#/">Главная</a><a href="#/convention">Конвенция</a><a href="#/welcome">Welcome</a><a href="#/leagues">Лиги</a>
-    <a href="#/cabinet/${prefs.role}">Кабинет</a><a href="#/studio">Студия</a><a href="lesson.html">Урок · preview</a></nav>
-  <div class="role-switch" role="group" aria-label="Активная роль одной учётной записи"><span>Роль:</span>
-    ${Object.entries(ROLES).map(([k,v])=>`<button type="button" data-role="${k}" aria-pressed="${prefs.role===k}">${v}</button>`).join("")}</div></header>
+  <nav class="main" aria-label="Souls of Muse">
+    <a href="#/convention">${esc(navT.navConv)}</a><a href="#/leagues">${esc(navT.navLeagues)}</a><a href="#/space">${esc(navT.navSpace)}</a></nav>
+  <div class="p01-lang" role="group" aria-label="Language" style="margin-left:auto">
+    <button data-lang="en" aria-pressed="${lang === "en"}">EN</button>
+    <button data-lang="ru" aria-pressed="${lang === "ru"}">RU</button></div></header>
   <main id="main" tabindex="-1">${inner}</main>
   <footer class="site">Souls of Muse — сообщество хранителей живой музыки. Ваша карточка — знак участия и ваша подпись-голос в жизни Лиги. Вопросы: <a href="mailto:muse@soulsofmuse.com">muse@soulsofmuse.com</a></footer>`;
 }
 
 /* ---------- views (pure HTML; binding happens after insertion, see binders) ---------- */
-function vHome(){ return chrome("ceremony", `
- <p class="eyebrow">Convention of the Keepers of Live Music</p>
- <h1>Ваше имя может <em>звучать</em></h1>
- <p class="lede">Souls of Muse — тёплое сообщество хранителей живой музыки. Здесь ваше имя становится мелодией и личной подписью, а впереди — Лиги по душе, уроки, открытые вечера и совместная практика. Учиться, учить или просто слушать — каждый путь здесь полноценный.</p>
- <p><a class="btn" href="#/convention">Услышать своё имя и присоединиться</a> <a class="btn ghost" href="#/welcome">Посмотреть Welcome</a></p>
- <div class="grid c3">
-  <div class="card light"><h3>Конвенция</h3><p>Имя или псевдоним — и вы видите и слышите свою музыкальную подпись.</p><a href="#/convention">Открыть →</a></div>
-  <div class="card light"><h3>Welcome и карточка</h3><p>Личная карточка, медаль за участие и ваш голос в жизни сообщества — как подарок за то, что вы пришли.</p><a href="#/welcome">Посмотреть →</a></div>
-  <div class="card light"><h3>Семь Лиг</h3><p>Гитара, клавишные, духовые, ударные, электронные, вокал и народные — выберите свою и заходите.</p><a href="#/leagues">Каталог Лиг →</a></div>
- </div>`); }
-
+/* Home (#/) and Convention (#/convention) render Entrance v4 via P01.entrance(). */
 function vConvention(){
   const name = ceremony.name || "";
   return chrome("ceremony", `
@@ -234,7 +228,7 @@ function vWelcome(){
  <div class="medal"><h3>Медаль за участие</h3><p>«Хранитель живой музыки» — за то, что вы пришли и приняли участие. Стиль оформления выбираете вы сами; смысл награды один во всех стилях.</p>
  <figure><img class="honors-img" src="assets/honors-playful.png" alt="Игровая линия наград с Muse в берете: брелок, медаль и рамка аватара" width="1997" height="788"><figcaption>Игровая линия наград — полный набор как просмотр стиля. <span class="badge soft">preview</span></figcaption></figure>
  <details><summary>Классическая линия наград</summary><figure><img class="honors-img" src="assets/honors-formal.png" alt="Классическая парадная линия наград" width="1536" height="1024" loading="lazy"><figcaption>Классическая линия — полный набор как просмотр стиля. <span class="badge soft">preview</span></figcaption></figure></details></div>
- <h3>Одна ясная следующая цель</h3><p>Выберите Лигу и — как ученик, учитель или слушатель — войдите в свой кабинет.</p>
+ <h3>Одна ясная следующая цель</h3><p>Выберите Лигу и роль — Маэстро, Артист или Ценитель — и войдите в своё пространство.</p>
  <p><a class="btn" href="#/leagues">Выбрать Лигу и войти →</a></p></section></div>`);
 }
 
@@ -254,7 +248,7 @@ function vLeague(id, tab){
   const initial = resolved.tab;
   return chrome("workshop", `<p class="eyebrow">Пространство Лиги</p><h1>${esc(l.name)}</h1><p class="lede">${esc(l.desc)}</p>
   <div class="emblem-slot">Эмблема Лиги появится здесь — её выберет сама Лига.</div>
-  <p><a class="btn ghost" href="#/leagues">← Каталог Лиг</a> <a class="btn ghost" href="#/welcome">Welcome</a> <a class="btn" href="#/cabinet/${prefs.role}">Мой кабинет (${ROLES[prefs.role]})</a></p>
+  <p><a class="btn ghost" href="#/leagues">← Каталог Лиг</a> <a class="btn ghost" href="#/welcome">Welcome</a> <a class="btn" href="#/space/${ROLE_SPACE[prefs.role]}">Моё пространство (${ROLES[prefs.role]})</a></p>
   <div class="tabs" role="tablist" aria-label="Разделы Лиги">${TABS.map(([k,v])=>`<button role="tab" data-tab="${k}" id="tab-${k}" aria-controls="tabBody" aria-selected="${k===initial}" tabindex="${k===initial?"0":"-1"}">${v}</button>`).join("")}</div>
   <div class="toolbar"><label>Поиск по разделу <input id="lq" type="search"></label></div>
   <div id="tabBody" class="list" role="tabpanel" aria-labelledby="tab-${initial}"></div>
@@ -262,32 +256,32 @@ function vLeague(id, tab){
 }
 
 function lessonForkHTML(){
-  return `<div class="card"><h3>Занятия: выберите форму</h3>
-   <p><button class="btn small" data-lesson="individual" type="button">Индивидуальное занятие</button>
-   <button class="btn small ghost" data-lesson="group" type="button">Групповое занятие</button></p>
-   <p data-lesson-msg role="status">Индивидуальное занятие можно посмотреть в существующем макете урока (preview).</p></div>`;
+  return `<div class="card"><h3>Встречи: выберите форму</h3>
+   <p><button class="btn small" data-lesson="individual" type="button">Один на один</button>
+   <button class="btn small ghost" data-lesson="group" type="button">В кругу</button></p>
+   <p data-lesson-msg role="status">Встречу один на один можно посмотреть в существующем макете встречи (preview).</p></div>`;
 }
 function vCabinet(role){
   prefs.role = role in ROLES ? role : "listener"; savePrefs();
   const l=LEAGUES.find(x=>x.id===prefs.league)||LEAGUES[0];
   const blocks={
-   student:{h:"Кабинет ученика", main:"Продолжить учёбу", body:`
+   student:{h:"Моё пространство · Артист", main:"Продолжить встречи", body:`
      ${lessonForkHTML()}
      <div class="card"><h3>Практика</h3><p>Метроном и упражнения совместной практики — в Студии.</p><a href="#/studio">Студия и метроном →</a></div>
      <div class="card"><h3>Материалы Лиги</h3><p>Медиатека и обсуждения вашей Лиги.</p><a href="#/league/${l.id}/media">Медиатека Лиги →</a> · <a href="#/league/${l.id}/topics">Обсуждения →</a></div>`},
-   teacher:{h:"Кабинет учителя", main:"Подготовиться к занятию", body:`
+   teacher:{h:"Моё пространство · Маэстро", main:"Подготовиться к встрече", body:`
      ${lessonForkHTML()}
-     <div class="card"><h3>Ученики и материалы</h3><p>Группы и списки учеников появятся здесь, когда Лига начнёт занятия. Материалы можно подготовить уже сейчас.</p><a href="#/studio">Студия →</a> · <a href="#/league/${l.id}">Моя Лига →</a></div>
+     <div class="card"><h3>Артисты и материалы</h3><p>Группы и списки артистов появятся здесь, когда Лига начнёт встречи. Материалы можно подготовить уже сейчас.</p><a href="#/studio">Студия →</a> · <a href="#/league/${l.id}">Моя Лига →</a></div>
      <div class="card"><h3>События Лиги</h3><p>Открытые вечера и совместные практики вашей Лиги.</p><a href="#/league/${l.id}/events">События «${esc(l.name)}» →</a></div>`},
-   listener:{h:"Кабинет слушателя", main:"Слушать живую музыку", body:`
-     <div class="card"><h3>Вы — часть музыки</h3><p>Музыка живёт, пока её слушают. Слушатель — такая же часть живой музыки, как тот, кто играет.</p></div>
+   listener:{h:"Моё пространство · Ценитель", main:"Слушать живую музыку", body:`
+     <div class="card"><h3>Вы — часть музыки</h3><p>Музыка живёт, пока её слушают. Ценитель — такая же часть живой музыки, как тот, кто играет.</p></div>
      <div class="card"><h3>События и вечера</h3><p>Открытые вечера и встречи вашей Лиги — приходите слушать.</p><a class="btn" href="#/league/${l.id}/events">События «${esc(l.name)}» →</a></div>
      <div class="card"><h3>Сохранённое и медиатека</h3><p>Записи Лиги и ваши собственные записи из Студии — они остаются на вашем устройстве, пока вы их не скачаете.</p><a href="#/league/${l.id}/media">Медиатека →</a> · <a href="#/studio">Студия →</a></div>`},
   }[prefs.role];
   return chrome("workshop", `
   <p class="eyebrow">${blocks.h} · ${esc(l.name)} · preview</p><h1>${blocks.main}</h1>
-  <div class="muse-hint"><img src="assets/muse-original.png" alt="Muse в берете — подсказка сервиса" width="72" height="72"><p><strong>Muse рядом.</strong> Я подскажу, где уроки, события и ваши записи — просто идите за музыкой.</p></div>
-  <p><a class="btn ghost" href="#/welcome">← Welcome и карточка</a> <a class="btn ghost" href="#/leagues">Лиги</a></p>
+  <div class="muse-hint"><img src="assets/muse-original.png" alt="Muse в берете — подсказка сервиса" width="72" height="72"><p><strong>Muse рядом.</strong> Я подскажу, где встречи, события и ваши записи — просто идите за музыкой.</p></div>
+  <p><a class="btn ghost" href="#/welcome">← Welcome и карточка</a> <a class="btn ghost" href="#/leagues">Лиги</a> <a class="btn ghost" href="#/studio">Студия</a></p>
   <div class="grid c3">${blocks.body}</div>`);
 }
 
@@ -329,22 +323,22 @@ function bindCommon(){
     const m=$("#main"); if(m){ m.focus({preventScroll:false}); m.scrollIntoView(); } });
   /* aria-current on the nav section matching the current hash */
   const h=location.hash||"#/";
-  const section = h==="#/"||h==="" ? "#/" : h.startsWith("#/convention") ? "#/convention"
-    : h.startsWith("#/welcome") ? "#/welcome"
+  const section = h==="#/"||h===""||h.startsWith("#/convention")||h.startsWith("#/welcome") ? "#/convention"
     : h.startsWith("#/leagues")||h.startsWith("#/league/") ? "#/leagues"
-    : h.startsWith("#/cabinet/") ? "#/cabinet/"+prefs.role
-    : h.startsWith("#/studio") ? "#/studio" : null;
+    : h.startsWith("#/space")||h.startsWith("#/cabinet/")||h.startsWith("#/studio")||h.startsWith("#/components") ? "#/space" : null;
   document.querySelectorAll("nav.main a").forEach(a=>{
     if(section && a.getAttribute("href")===section) a.setAttribute("aria-current","page");
     else a.removeAttribute("aria-current");
   });
-  document.querySelectorAll("[data-role]").forEach(b=>b.onclick=()=>{
-    prefs.role=b.dataset.role; savePrefs(); location.hash="#/cabinet/"+prefs.role;
+  /* EN/RU for chrome pages (P01 pages bind the same buttons in P01.bind) */
+  document.querySelectorAll("header .p01-lang [data-lang]").forEach(b=>b.onclick=()=>{
+    if(window.P01){ P01.state.lang=b.dataset.lang; try{ localStorage.setItem("som_p01_lang", P01.state.lang); }catch(e){} }
+    render();
   });
   document.querySelectorAll("[data-lesson]").forEach(b=>b.onclick=()=>{
     const card=b.closest(".card"), msg=card && card.querySelector("[data-lesson-msg]"); if(!msg) return;
-    if(b.dataset.lesson==="individual"){ msg.innerHTML=`Индивидуальное занятие: <a href="lesson.html">открыть макет урока (preview)</a>.`; }
-    else { msg.textContent="Групповое занятие: его экран ещё готовится — мы не покажем заготовку за готовый урок. Индивидуальное занятие доступно рядом."; }
+    if(b.dataset.lesson==="individual"){ msg.innerHTML=`Встреча один на один: <a href="lesson.html">открыть макет встречи (preview)</a>.`; }
+    else { msg.textContent="Встреча в кругу: её экран ещё готовится — мы не покажем заготовку за готовую встречу. Встреча один на один доступна рядом."; }
   });
 }
 function bindConvention(){
@@ -524,7 +518,7 @@ function bindStudio(){
 /* ---------- router with unified page cleanup ---------- */
 let focusTabOnRender=false;
 function cleanupPage(){ stopPlay(); cleanupStudio(); if(window.P01) P01.stop(); }
-const routes=[[/^#?\/?$/,vHome,"ceremony"],[/^#\/convention$/,vConvention,"ceremony"],[/^#\/welcome$/,()=>P01.welcome(),"ceremony"],
+const routes=[[/^#?\/?$/,()=>P01.entrance(),"ceremony"],[/^#\/convention$/,()=>P01.entrance(),"ceremony"],[/^#\/welcome$/,()=>P01.welcome(),"ceremony"],
  [/^#\/space(?:\/(artist|maestro|admirer))?$/,m=>P01.space(ROLE_HASH[m[1]||"artist"]),"workshop"],
  [/^#\/components$/,()=>P01.components(),"workshop"],
  [/^#\/leagues$/,vLeagues,"workshop"],[/^#\/league\/([^/]+)(?:\/([^/]+))?$/,m=>vLeague(decodeURIComponent(m[1]), m[2]||"topics"),"workshop"],
@@ -536,8 +530,7 @@ function render(){
     document.body.className=mode;
     document.body.innerHTML=fn(m);
     bindCommon();
-    if(h==="#/convention") bindConvention();
-    else if(h==="#/welcome"||h.startsWith("#/space")||h==="#/components") P01.bind();
+    if(h==="#/"||h===""||h==="#/convention"||h==="#/welcome"||h.startsWith("#/space")||h==="#/components") P01.bind();
     else if(h==="#/leagues") bindLeagues();
     else if(h.startsWith("#/league/")){ const seg=h.slice("#/league/".length).split("/"); bindLeague(seg[1]||"topics", seg[0]); }
     else if(h==="#/studio") bindStudio();

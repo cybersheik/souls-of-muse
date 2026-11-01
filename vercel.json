@@ -3,6 +3,12 @@
   "buildCommand": "mkdir -p dist && cp -R web/. dist/",
   "outputDirectory": "dist",
   "framework": null,
+  "rewrites": [
+    {
+      "source": "/convention",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
