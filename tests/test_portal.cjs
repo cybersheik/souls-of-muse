@@ -127,14 +127,15 @@ test("resolveLeague/tabIndexForKey behavior (unit)", () => {
   assert.equal(U.tabIndexForKey("End",0,5),4);
   assert.equal(U.tabIndexForKey("x",2,5),2);
 });
-test("ceremony contrast tokens meet WCAG AA for preview note and eyebrow", () => {
+test("ceremony contrast tokens meet WCAG AA for preview note and eyebrow (v4: no purple)", () => {
   const css = fs.readFileSync(path.join(root, "web/styles.css"), "utf8");
-  assert.ok(css.includes("body.ceremony .demo-banner{color:#3f3d8f;background:#ece8f7"), "violet ink banner");
-  assert.ok(css.includes("body.ceremony .eyebrow{color:#4c3fc0}"), "violet eyebrow");
+  assert.ok(css.includes("body.ceremony .demo-banner{color:#5A4A20;background:#FBF3E0"), "gold-ink banner, no purple");
+  assert.ok(css.includes("body.ceremony .eyebrow{color:#7A5A12}"), "gold eyebrow, no purple");
+  assert.ok(css.includes("--divider:#E3D8C2"), "ceremony divider 1px #E3D8C2");
   const lum = h => { const [r,g,b]=[0,2,4].map(i=>parseInt(h.slice(1).substr(i,2),16)/255).map(c=>c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4)); return 0.2126*r+0.7152*g+0.0722*b; };
   const ratio = (a,b) => { const x=lum(a), y=lum(b); return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05); };
-  assert.ok(ratio("#3f3d8f","#ece8f7") >= 4.5, "banner contrast");
-  assert.ok(ratio("#4c3fc0","#f1f2f6") >= 4.5, "eyebrow contrast");
+  assert.ok(ratio("#5A4A20","#FBF3E0") >= 4.5, "banner contrast");
+  assert.ok(ratio("#7A5A12","#f1f2f6") >= 4.5, "eyebrow contrast");
   assert.ok(ratio("#7a5808","#f4f1ea") >= 4.5, "soft badge contrast");
 });
 test("canonical convention text verbatim, approved EN title, real brand assets", () => {
