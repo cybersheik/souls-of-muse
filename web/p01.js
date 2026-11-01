@@ -1,5 +1,6 @@
 "use strict";
-/* Portal P0.1 views: 02 Welcome, 03 Personal space, 04 Components.
+/* Portal views: Entrance v4, 02 Welcome, 04 Components. The personal
+   cabinet (03) moved to web/cabinet.js (Muse Cabinet 1.3, #/space).
    All user text comes from web/strings.js (window.P01Strings).
    Demo member is the mock's Lina Khairullina; no backend success is claimed:
    votes are "not open yet", session entry points at the preserved lesson page
@@ -209,73 +210,6 @@ function welcome() {
   </main></div>`;
 }
 
-function space(roleKey) {
-  const tt = t();
-  const R = PS.ROLE[roleKey], RL = R[state.lang];
-  const iniName = Object.fromEntries(R.people.map(p => [p[0], p[1]]));
-  const leagueIcon = roleKey === "teacher" ? "ph-microphone-stage" : roleKey === "listener" ? "dombra" : "ph-guitar";
-  const recPlay = (kind, i) => `data-p01-rec="${kind}:${i}"`;
-  return `<div class="p01 p01-workshop">${head("workshop", tt.navSpace, true)}
-  <main id="main" tabindex="-1" class="p01-wrap">
-    <div class="p01-space-top">
-      <div><div class="mono" style="font-size:12.5px;color:var(--p01-n400)">${escP(tt.dateLine)}</div>
-      <h1>${escP(tt.greet)}</h1>
-      <p class="p01-example-note" role="note">${escP(tt.exampleProfileNote)}</p></div>
-      <div class="p01-spacer"></div>
-      <div class="p01-roles-wrap">
-        <span class="p01-rolehint">${escP(tt.roleHint)}</span>${roleTabs(roleKey)}
-      </div>
-    </div>
-    <div class="p01-grid">
-      <div class="p01-col p01-col-left">
-        <section class="p01-panel p01-panel-today" aria-label="${escP(tt.today)}">
-          <div class="p01-today-grid">
-            <div class="p01-today-left">
-              <div style="display:flex;gap:10px;align-items:center"><span class="p01-kicker">${escP(tt.today)}</span><span class="p01-tag"><i class="ph ${RL.today.chipIcon}"></i>${escP(RL.today.chip)}</span></div>
-              <div><div style="font-size:13px;color:var(--p01-accent300)">${escP(RL.today.kicker)}</div>
-              <div style="font-size:24px;font-weight:500;line-height:1.2">${escP(RL.today.title)}</div>
-              <div class="mono" style="font-size:12.5px;color:var(--p01-n400)">${escP(RL.today.meta)}</div></div>
-              <div class="p01-people">${R.todayPeople.map(i => `<span class="p01-ava" title="${escP(iniName[i] || "")}">${escP(i)}</span>`).join("")}<span style="font-size:12.5px;color:var(--p01-n400)">${escP(RL.today.peopleNote)}</span></div>
-            </div>
-            <div class="p01-today-right">
-              ${R.lesson ? `<span style="font-size:12.5px;color:var(--p01-n300)">${escP(tt.mode)}</span>
-                ${[["indiv", tt.indiv, RL.modes.indiv], ["group", tt.group, RL.modes.group]].map(([k, label, sub]) =>
-                  `<button class="p01-mode" data-mode="${k}" role="radio" aria-checked="${state.mode === k}"><span class="p01-radio"><i></i></span><span><span style="display:block;font-size:14px;font-weight:500">${escP(label)}</span><span style="font-size:12px;color:var(--p01-n400)">${escP(sub)}</span></span></button>`).join("")}` : ""}
-              <a class="p01-btn primary" href="${R.lesson ? "lesson.html" : "#/space/admirer"}">${escP(RL.today.action)} <i class="ph ph-arrow-right"></i></a>
-            </div>
-          </div>
-        </section>
-        <section class="p01-panel p01-muse p01-panel-muse" aria-label="MUSE">
-          <div style="display:flex;gap:10px;align-items:center"><img src="assets/muse-badge.png" alt="MUSE" style="width:34px"><span style="font-size:13.5px;font-weight:500">${escP(tt.museTitle)}</span><span class="p01-muserule" style="font-size:12px;color:var(--p01-n400)">${escP(tt.museRule)}</span></div>
-          <div style="font-size:14px;line-height:1.5;color:#d8d5e6">${escP(RL.muse.intro)}</div>
-          <div class="p01-quote">${escP(RL.muse.quote)}</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="p01-btn primary">${escP(RL.muse.a1)}</button><button class="p01-btn ghost">${escP(RL.muse.a2)}</button><div class="p01-spacer"></div><span class="mono" style="font-size:12px;color:var(--p01-n400)">${escP(RL.muse.meta)}</span></div>
-        </section>
-        <section class="p01-panel p01-panel-recs" aria-label="${escP(RL.recsTitle)}">
-          <span class="p01-kicker">${escP(RL.recsTitle)}</span>
-          ${RL.recs.map(([kind, title, meta, chip], i) => `<div class="p01-rec">
-            <button class="p01-play sm" ${recPlay(kind, i)} aria-label="${escP(tt.listen)}" aria-pressed="false"><i class="ph-fill ph-play"></i></button>
-            <div style="flex:1;min-width:0"><div style="font-size:14px">${escP(title)}</div><div class="mono" style="font-size:12px;color:var(--p01-n400)">${escP(meta)}</div>
-            ${chip ? `<span class="p01-tag" style="margin-top:4px"><i class="ph ph-seal-question"></i>${escP(chip)}</span>` : ""}</div></div>`).join("")}
-        </section>
-      </div>
-      <div class="p01-col p01-col-right">
-        <section class="p01-panel p01-panel-league" aria-label="${escP(tt.league)}">
-          <div style="display:flex;gap:12px;align-items:center"><span class="p01-emblem"><img src="assets/frame-classic.png" alt="">${leagueGlyph(leagueIcon)}</span>
-          <div><div class="p01-kicker">${escP(tt.league)}</div><div style="font-size:18px;font-weight:500">${escP(RL.league.name)}</div></div></div>
-          <div class="p01-place"><i class="ph ph-user-circle" style="color:var(--p01-accent300);font-size:16px"></i>${escP(RL.place)}</div>
-          <div style="font-size:12px;color:var(--p01-n400)">${escP(tt.people)}</div>
-          ${R.people.map(([ini, nm, re, rr, langs]) => `<div style="display:flex;gap:10px;align-items:center"><span class="p01-ava">${escP(ini)}</span><div><div style="font-size:14px">${escP(nm)}</div><div style="font-size:12px;color:var(--p01-n400)">${escP(state.lang === "en" ? re : rr)} · ${escP(langs)}</div></div></div>`).join("")}
-          <div style="font-size:12px;color:var(--p01-n400)">${escP(tt.events)}</div>
-          ${RL.league.events.map(([mon, day, title, meta]) => `<div class="p01-event"><span class="p01-datebox"><span style="font-size:10.5px;color:var(--p01-n400);text-transform:uppercase">${escP(mon)}</span><span style="font-size:17px;font-weight:500">${escP(day)}</span></span><div><div style="font-size:14px">${escP(title)}</div><div class="mono" style="font-size:12px;color:var(--p01-n400)">${escP(meta)}</div></div></div>`).join("")}
-          <span class="p01-chip" style="background:var(--p01-n900);border-color:var(--p01-n800);color:var(--p01-n300)"><i class="ph ph-clock"></i>${escP(tt.chipVote)}</span>
-        </section>
-        ${memberCard(true)}
-      </div>
-    </div>
-  </main></div>`;
-}
-
 function components() {
   const tt = t();
   const en = state.lang === "en";
@@ -429,4 +363,4 @@ function bind() {
   });
 }
 function stopAll() { stopAudio(); if (entRaf) { cancelAnimationFrame(entRaf); entRaf = null; } }
-window.P01 = { entrance, welcome, space, components, bind, stop: stopAll, state };
+window.P01 = { entrance, welcome, components, bind, stop: stopAll, state };

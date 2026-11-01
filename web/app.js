@@ -325,7 +325,7 @@ function bindCommon(){
   const h=location.hash||"#/";
   const section = h==="#/"||h===""||h.startsWith("#/convention")||h.startsWith("#/welcome") ? "#/convention"
     : h.startsWith("#/leagues")||h.startsWith("#/league/") ? "#/leagues"
-    : h.startsWith("#/space")||h.startsWith("#/cabinet/")||h.startsWith("#/studio")||h.startsWith("#/components") ? "#/space" : null;
+    : h.startsWith("#/space")||h.startsWith("#/session/")||h.startsWith("#/cabinet/")||h.startsWith("#/studio")||h.startsWith("#/components") ? "#/space" : null;
   document.querySelectorAll("nav.main a").forEach(a=>{
     if(section && a.getAttribute("href")===section) a.setAttribute("aria-current","page");
     else a.removeAttribute("aria-current");
@@ -517,9 +517,11 @@ function bindStudio(){
 
 /* ---------- router with unified page cleanup ---------- */
 let focusTabOnRender=false;
-function cleanupPage(){ stopPlay(); cleanupStudio(); if(window.P01) P01.stop(); }
+function cleanupPage(){ stopPlay(); cleanupStudio(); if(window.P01) P01.stop(); if(window.Cabinet) Cabinet.stop(); }
 const routes=[[/^#?\/?$/,()=>P01.entrance(),"ceremony"],[/^#\/convention$/,()=>P01.entrance(),"ceremony"],[/^#\/welcome$/,()=>P01.welcome(),"ceremony"],
- [/^#\/space(?:\/(artist|maestro|admirer))?$/,m=>P01.space(ROLE_HASH[m[1]||"artist"]),"workshop"],
+ [/^#\/space(?:\/(artist|maestro|admirer))?$/,m=>Cabinet.home(m[1]||"artist"),"workshop"],
+ [/^#\/session\/(maestro|artist)\/(circle|one-to-one)$/,m=>Cabinet.session(m[1],m[2]==="circle"?"circle":"one"),"workshop"],
+ [/^#\/session\/(admirer)\/(circle)$/,m=>Cabinet.session(m[1],"circle"),"workshop"],
  [/^#\/components$/,()=>P01.components(),"workshop"],
  [/^#\/leagues$/,vLeagues,"workshop"],[/^#\/league\/([^/]+)(?:\/([^/]+))?$/,m=>vLeague(decodeURIComponent(m[1]), m[2]||"topics"),"workshop"],
  [/^#\/cabinet\/(student|teacher|listener)$/,m=>vCabinet(m[1]),"workshop"],[/^#\/studio$/,vStudio,"workshop"]];
@@ -530,7 +532,8 @@ function render(){
     document.body.className=mode;
     document.body.innerHTML=fn(m);
     bindCommon();
-    if(h==="#/"||h===""||h==="#/convention"||h==="#/welcome"||h.startsWith("#/space")||h==="#/components") P01.bind();
+    if(h==="#/"||h===""||h==="#/convention"||h==="#/welcome"||h==="#/components") P01.bind();
+    else if(h.startsWith("#/space")||h.startsWith("#/session/")) Cabinet.bind();
     else if(h==="#/leagues") bindLeagues();
     else if(h.startsWith("#/league/")){ const seg=h.slice("#/league/".length).split("/"); bindLeague(seg[1]||"topics", seg[0]); }
     else if(h==="#/studio") bindStudio();
