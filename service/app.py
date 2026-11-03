@@ -242,8 +242,11 @@ def _validate_translation(src_text, src_lang, out_text, tgt_lang, glossary):
     except Exception:
         return []
 
-def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_concurrent=1, on_write=None, maestro_token=None, artist_token=None, heart_key=None):
+def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_concurrent=1, on_write=None, maestro_token=None, artist_token=None, heart_key=None, speech=None):
     env = os.environ if environ is None else environ
+    if speech is None:
+        from .mms_tts import MmsSpeech
+        speech = MmsSpeech.from_environ(env)
     data_dir = data_dir or env.get("SERVICE_DATA_DIR") or env.get("SOM_DATA_DIR")
     if not data_dir or not Path(data_dir).is_dir():
         raise RuntimeError("SERVICE_DATA_DIR must name an existing, explicitly provisioned directory; failing closed")
@@ -377,8 +380,8 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
                 "roles_ready": auth_ready, "pilot_ready": pilot_ready,
                 "production_ready": False, "full_participant_identity": False,
                 "capabilities": {"text_interpretation_en_vi": bool(pilot_ready), "sessions": bool(auth_ready), "maestro_approval": bool(auth_ready), "hash_linked_audit": True, "participant_login": bool(identity.accounts), "scoped_session_membership": True, "heart_journal_integration": bridge.key is not None, "heart_outbox": True,
-                                 "responses": False, "asr": bool(getattr(adapter, "asr_enabled", False)), "sam": False, "tts": False, "media_rooms": False, "watches": False, "registration": False, "votes": False},
-                "not_implemented": ["lessons_media", "group_media_streams", "league_interactions_beyond_text_sessions", "responses", "sam", "tts", "watches", "full_participant_identity", "production_readiness"] + ([] if getattr(adapter, "asr_enabled", False) else ["asr"])}
+                                 "responses": False, "asr": bool(getattr(adapter, "asr_enabled", False)), "sam": False, "tts": speech is not None, "media_rooms": False, "watches": False, "registration": False, "votes": False},
+                "not_implemented": ["lessons_media", "group_media_streams", "league_interactions_beyond_text_sessions", "responses", "sam", "watches", "full_participant_identity", "production_readiness"] + ([] if getattr(adapter, "asr_enabled", False) else ["asr"]) + ([] if speech is not None else ["tts"])}
 
     @app.get("/pilot")
     def pilot():
@@ -654,6 +657,8 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
 
     from .voice import install_voice
     install_voice(app, db, _commit, actor_from_auth, get_session, err, adapter, inference_gate, data_dir, glossary)
+    from .speech import install_speech
+    install_speech(app, db, _commit, actor_from_auth, get_session, err, speech, inference_gate)
     return app
 
 app = None  # No import-time app: provisioning must be explicit. Use create_app.

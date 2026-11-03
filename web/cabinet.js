@@ -33,7 +33,7 @@ function cabHead(role, sessTitle, sessSub) {
     <a class="cab-brand" href="#/space/${role}"><img src="assets/lyre.png" alt="Golden Lyre"><span>${cabEsc(C.brand)}</span></a>
     ${sessTitle ? `<span class="cab-sess-title">${cabEsc(sessTitle)} <span>${cabEsc(sessSub || "")}</span></span>` : ""}
     <div class="cab-head-right">
-      <span class="cab-tag cab-tag-neutral">${cabEsc(window.CabinetHarness?.state.meeting ? (cabLang() === "ru" ? "Текстовая встреча" : "Text meeting") : C.exampleData)}</span>
+      <span class="cab-tag cab-tag-neutral">${cabEsc(window.CabinetHarness?.state.meeting ? (cabLang() === "ru" ? "Музыкальная встреча" : "Music meeting") : C.exampleData)}</span>
       ${role === "admirer" && sessTitle ? `<span class="cab-tag cab-tag-outline">${cabEsc(C.proposal)}</span>` : ""}
       <span class="cab-who"><span>${cabEsc(who)}</span><span aria-hidden="true">·</span><span class="soul text-gold">${cabEsc(soul)}</span></span>
       ${cabLangSwitch()}
@@ -266,7 +266,7 @@ function session(role, mode) {
         <span class="cab-beats">${[0, 1, 2, 3].map(() => "<i></i>").join("")}</span>
         <span class="cab-bpm"><b>72</b><span>BPM</span></span><span style="flex:1"></span>
         <span style="font-size:12px;color:var(--color-neutral-500)">${cabEsc(C.metroOff)}</span></div>`;
-  const left = live ? `<div class="cab-label">${cabLang() === "ru" ? "Встреча EN ↔ VI" : "EN ↔ VI meeting"}</div><p>${cabLang() === "ru" ? "Голос и видео ожидают подключения. Сообщения и одобрение перевода работают в чате Muse." : "Voice and video are awaiting connection. Use the Muse chat for messages and translation approval."}</p>` : `
+  const left = live ? `<div class="cab-label">${cabLang() === "ru" ? "Встреча EN ↔ VI" : "EN ↔ VI meeting"}</div><p>${CabinetHarness.state.tts ? (cabLang() === "ru" ? "Одобренный перевод можно прослушать в чате Muse. Видео ожидает подключения." : "Listen to approved translations in the Muse chat. Video is awaiting connection.") : (cabLang() === "ru" ? "Сообщения и одобрение перевода работают в чате Muse. Видео ожидает подключения." : "Use the Muse chat for messages and translation approval. Video is awaiting connection.")}</p>` : `
       <div style="display:flex;flex-direction:column;gap:11px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span class="cab-label">${cabEsc(isM ? (F === "all" ? C.soundAll : C.soundPrivate) : isAd ? C.soundAdmirer : C.soundArtist)}</span><span class="cab-tag cab-tag-neutral">${cabEsc(C.exampleTag)}</span></div>
         <div class="cab-sound" aria-hidden="true"><i></i></div>
@@ -286,7 +286,7 @@ function session(role, mode) {
       ${live ? "" : `<span class="cab-dictating"><i class="ph ph-waveform"></i>${cabEsc(isM ? C.dictatingM : C.dictatingA)}</span>`}
       <span class="cab-label">${cabEsc(chatLabel)}</span>
       <div class="cab-chat">${chatHTML(role, mode, C)}</div>
-      ${isAd ? "" : `<form class="cab-chat-form" data-cab-chat-form><input data-cab-chat-input autocomplete="off" placeholder="${cabEsc(isM ? (F === "all" ? C.writeAll : C.writeTo(focusName)) : C.writeMaestro)}"><button type="submit" class="cab-btn cab-btn-primary cab-icon-btn" aria-label="→"><i class="ph ph-paper-plane-right"></i></button></form>`}
+      ${isAd ? "" : `<form class="cab-chat-form" data-cab-chat-form><input data-cab-chat-input autocomplete="off" placeholder="${cabEsc(live ? C.writeTo(focusName) : isM ? (F === "all" ? C.writeAll : C.writeTo(focusName)) : C.writeMaestro)}"><button type="submit" class="cab-btn cab-btn-primary cab-icon-btn" aria-label="→"><i class="ph ph-paper-plane-right"></i></button></form>`}
       <div class="cab-notes">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span class="cab-label" style="flex:1">${cabEsc(isA ? C.notesQuestions : C.myNotes)}</span>
         ${isA ? `<button type="button" class="cab-btn cab-btn-ghost" data-cab-hand ${window.CabinetHarness?.state.meeting ? "disabled" : ""} aria-pressed="${cabState.hand}" style="font-size:12px"><i class="ph ${cabState.hand ? "ph-fill ph-hand-waving" : "ph-hand-waving"}"></i>${cabEsc(cabState.hand ? C.handRaised : C.raiseHand)}</button>` : ""}

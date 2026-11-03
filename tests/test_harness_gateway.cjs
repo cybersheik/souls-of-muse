@@ -42,3 +42,18 @@ test("gateway rejects unexpected routes before making an upstream request", asyn
   assert.equal(res.code, 404);
   delete process.env.SOM_HARNESS_URL;
 });
+
+test("gateway passes speech JSON for the approved message route", async () => {
+  const oldFetch = global.fetch;
+  process.env.SOM_HARNESS_URL = "https://backend.example";
+  try {
+    global.fetch = async url => {
+      assert.equal(url.pathname, "/sessions/meeting/messages/message/speech");
+      return new Response('{"wav_base64":"waveform","language":"vi"}', { status: 200 });
+    };
+    const res = response();
+    await handler({ query: { path: ["sessions", "meeting", "messages", "message", "speech"] }, method: "POST", headers: {} }, res);
+    assert.equal(res.code, 200);
+    assert.equal(JSON.parse(res.body).language, "vi");
+  } finally { global.fetch = oldFetch; delete process.env.SOM_HARNESS_URL; }
+});

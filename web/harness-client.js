@@ -1,8 +1,9 @@
 "use strict";
 
 window.CabinetHarness = (() => {
-  const state = { user: null, meeting: null, sessions: [], heart: null, busy: false, status: "", pending: null, recording: false, asr: false };
+  const state = { user: null, meeting: null, sessions: [], heart: null, busy: false, status: "", pending: null, recording: false, asr: false, tts: false };
   let capture = null, captureAbort = null, composeText = "", focusCompose = false;
+  let speechAudio = null, speechURL = null, speechAbort = null, speechMessage = null;
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const ru = () => window.P01?.state.lang === "ru";
   const word = (en, local) => ru() ? local : en;
@@ -22,6 +23,7 @@ window.CabinetHarness = (() => {
     });
     const data = await response.json();
     if (response.status === 401) {
+      cancelCapture(); stopSpeech();
       Object.assign(state, { user: null, meeting: null, sessions: [], heart: null });
     }
     if (!response.ok) throw new Error(data.detail || "request_failed");
@@ -74,7 +76,8 @@ window.CabinetHarness = (() => {
     return (state.meeting?.deliveries || []).map(message => `<div class="cab-msg muse"><span class="cab-msg-who">Muse · ${esc(message.speaker)} · ${esc(message.state)}</span>
       ${message.source_text ? `<span class="cab-msg-orig">${esc(message.source_text)}</span>` : ""}<span class="cab-msg-text">${esc(message.text)}</span>
       ${message.validation_issues?.length ? `<strong>${esc(message.validation_issues.join(", "))}</strong>` : ""}
-      ${state.user?.role === "maestro" && ["draft", "flagged"].includes(message.state) ? `<button class="cab-btn" data-harness-approve="${esc(message.id)}" data-flagged="${message.state === "flagged"}">${word("Approve translation", "Одобрить перевод")}</button>` : ""}</div>`).join("") || `<p>${word("Approved messages will appear here", "Здесь появятся одобренные сообщения")}</p>`;
+      ${state.user?.role === "maestro" && ["draft", "flagged"].includes(message.state) ? `<button class="cab-btn" data-harness-approve="${esc(message.id)}" data-flagged="${message.state === "flagged"}">${word("Approve translation", "Одобрить перевод")}</button>` : ""}
+      ${state.tts && message.state === "approved" ? `<button class="cab-btn" data-harness-speak="${esc(message.id)}" ${state.busy ? "disabled" : ""}>${word("Listen to translation", "Прослушать перевод")}</button><span data-harness-audio="${esc(message.id)}"></span>` : ""}</div>`).join("") || `<p>${word("Approved messages will appear here", "Здесь появятся одобренные сообщения")}</p>`;
   }
   async function send(text, role) {
     if (!state.user || !state.meeting || state.user.role !== role) {
@@ -99,7 +102,7 @@ window.CabinetHarness = (() => {
       const data = new FormData(event.currentTarget);
       const username = data.get("username"), password = data.get("password");
       event.currentTarget.reset();
-      action(async () => { state.user = await call("auth/login", { username, password }); state.asr = !!(await call("health")).capabilities.asr; await refresh(); location.hash = "#/space/" + state.user.role; });
+      action(async () => { state.user = await call("auth/login", { username, password }); await capabilities(); await refresh(); location.hash = "#/space/" + state.user.role; });
     });
     on("[data-harness-create]", "submit", event => {
       event.preventDefault();
@@ -116,7 +119,7 @@ window.CabinetHarness = (() => {
       await refresh(); location.hash = "#/session/" + state.user.role + "/one-to-one";
     }));
     on("[data-harness-refresh]", "click", () => action(refresh));
-    on("[data-harness-logout]", "click", () => action(async () => { cancelCapture(); await call("auth/logout", {}); sessionStorage.removeItem("som_meeting"); Object.assign(state, { user: null, meeting: null, sessions: [], heart: null, pending: null }); }));
+    on("[data-harness-logout]", "click", () => action(async () => { cancelCapture(); stopSpeech(); await call("auth/logout", {}); sessionStorage.removeItem("som_meeting"); Object.assign(state, { user: null, meeting: null, sessions: [], heart: null, pending: null }); }));
     for (const verb of ["start", "join", "complete"]) on(`[data-harness-${verb}]`, "click", () => action(async () => {
       await call(`sessions/${state.meeting.id}/${verb}`, {});
       if (verb === "start") await call(`sessions/${state.meeting.id}/join`, {});
@@ -140,10 +143,48 @@ window.CabinetHarness = (() => {
       if (flagged && !window.confirm(word("The validator flagged this translation. Have you reviewed it?", "Валидатор отметил ошибку. Вы проверили перевод?"))) return;
       action(async () => { await call(`sessions/${state.meeting.id}/messages/${id}/approve`, { confirm_flagged: flagged }); await refresh(); });
     });
+    document.querySelectorAll("[data-harness-speak]").forEach(button => button.onclick = () => playSpeech(button.dataset.harnessSpeak));
+    if (speechAudio && speechMessage) {
+      const slot = Array.from(document.querySelectorAll("[data-harness-audio]")).find(el => el.dataset.harnessAudio === speechMessage);
+      if (slot) slot.appendChild(speechAudio);
+    }
+  }
+  async function capabilities() {
+    const caps = (await call("health")).capabilities;
+    state.asr = !!caps.asr; state.tts = !!caps.tts;
+  }
+  function stopSpeech() {
+    if (speechAbort) speechAbort.abort();
+    if (speechAudio) { speechAudio.pause(); speechAudio.removeAttribute("src"); speechAudio.load(); speechAudio.remove(); }
+    if (speechURL) URL.revokeObjectURL(speechURL);
+    speechAudio = null; speechURL = null; speechAbort = null; speechMessage = null;
+  }
+  async function playSpeech(mid) {
+    if (state.busy || !state.meeting || !state.tts) return;
+    stopSpeech();
+    const controller = new AbortController(); speechAbort = controller;
+    const meeting = state.meeting.id;
+    await action(async () => {
+      const response = await fetch(`/api/harness/sessions/${meeting}/messages/${mid}/speech`, {
+        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+        body: "{}", signal: controller.signal,
+      });
+      const data = await response.json();
+      if (controller.signal.aborted) return;
+      if (response.status === 401) { stopSpeech(); Object.assign(state, { user: null, meeting: null }); }
+      if (!response.ok) throw new Error(data.detail || "speech_unavailable");
+      const bytes = Uint8Array.from(atob(data.wav_base64), char => char.charCodeAt(0));
+      speechURL = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }));
+      speechAudio = new Audio(speechURL); speechAudio.controls = true;
+      speechAudio.setAttribute("aria-label", word("Approved translation", "Одобренный перевод"));
+      speechAudio.style.maxWidth = "100%"; speechMessage = mid;
+      // Controls remain usable when the browser requires another playback gesture.
+      await speechAudio.play().catch(() => {});
+    });
   }
   call("auth/me").then(async user => {
     state.user = user;
-    state.asr = !!(await call("health")).capabilities.asr;
+    await capabilities();
     const saved = sessionStorage.getItem("som_meeting");
     if (saved) {
       try { state.meeting = await call("sessions/" + encodeURIComponent(saved)); if (window.Cabinet) Cabinet.state.drawer[user.role] = false; }
@@ -199,6 +240,6 @@ window.CabinetHarness = (() => {
       redraw();
     }
   }
-  window.addEventListener("hashchange", cancelCapture);
+  window.addEventListener("hashchange", () => { cancelCapture(); stopSpeech(); });
   return { state, panel, messages, send, bind, record };
 })();
