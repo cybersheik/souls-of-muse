@@ -84,3 +84,28 @@ class LessonPlanner(unittest.TestCase):
         step={'title':'p'*160,'duration':'4 min','goal':'g'*1000,'tips':['t'*400]*7};self.adapter.raw=json.dumps({'plan':[step]*3})
         r=self.generate(revision=doc['revision']);self.assertEqual(r.status_code,502,r.text);job=self.m.get(self.route).json()['proposal'];self.assertEqual(job['state'],'failed');self.assertNotIn('plan',job)
         self.assertLess(self.adapter.calls[0][1]['max_plan_array_utf8_bytes'],12000)
+
+    def test_generated_duration_cannot_be_a_schema_placeholder(self):
+        from service.lesson_planner import parse_plan
+        for duration in ('4 min','one minute','until relaxed','until goal reached','string crossings for 4 min',''):
+            plan=copy.deepcopy(PLAN);plan[0]['duration']=duration
+            self.assertEqual(parse_plan(json.dumps({'plan':plan})),plan)
+        for index,duration in enumerate(('title',' duration ','GOAL','tips','string','<duration>','"title"','`duration`','(goal)','< [ title ] >','“title”')):
+            plan=copy.deepcopy(PLAN);plan[0]['duration']=duration;self.adapter.raw=json.dumps({'plan':plan})
+            response=self.generate(client_event_id='placeholder-'+str(index),retry=True)
+            self.assertEqual(response.status_code,502,response.text)
+            self.assertEqual(self.m.get(self.route).json()['proposal']['state'],'failed')
+            self.assertEqual(self.a.get(self.path+'/lesson').json()['plan'],[])
+
+    def test_persisted_placeholder_is_unavailable_and_needs_explicit_retry(self):
+        job=self.generate().json();invalid=copy.deepcopy(PLAN);invalid[0]['duration']='title'
+        with sqlite3.connect(self.temp.name+'/service.sqlite3')as c:
+            c.execute('UPDATE lesson_plan_proposals SET plan_json=? WHERE id=?',(json.dumps({'plan':invalid}),job['id']))
+        self.assertEqual(self.m.get(self.route).json()['proposal']['state'],'unavailable')
+        self.assertEqual(self.apply(job).status_code,409)
+        self.assertEqual(self.generate(client_event_id='inspect-again').status_code,409)
+        self.assertEqual(len(self.adapter.calls),1)
+        retried=self.generate(client_event_id='explicit-retry',retry=True)
+        self.assertEqual(retried.status_code,201,retried.text)
+        self.assertNotEqual(retried.json()['id'],job['id']);self.assertEqual(retried.json()['plan'],PLAN)
+        self.assertEqual(len(self.adapter.calls),2)

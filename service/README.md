@@ -128,8 +128,36 @@ under the unchanged $0.05 allocation/$0.0475 stop, remaining$0.007539.
 This is snapshot evidence, not a refreshed cloud balance or a working-ledger
 replacement. The existing Modal profile was checked with one read-only
 `modal app list`; the provider reported that its token had expired. No new
-token/login flow was started. The already-pending owner readiness and allowance
-questions remain in force.
+token/login flow was started. The Modal login-readiness question remains open.
+The owner subsequently approved $0.25 total / $0.2375 stop, preserving all
+history. Until live cloud history is available, the existing local ledger has
+a conservative $0.20 allocation/$0.19 stop; $0.05/$0.0475 is reserved for the
+unchanged old cloud pilot. These stops sum to the approved $0.2375, even when
+shared historic records count twice in the bound. All original24 local rows
+were preserved exactly; only local cap metadata and its matching config changed.
+The old staged union is historical and was not installed or uploaded. Fresh
+cloud reconciliation and reviewed cap migration are still required before a
+single consolidated cloud ledger replaces the two shares.
+
+Four real Meta calls then settled $0.038352: two Wonder planning attempts and
+one Spark step translation plus its mandatory reviewer. Local history is now
+28 settled/$0.074402, HOLD0, under the $0.19 local stop. Including the two known
+cloud-only records gives a last-known union of $0.078313, not a refreshed cloud
+balance. Provider catalog and Standard pricing were checked on3November.
+
+The first shape-valid Wonder plan incorrectly used `title` for all three
+durations; it was not adopted. Planning now describes timing values explicitly
+and rejects schema-token placeholders, including quoted/nested wrappers, before
+exposing or adopting a draft. Maestro-authored timing remains free text. One
+explicit retry of the same brief preserved4/8/8minutes, Am/C,60BPM and the
+requested downstrokes. Test Maestro reviewed and adopted it. Its first step
+translated faithfully EN→VI, while two deterministic glossary flags remained
+for `tay gảy`/`dây`; explicit bilingual review preceded approval. Artist saw no
+target before approval and the exact canonical target after it. Replay made
+no additional call. The original Kimi heart verified both signed completion
+events in subsequent fresh processes. This is a bounded local real-provider
+case, not general model-quality, human-voice or Modal acceptance.
+See `docs/qa-live-planning-20261103.json` for the complete sanitized evidence.
 
 ### Existing cloud resources
 
