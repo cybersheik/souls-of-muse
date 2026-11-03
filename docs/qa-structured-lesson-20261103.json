@@ -237,5 +237,14 @@
     "production_merged": false,
     "cloud_deployed": false,
     "full_product_accepted": false
+  },
+  "build_installation": {
+    "initial_ci_run": 41580343455,
+    "initial_result": "FAIL",
+    "root_cause": "jsonschema was used by the Harness adapter but declared only by service requirements; clean CI runs Harness before installing service",
+    "fix": "declare jsonschema==4.26.0 in harness-bench/requirements.txt",
+    "isolated_harness_install": "PASS",
+    "isolated_harness_checks": 58,
+    "independent_dependency_review": "PASS"
   }
 }
