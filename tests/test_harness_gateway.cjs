@@ -73,3 +73,12 @@ test("gateway permits only the scoped media controls", async () => {
     assert.equal(res.code, 404);
   } finally { global.fetch = oldFetch; delete process.env.SOM_HARNESS_URL; }
 });
+
+test('gateway forwards only the scoped lesson workspace route', async()=>{
+ const previous=global.fetch,oldURL=process.env.SOM_HARNESS_URL;process.env.SOM_HARNESS_URL='https://backend.example';
+ try{
+  let calls=0;global.fetch=async(url,options)=>{calls++;assert.equal(url.pathname,'/sessions/meeting/lesson');assert.equal(options.headers.Authorization,undefined);return new Response('{"revision":1}',{status:200});};
+  for(const method of ['GET','POST']){const res=response();await handler({query:{path:['sessions','meeting','lesson']},method,headers:{},body:{revision:0}},res);assert.equal(res.code,200);}
+  const res=response();await handler({query:{path:['sessions','meeting','lesson','admin']},method:'POST',headers:{}},res);assert.equal(res.code,404);assert.equal(calls,2);
+ }finally{global.fetch=previous;if(oldURL===undefined)delete process.env.SOM_HARNESS_URL;else process.env.SOM_HARNESS_URL=oldURL;}
+});

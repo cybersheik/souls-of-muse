@@ -1,7 +1,7 @@
 "use strict";
 
 window.CabinetHarness = (() => {
-  const state = { user: null, meeting: null, sessions: [], heart: null, busy: false, status: "", pending: null, recording: false, asr: false, tts: false, media: false };
+  const state = { user: null, meeting: null, lesson: null, sessions: [], heart: null, busy: false, status: "", pending: null, recording: false, asr: false, tts: false, media: false };
   let capture = null, captureAbort = null, composeText = "", focusCompose = false;
   let speechAudio = null, speechURL = null, speechAbort = null, speechMessage = null;
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -16,27 +16,39 @@ window.CabinetHarness = (() => {
     if (input) { input.value = composeText; if (focusCompose) { input.focus(); focusCompose = false; } }
   };
   async function call(path, body) {
+    const requestedUser = state.user;
     const response = await fetch("/api/harness/" + path, {
       method: body === undefined ? "GET" : "POST", credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const data = await response.json();
-    if (response.status === 401) {
+    if (response.status === 401 && state.user === requestedUser) {
       cancelCapture(); stopSpeech();
       window.SomMedia?.disconnect(true).catch(() => {});
-      Object.assign(state, { user: null, meeting: null, sessions: [], heart: null });
+      Object.assign(state, { user: null, meeting: null, lesson: null, sessions: [], heart: null });
+      window.SomLesson?.reset();
     }
     if (!response.ok) throw new Error(data.detail || "request_failed");
     return data;
   }
   async function refresh() {
-    state.sessions = (await call("sessions")).sessions;
-    if (state.meeting) {
-      sessionStorage.setItem("som_meeting", state.meeting.id);
-      state.meeting = await call("sessions/" + state.meeting.id);
-      state.heart = await call("sessions/" + state.meeting.id + "/heart");
+    const user = state.user, meetingId = state.meeting?.id;
+    const sessions = (await call("sessions")).sessions;
+    if (state.user !== user || state.meeting?.id !== meetingId) return false;
+    let meeting, heart, lesson;
+    if (meetingId) [meeting, heart, lesson] = await Promise.all([
+      call("sessions/" + meetingId), call("sessions/" + meetingId + "/heart"), call("sessions/" + meetingId + "/lesson"),
+    ]);
+    // Old polls may finish after a different meeting/account has opened.
+    // Apply one coherent snapshot only to the context that requested it.
+    if (state.user !== user || state.meeting?.id !== meetingId) return false;
+    state.sessions = sessions;
+    if (meetingId) {
+      sessionStorage.setItem("som_meeting", meetingId);
+      Object.assign(state, { meeting, heart, lesson });
     }
+    return true;
   }
   async function action(work) {
     if (state.busy) return;
@@ -52,6 +64,24 @@ window.CabinetHarness = (() => {
       state.busy = false;
       redraw();
     }
+  }
+  function updateLesson(doc, saved) {
+    if (state.user?.role !== "maestro" || !state.meeting) return;
+    const user = state.user, meetingId = state.meeting.id;
+    return action(async () => {
+      try {
+        const lesson = await call(`sessions/${meetingId}/lesson`, doc);
+        if (state.user !== user || state.meeting?.id !== meetingId) return;
+        state.lesson = lesson;
+      }
+      catch (error) {
+        if (error.message === "lesson_revision_conflict") throw new Error(word(
+          "The lesson changed in another tab. Your edit is retained. Cancel editing, refresh and reapply your changes.",
+          "Урок изменён в другой вкладке. Ваши правки сохранены в форме. Отмените редактирование, обновите урок и внесите их снова."));
+        throw error;
+      }
+      saved?.();
+    });
   }
   function panel() {
     const disabled = state.busy ? " disabled" : "";
@@ -134,7 +164,12 @@ window.CabinetHarness = (() => {
       const data = new FormData(event.currentTarget);
       const username = data.get("username"), password = data.get("password");
       event.currentTarget.reset();
-      action(async () => { state.user = await call("auth/login", { username, password }); await capabilities(); await refresh(); location.hash = "#/space/" + state.user.role; });
+      action(async () => {
+        const user = await call("auth/login", { username, password });
+        Object.assign(state, { user, meeting: null, lesson: null, heart: null, sessions: [], pending: null });
+        sessionStorage.removeItem("som_meeting"); window.SomLesson?.reset();
+        await capabilities(); await refresh(); location.hash = "#/space/" + state.user.role;
+      });
     });
     on("[data-harness-create]", "submit", event => {
       event.preventDefault();
@@ -146,6 +181,7 @@ window.CabinetHarness = (() => {
       });
     });
     on("[data-harness-open]", "click", event => action(async () => {
+      state.lesson = null; window.SomLesson?.reset();
       state.meeting = await call("sessions/" + event.currentTarget.dataset.harnessOpen);
       if (window.Cabinet) Cabinet.state.drawer[state.user.role] = false;
       await refresh(); location.hash = "#/session/" + state.user.role + "/one-to-one";
@@ -155,7 +191,7 @@ window.CabinetHarness = (() => {
       cancelCapture(); stopSpeech();
       await window.SomMedia?.disconnect(true).catch(() => {});
       try { await call("auth/logout", {}); }
-      finally { sessionStorage.removeItem("som_meeting"); Object.assign(state, { user: null, meeting: null, sessions: [], heart: null, pending: null }); }
+      finally { sessionStorage.removeItem("som_meeting"); Object.assign(state, { user: null, meeting: null, lesson: null, sessions: [], heart: null, pending: null }); window.SomLesson?.reset(); }
     }));
     on("[data-harness-media]", "click", () => action(async () => {
       if (SomMedia.connected(state.meeting.id)) await SomMedia.disconnect(true);
@@ -193,7 +229,9 @@ window.CabinetHarness = (() => {
     }
   }
   async function capabilities() {
+    const user = state.user;
     const caps = (await call("health")).capabilities;
+    if (state.user !== user) return;
     state.asr = !!caps.asr; state.tts = !!caps.tts; state.media = !!caps.private_media_transport;
   }
   function stopSpeech() {
@@ -230,23 +268,32 @@ window.CabinetHarness = (() => {
     });
   }
   call("auth/me").then(async user => {
+    if (state.user) return; // An explicit login may have won this race.
     state.user = user;
+    const initialMeeting = state.meeting;
+    const current = () => state.user === user && state.meeting === initialMeeting;
     await capabilities();
+    if (!current()) return;
     const saved = sessionStorage.getItem("som_meeting");
     if (saved) {
-      try { state.meeting = await call("sessions/" + encodeURIComponent(saved)); if (window.Cabinet) Cabinet.state.drawer[user.role] = false; }
-      catch (_) { sessionStorage.removeItem("som_meeting"); }
+      try {
+        const meeting = await call("sessions/" + encodeURIComponent(saved));
+        if (!current()) return;
+        state.meeting = meeting;
+        if (window.Cabinet) Cabinet.state.drawer[user.role] = false;
+      }
+      catch (_) { if (!current()) return; sessionStorage.removeItem("som_meeting"); }
     }
-    await refresh(); redraw();
+    if (await refresh()) redraw();
   }).catch(() => {});
   setInterval(async () => {
     if (!state.user || !state.meeting || state.busy || document.visibilityState !== "visible" || !location.hash.startsWith("#/session/")) return;
     if (document.activeElement?.matches("input,textarea")) return;
-    const before = JSON.stringify({ state: state.meeting.state, heart: state.heart });
+    const before = JSON.stringify({ state: state.meeting.state, heart: state.heart, lesson: state.lesson?.revision });
     const messagesBefore = JSON.stringify(state.meeting.deliveries);
     try {
-      await refresh();
-      if (before !== JSON.stringify({ state: state.meeting.state, heart: state.heart })) redraw();
+      if (!await refresh()) return;
+      if (before !== JSON.stringify({ state: state.meeting.state, heart: state.heart, lesson: state.lesson?.revision })) redraw();
       else if (messagesBefore !== JSON.stringify(state.meeting.deliveries)) {
         const chat = document.querySelector(".cab-chat");
         if (chat) { chat.innerHTML = messages(); bindApprovals(); }
@@ -291,5 +338,5 @@ window.CabinetHarness = (() => {
   }
   window.addEventListener("som-media-changed", redraw);
   window.addEventListener("hashchange", () => { cancelCapture(); stopSpeech(); window.SomMedia?.disconnect(true).catch(() => {}); });
-  return { state, panel, messages, send, bind, record };
+  return { state, panel, messages, send, bind, record, updateLesson };
 })();

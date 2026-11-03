@@ -1,0 +1,57 @@
+"use strict";
+window.SomLesson = (() => {
+  const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const word = (en,ru) => window.P01?.state.lang === 'ru' ? ru : en;
+  let key='', editing=null;
+  const state = () => window.CabinetHarness.state;
+  function context() {
+    const next=(state().user?.id||'')+':'+(state().meeting?.id||'');
+    if(key!==next){key=next;editing=null;}
+    return state().lesson;
+  }
+  const editable = () => state().user?.role === 'maestro' && ['created','active'].includes(state().meeting?.state) && !state().busy;
+  const redraw = () => { if(typeof render==='function')render(); };
+  const clone = value => JSON.parse(JSON.stringify(value));
+  function planHTML() {
+    const doc=context();
+    if(!doc)return `<p role="status">${word('Lesson is loading…','Урок загружается…')}</p>`;
+    if(editing?.kind==='plan')return planEditor();
+    const plan=doc.plan,teacher=editable()&&!editing,selected=doc.step;
+    return `<div class="cab-plan-head"><span class="cab-plan-title">${word('Session plan','План встречи')}</span><span class="cab-tag cab-tag-outline">${plan.length?word(`Step ${selected+1} of ${plan.length}`,`Этап ${selected+1} из ${plan.length}`):word('No steps','Нет этапов')}</span></div>
+      <div class="cab-plan">${plan.length?plan.map((p,i)=>`<section class="cab-step${i===selected?' cur frame-gold-step':''}">
+        ${teacher?`<button type="button" class="cab-step-btn" data-lesson-step="${i}" aria-pressed="${i===selected}">${esc(p.title)}<span class="d">${esc(p.duration)}</span></button>`:`<h3 class="cab-step-btn">${esc(p.title)} <small>${esc(p.duration)}</small>${i===selected?` · ${word('Now','Сейчас')}`:''}</h3>`}
+        ${i===selected?`<p class="cab-step-goal">${esc(p.goal)}</p>${p.tips.map(t=>`<span class="cab-tip">${esc(t)}</span>`).join('')}`:''}</section>`).join(''):`<p>${word('The Maestro has not added a plan yet.','Маэстро ещё не добавил план.')}</p>`}</div>
+      ${teacher?`<button class="cab-btn" data-lesson-edit-plan>${word('Edit plan','Изменить план')}</button>`:''}`;
+  }
+  function field(label,name,value,max,area=false){return `<label>${label}${area?`<textarea data-lesson-field="${name}" maxlength="${max}">${esc(value)}</textarea>`:`<input data-lesson-field="${name}" value="${esc(value)}" maxlength="${max}"${name==='title'?' required':''}>`}</label>`;}
+  function planEditor(){return `<form class="cab-lesson-editor" data-lesson-plan-form><fieldset class="cab-lesson-edit-fields"${state().busy?' disabled':''}><b>${word('Session plan','План встречи')}</b>${editing.doc.plan.map((p,i)=>`<fieldset data-lesson-row="${i}"><legend>${word('Step','Этап')} ${i+1}</legend>${field(word('Title','Название'),'title',p.title,160)}${field(word('Duration','Длительность'),'duration',p.duration,40)}${field(word('Goal','Цель'),'goal',p.goal,1000,true)}${field(word('Tips · one per line','Подсказки · по одной на строку'),'tips',p.tips.join('\n'),4010,true)}<button type="button" class="cab-btn" data-lesson-remove-step="${i}">${word('Remove step','Убрать этап')}</button></fieldset>`).join('')}<div class="cab-lesson-actions"><button type="button" class="cab-btn" data-lesson-add-step${editing.doc.plan.length>=32?' disabled':''}>${word('Add step','Добавить этап')}</button><button class="cab-btn"${state().busy?' disabled':''}>${word('Save plan','Сохранить план')}</button><button type="button" class="cab-btn" data-lesson-cancel>${word('Cancel','Отмена')}</button></div></fieldset></form>`;}
+  function drawerHTML(role){
+    const doc=context(),C=window.Cabinet.state,open=!!C.drawer[role],tab=C.tab;
+    const book=doc?.notebook;
+    let body='';
+    if(!book)body=`<p>${word('Notebook is loading…','Тетрадь загружается…')}</p>`;
+    else if(editing?.kind==='book')body=bookEditor();
+    else if(tab==='chords')body=book.chords.length?`<div class="cab-chords">${book.chords.map((c,i)=>`<div class="cab-chord"><span class="bar-n">${word('bar','такт')} ${i+1}</span><span class="ch">${esc(c)}</span></div>`).join('')}</div>`:`<p>${word('No chords added.','Аккорды не добавлены.')}</p>`;
+    else if(tab==='notes')body=book.notation?`<iframe class="cab-score" title="${word('Sheet music','Ноты')}" sandbox="allow-scripts" src="notation.html" data-lesson-score></iframe>`:`<p>${word('No notation added.','Ноты не добавлены.')}</p>`;
+    else body=book.tabs?`<pre class="cab-tabtext">${esc(book.tabs)}</pre>`:`<p>${word('No tablature added.','Табулатура не добавлена.')}</p>`;
+    return `<div class="cab-drawer"><button type="button" class="cab-drawer-tab" data-cab-drawer aria-expanded="${open}"><span>${word('Notebook','Нотная тетрадь')}</span></button>${open?`<div class="cab-drawer-panel"><div class="cab-ntabs" role="tablist">${[['chords',word('Chords','Аккорды')],['notes',word('Notation','Ноты')],['tabs',word('Tabs','Табулатура')]].map(([id,label])=>`<button role="tab" type="button" data-cab-tab="${id}" aria-selected="${id===tab}">${label}</button>`).join('')}</div>${body}${editable()&&!editing?`<button class="cab-btn" data-lesson-edit-book>${word('Edit notebook','Изменить тетрадь')}</button>`:''}<p class="cab-drawer-note">${word('Shared material · led by the Maestro','Общий материал · ведёт Маэстро')}</p></div>`:''}</div>`;
+  }
+  function bookEditor(){const b=editing.doc.notebook;return `<form class="cab-lesson-editor" data-lesson-book-form><fieldset class="cab-lesson-edit-fields"${state().busy?' disabled':''}>${field(word('Chords · one bar per line','Аккорды · каждый такт на новой строке'),'chords',b.chords.join('\n'),2112,true)}${field(word('Notation · ABC format','Ноты · формат ABC'),'notation',b.notation,8000,true)}<small>${word('Paste ABC sheet music; the Notation tab displays the score.','Вставьте нотную запись ABC; вкладка «Ноты» покажет партитуру.')}</small>${field(word('Tablature','Табулатура'),'tabs',b.tabs,8000,true)}<div class="cab-lesson-actions"><button class="cab-btn"${state().busy?' disabled':''}>${word('Save notebook','Сохранить тетрадь')}</button><button type="button" class="cab-btn" data-lesson-cancel>${word('Cancel','Отмена')}</button></div></fieldset></form>`;}
+  function bind(){
+    if(!state().meeting)return;
+    context();
+    const on=(selector,event,fn)=>document.querySelectorAll(selector).forEach(el=>el.addEventListener(event,fn));
+    on('[data-lesson-edit-plan]','click',()=>{if(!editable()||editing)return;editing={kind:'plan',doc:clone(context())};redraw();});
+    on('[data-lesson-edit-book]','click',()=>{if(!editable()||editing)return;editing={kind:'book',doc:clone(context())};redraw();});
+    on('[data-lesson-cancel]','click',()=>{editing=null;redraw();});
+    on('[data-lesson-add-step]','click',()=>{editing.doc.plan.push({title:'',duration:'',goal:'',tips:[]});if(editing.doc.step===null)editing.doc.step=0;redraw();});
+    on('[data-lesson-remove-step]','click',event=>{const i=+event.currentTarget.dataset.lessonRemoveStep,d=editing.doc;d.plan.splice(i,1);if(!d.plan.length)d.step=null;else if(i<d.step)d.step--;else d.step=Math.min(d.step,d.plan.length-1);redraw();});
+    on('[data-lesson-row] [data-lesson-field]','input',event=>{const el=event.currentTarget,index=+el.closest('[data-lesson-row]').dataset.lessonRow;editing.doc.plan[index][el.dataset.lessonField]=el.dataset.lessonField==='tips'?el.value.split('\n').filter(x=>x.trim()):el.value;});
+    on('[data-lesson-book-form] [data-lesson-field]','input',event=>{const el=event.currentTarget;editing.doc.notebook[el.dataset.lessonField]=el.dataset.lessonField==='chords'?el.value.split('\n').filter(x=>x.trim()):el.value;});
+    on('[data-lesson-plan-form], [data-lesson-book-form]','submit',event=>{event.preventDefault();if(editable())window.CabinetHarness.updateLesson(clone(editing.doc),()=>{editing=null;});});
+    on('[data-lesson-step]','click',event=>{if(!editable()||editing)return;const d=clone(context());d.step=+event.currentTarget.dataset.lessonStep;window.CabinetHarness.updateLesson(d);});
+    const frame=document.querySelector('[data-lesson-score]');
+    if(frame)frame.addEventListener('load',()=>frame.contentWindow.postMessage({type:'som-score',abc:context()?.notebook.notation||'',lang:window.P01?.state.lang},'*'));
+  }
+  return {planHTML,drawerHTML,bind,reset:()=>{editing=null;key='';}};
+})();

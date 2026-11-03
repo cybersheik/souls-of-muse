@@ -151,6 +151,7 @@ D|-2---------|-3---------|-2---------|-0---------|
 A|-0---------|-----------|-3---------|-2---------|
 E|-----------|-----------|-----------|-3---------|`;
 function drawerHTML(role, mode, C) {
+  if (window.CabinetHarness?.state.meeting && window.SomLesson) return SomLesson.drawerHTML(role);
   const open = !!cabState.drawer[role];
   const editable = role === "maestro";
   const tab = cabState.tab;
@@ -211,9 +212,17 @@ function chatHTML(role, mode, C) {
   }).join("");
 }
 function notesFor(role, mode, C) {
+  if (window.CabinetHarness?.state.meeting) return [];
   const base = role === "maestro" ? (mode === "one" ? [C.sessionGoalNote, ...C.notesMaestroOne] : [C.sessionGoalNote, ...C.notesMaestro])
     : role === "admirer" ? C.notesAdmirer : C.notesArtist;
   return base.concat(cabState.extraNotes);
+}
+function liveMetronome(role, C) {
+  if (role !== "maestro") return "";
+  return `<div class="cab-metro"><button type="button" class="btn-gold" data-cab-metro aria-pressed="${cabMetro.on}">${cabEsc(cabMetro.on ? C.stop : C.metronome)}</button>
+    <span class="cab-beats" data-cab-beats>${[0,1,2,3].map(k=>`<i class="${cabMetro.on && cabMetro.beat===k ? "on" : ""}"></i>`).join("")}</span>
+    <button type="button" class="cab-btn cab-icon-btn" data-cab-bpm="-1" aria-label="−">−</button><span class="cab-bpm"><b data-cab-bpm-val>${cabMetro.bpm}</b><span>BPM</span></span>
+    <button type="button" class="cab-btn cab-icon-btn" data-cab-bpm="1" aria-label="+">+</button><small>${cabLang()==="ru"?"Локальный метроном":"Local metronome"}</small></div>`;
 }
 function session(role, mode) {
   const C = cabT();
@@ -301,12 +310,12 @@ function session(role, mode) {
       <span class="cab-elapsed"><i></i>${cabEsc(window.CabinetHarness?.state.meeting ? CabinetHarness.state.meeting.state : "12:34")}</span><span style="flex:1"></span>
       <a class="cab-btn" ${live ? "data-harness-end" : ""} href="#/space/${role}"><i class="ph ph-sign-out"></i>${cabEsc(isM ? C.endSession : C.leave)}</a>
     </div>
-    <p class="cab-notlive bar-muse" role="note">${cabEsc(window.CabinetHarness?.state.meeting ? (cabLang() === "ru" ? "Перевод EN ↔ VI. План и нотная тетрадь — образцы." : "EN ↔ VI interpretation. The plan and notebook show examples.") : C.notLive)}</p>
+    <p class="cab-notlive bar-muse" role="note">${cabEsc(window.CabinetHarness?.state.meeting ? (cabLang() === "ru" ? "Встречу ведёт Маэстро. План и нотная тетрадь — общие для участников." : "The Maestro leads the meeting. The plan and notebook are shared with participants.") : C.notLive)}</p>
     ${window.CabinetHarness?.state.meeting ? `<div class="cab-live"><b>${cabEsc(CabinetHarness.state.meeting.maestro_alias)} · ${cabEsc(CabinetHarness.state.meeting.artist_alias)}</b></div>` : rosterHTML(role, mode, C)}
     ${window.CabinetHarness ? CabinetHarness.panel() : ""}
     <main id="main" tabindex="-1" class="cab-grid">
       <div class="cab-col">${left}</div>
-      <div class="cab-col">${centre}</div>
+      <div class="cab-col">${live && window.SomLesson ? SomLesson.planHTML() + liveMetronome(role, C) : centre}</div>
       <div class="cab-chat-col">${right}</div>
     </main>
     ${drawerHTML(role, mode, C)}
@@ -375,6 +384,7 @@ function cabMetroOff() {
 function cabRerender() { if (typeof render === "function") render(); }
 function bind() {
   if (window.CabinetHarness) CabinetHarness.bind();
+  if (window.SomLesson) SomLesson.bind();
   document.querySelectorAll("[data-cab-lang]").forEach(b => b.onclick = () => {
     if (window.P01) { P01.state.lang = b.dataset.cabLang; try { localStorage.setItem("som_p01_lang", P01.state.lang); } catch (e) {} }
     cabRerender();

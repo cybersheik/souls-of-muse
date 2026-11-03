@@ -1,0 +1,9 @@
+{
+  "package": "abcjs",
+  "version": "6.7.2",
+  "license": "MIT",
+  "source": "https://registry.npmjs.org/abcjs/-/abcjs-6.7.2.tgz",
+  "npm_integrity": "sha512-cHCyf8j0hAcxTuwZ9l2QznaSlLK1TD2s5oVw6Ig8Kfss6VfJKoNJ1kAzMBwa6DDWeyNl2JH7mN/U+MJ8MYbC5g==",
+  "sha256": "3290ef44c918d5e882029d3a47ad3dd63c16c8819da5abe921f3d1e642b4f4f0",
+  "use": "visual ABC renderer only in opaque sandbox; no audio or runtime network"
+}

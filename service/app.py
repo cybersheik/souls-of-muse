@@ -343,6 +343,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
       CREATE TRIGGER IF NOT EXISTS audit_no_delete BEFORE DELETE ON audit BEGIN SELECT RAISE(ABORT,'audit_append_only'); END;
       CREATE TABLE IF NOT EXISTS message_reviews(message_id TEXT PRIMARY KEY, state TEXT NOT NULL, verdict TEXT, reason TEXT, created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS message_notes(message_id TEXT PRIMARY KEY, content TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS lesson_workspaces(session_id TEXT PRIMARY KEY, revision INTEGER NOT NULL, content TEXT NOT NULL);
     """)
     cols = {r[1] for r in conn_init.execute("PRAGMA table_info(messages)").fetchall()}
     if "request_hash" not in cols:
@@ -439,6 +440,9 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         if user and row and user not in (row["maestro_id"], row["artist_id"]):
             return None
         return row
+    from .lesson import register_routes as register_lesson_routes
+    register_lesson_routes(app, db, _commit, actor_from_auth, get_session, audit, err)
+
     def msg_dict(r, include_draft=True):
         d = {"id": r["id"], "speaker": r["speaker"], "source_lang": r["source_lang"], "target_lang": r["target_lang"], "state": r["state"], "created_at": r["created_at"]}
         if r["state"] == "approved" or include_draft:

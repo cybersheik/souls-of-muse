@@ -141,6 +141,51 @@ A Maestro creates a meeting for a registered Artist ID. Both accounts can see on
 
 Offline verification uses injected adapters, never paid models. Run `python -m unittest discover -s service/tests -v` and `PYTHONPATH=harness-bench python -m pytest harness-bench/heart/tests -q`. Browser acceptance and real-model/cloud acceptance are separate results.
 
+## Teacher-led plan and Notebook
+
+Authenticated members read `/sessions/{sid}/lesson`; only that meeting's Maestro
+may update it with POST while the meeting is created or active. New meetings
+start with an empty plan and Notebook. No example people, progress percentages,
+chords, notation or teaching advice are substituted into the live workspace.
+The approved layout stays intact: plan in the centre, Notebook in the right
+drawer. Maestro can author steps (title, duration, goal, tips), select the
+current step, and share chord bars, an ABC score and tablature. The existing
+local Maestro metronome remains available; watch/tactile synchronization is
+still open.
+
+The entire workspace is saved atomically in the existing service SQLite DB
+and uses the same durable commit barrier. Updates carry a revision: a different
+stale edit gets 409 instead of overwriting newer material. Replaying the same
+content adds neither a revision nor an audit event. Completed/closing meetings
+are read-only. Persisted content is revalidated; corrupt state is unavailable,
+never silently replaced. Payloads are bounded to 28,000 UTF-8 bytes within the
+existing HTTP limit; per-field limits apply too.
+
+Artist follows saved changes through the existing five-second visible-page
+poll. Each refresh captures user/meeting context and applies one coherent
+snapshot; a late old response cannot replace a newly selected meeting or log
+out another account. Unsaved forms remain in memory during errors/conflicts.
+Only one editor can be open, and its controls are disabled during a save;
+changing the step is unavailable while editing. No private document drafts
+are put in localStorage. Shared plan/Notebook text is displayed as authored;
+translation of these materials, private participant notes and full group
+fanout remain separate unfinished parts of the complete service.
+
+The Notation tab renders actual ABC through vendored **abcjs 6.7.2 / MIT**,
+with pinned npm SHA512 and file SHA256 in `web/vendor/abcjs-6.7.2.json`.
+See the primary [rendering documentation](https://docs.abcjs.net/visual/render-abc-options.html).
+The renderer runs in an opaque sandbox frame with no parent DOM/cookies,
+network or audio access; active SVG content and links are removed. Parse
+warnings remain visible. Unknown chord names are shown as text rather than
+invented guitar fingerings. There are no runtime CDN requests for abcjs.
+
+The local browser check uses real HTTP/storage and two isolated Chrome
+profiles, with inference explicitly forbidden. It checks authoring, automatic
+Artist progression, all three Notebook tabs, actual score SVG, hostile-title
+isolation, stale-edit retention and 1440/390/320 layouts. A separate server
+process restart preserved the workspace. This is local worksheet acceptance,
+not cloud, translation, group, acoustic-performance or full-service acceptance.
+
 ## Flagged translation review
 
 The required reviewer stage runs after a deterministic flag, using `muse-spark-1.3`, minimal reasoning, temperature 0 and a 512-token output bound under the same budget guard. Source transcript, canonical draft, flags and any lesson-note grouping are sent as quoted JSON data. A strict two-field reply (`verdict`, `reason`) is requested with JSON Schema and checked locally; unknown fields, duplicate keys, invalid verdicts or empty/oversized reasons fail closed. This is a second opinion about the supplied transcript, not acoustic recognition or proof that a performance occurred. It never edits the translation, clears a deterministic flag or approves delivery.
