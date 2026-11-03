@@ -40,6 +40,11 @@ for (const lang of ["en", "ru"]) {
   assert.ok(lg.includes(T.whatTitle), `What is a League shutter ${lang}`);
   for (const L of S.LEAGUES) assert.ok(lg.includes(lang === "en" ? L[1] : L[2]), `League name ${L[1]} ${lang}`);
   assert.ok(goldCount(lg) <= 1, `leagues ${lang}: at most one filled gold button`);
+  // Portal 2.1: Muse on both screens, seven League colours, arches with leaves
+  assert.ok(home.includes("data-muse") && home.includes("data-muse-say") && home.includes(T.museIdle), `Muse greets on Home ${lang}`);
+  assert.ok(lg.includes("data-muse") && lg.includes(T.museLeagues), `Muse on Leagues ${lang}`);
+  assert.equal(new Set((lg.match(/data-node="\d" tabindex="-1" aria-hidden="true" style="--c:(#[0-9A-F]{6})/g) || [])).size, 7, `seven coloured spheres ${lang}`);
+  assert.equal((home.match(/class="p21-leaf /g) || []).length, 4, `two arches with two leaves each ${lang}`);
 }
 
 // router wiring
@@ -48,6 +53,8 @@ assert.match(app, /\[\/\^#\?\\\/\?\$\/,\(\)=>Portal20\.home\(\)/, "#/ renders Po
 assert.match(app, /#\\\/convention\$\/,\(\)=>Portal20\.home\(\)/, "#/convention renders Portal 2.0 Home");
 assert.match(app, /#\\\/leagues\$\/,\(\)=>Portal20\.leagues\(\)/, "#/leagues renders the League circle");
 assert.match(read("index.html"), /portal20\.js/, "index.html loads portal20.js");
+assert.match(read("index.html"), /portal20\.css[\s\S]*portal21\.css/, "Portal 2.1 styles load after 2.0");
+assert.ok(fs.existsSync(path.join(web, "assets", "muse-cut.png")), "Muse image (background removed) is shipped");
 assert.match(read("index.html"), /og:image" content="https:\/\/soulsofmuse\.app\/assets\/og-portal\.jpg"/, "link preview image");
 assert.ok(fs.statSync(path.join(web, "assets", "og-portal.jpg")).size < 300 * 1024, "og image under 300 KB");
 

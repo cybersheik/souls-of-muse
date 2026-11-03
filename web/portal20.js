@@ -72,6 +72,36 @@ const T = {
 };
 const LANGS = [["en", "English"], ["es", "Español"], ["fr", "Français"], ["de", "Deutsch"], ["pt", "Português"], ["it", "Italiano"], ["ja", "日本語"], ["ko", "한국어"], ["zh", "中文"], ["hi", "हिन्दी"], ["vi", "Tiếng Việt"], ["kk", "Қазақша"], ["ru", "Русский"], ["uk", "Українська"], ["pl", "Polski"], ["tr", "Türkçe"], ["ar", "العربية"], ["id", "Bahasa Indonesia"], ["th", "ไทย"]];
 const I18N = () => window.CONV_I18N || {};
+
+/* Portal 2.1 (Claude Design, 4 Nov 2026): Nocturne night sky in layers, Muse on
+   every screen, stone arches, seven coloured League spheres. */
+Object.assign(T.en, {
+  museName: "Muse", museIdle: "Sign with your name — I'll write it as music.",
+  museForm: "Type it as you sign. Latin, Cyrillic, kana and hangul all work.",
+  museDone: "Signed! Listen — this is your name in notes. ▶ plays it again.",
+  museDoorL: "Seven Leagues behind this arch. Find yours by your instrument.",
+  museDoorS: "Your space: sessions, practice plan, your League.",
+  museLeagues: "Each colour is a League. Turn the circle, or pick one from the list.",
+  legend: "Leagues by colour",
+  whatCircle: "In the centre is the Golden Lyre, the Convention. Each League has its own colour; glowing threads link every League to the Lyre and to its neighbours.",
+});
+Object.assign(T.ru, {
+  museName: "Muse", museIdle: "Подпишите своим именем — я запишу его нотами.",
+  museForm: "Пишите, как подписываетесь. Латиница, кириллица, кана и хангыль — всё подходит.",
+  museDone: "Подписано! Слушайте — это ваше имя нотами. ▶ сыграет ещё раз.",
+  museDoorL: "За этой аркой семь Лиг. Найдите свою по инструменту.",
+  museDoorS: "Ваше пространство: встречи, план практики, ваша Лига.",
+  museLeagues: "Каждый цвет — Лига. Поверните круг или выберите из списка.",
+  legend: "Лиги по цветам",
+  whatCircle: "В центре — Золотая лира, Конвенция. У каждой Лиги свой цвет; светящиеся нити связывают каждую Лигу с лирой и с соседними Лигами.",
+});
+/* League colours (Portal 2.1 legend): Teal, Orchid, Sky, Mint, Apricot, Violet, Lime. */
+const LCOL = ["#3ED0C8", "#DF86D7", "#86C5FA", "#6FDEA7", "#F6AB6B", "#AD8DFD", "#CCE170"];
+const SAY = {
+  en: ["Anything you pluck lives here: guitar, dombra, koto, ukulele.", "Strings that sing under a bow, from violin to kyl-kobyz.", "Piano, organ and synth share one keyboard and one League.", "Breath becomes sound here: flute, sax, brass, duduk.", "The pulse of every session: kit, hand drums, percussion.", "Producers and live-set players. A laptop is an instrument too.", "Your voice is the instrument, solo or in a choir."],
+  ru: ["Всё, что щиплют, живёт здесь: гитара, домбра, кото, укулеле.", "Струны, которые поют под смычком, — от скрипки до кыл-кобыза.", "Фортепиано, орган и синтезатор: одна клавиатура, одна Лига.", "Здесь дыхание становится звуком: флейта, саксофон, медь, дудук.", "Пульс каждой встречи: установка, ручные барабаны, перкуссия.", "Продюсеры и лайв-сеты. Ноутбук — тоже инструмент.", "Ваш голос и есть инструмент — соло или в хоре."],
+};
+const MUSE = "assets/muse-cut.png";
 const GRIDS = [
   ["ABCDEFG", "HIJKLMN", "OPQRSTU", "VWXYZ"],
   ["イロハニホヘト", "チリヌルヲワカ", "ヨタレソツネナ", "ラムウヰノオク", "ヤマケフコエテ", "アサキユメミシ", "ヱヒモセス"],
@@ -99,15 +129,49 @@ const leagues7 = () => {
   return L.map((x, i) => ({ id: IDS[i], icon: x[0], name: ru ? x[2] : x[1], instr: ru ? x[4] : x[3], family: ru ? x[6] : x[5] }));
 };
 
+/* Night sky in layers (stars, moon with thin gold rays, four cloud banks, floor
+   grid or horizon rings, gold sparks). Each layer carries data-par = depth;
+   startLoop() drifts it and leans it after the pointer. Sizes in vw keep the
+   1440 composition on every width. */
+const SKY = {};
 function sky(kind) {
-  const clouds = [[-8, 18, 820, 220, .30, .05, 0], [40, 34, 900, 260, .34, .035, 2], [62, 58, 1000, 300, .40, .025, 4], [-12, 66, 900, 280, .36, .03, 1], [30, 80, 1300, 360, .46, .02, 3], [70, 12, 700, 200, .26, .045, 5]];
-  const rings = [[1900, 646, 14, 3], [1560, 530, 18, 4], [1240, 422, 22, 5], [960, 326, 26, 6], [700, 238, 30, 7], [470, 160, 34, 8]];
-  return `<div class="p20-sky p20-sky-${kind}" aria-hidden="true">
-    <div class="p20-sun"></div>
-    ${clouds.map(([l, tp, w, h, a, sp, off]) => `<div class="p20-cloud" data-cloud data-sp="${sp}" data-off="${off}" style="left:${l}%;top:${tp}%;width:${w}px;height:${h}px;--a:${Math.round(a * 100)}%"></div>`).join("")}
-    ${rings.map(([w, h, a, f], i) => `<div class="p20-ring" style="width:${w}px;height:${h}px;bottom:${-Math.round(h * 0.47)}px;--a:${a}%;--f:${f}%"></div>`).join("")}
+  if (SKY[kind]) return SKY[kind];
+  let seed = kind === "home" ? 7 : 11;
+  const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const vw = px => (px / 14.4).toFixed(2) + "vw";
+  const stars = (d, size, count, tile, op) => {
+    const g = []; for (let i = 0; i < count; i++) g.push(`radial-gradient(${size}px ${size}px at ${Math.round(rnd() * 100)}% ${Math.round(rnd() * 100)}%, var(--color-neutral-100), transparent)`);
+    return `<div class="p21-stars" data-par="${d}" style="background-image:${g.join(",")};background-size:${tile};opacity:${op}"></div>`;
+  };
+  const C = (arr, k) => arr.map(([x, y, w, h]) => `<div class="p21-cloud ${k}" style="left:${x}%;top:${y}%;width:${vw(w)};height:${vw(h)}"></div>`).join("");
+  const bank = (d, sp, off, inner) => `<div class="p21-bank" data-par="${d}" data-sp="${sp}" data-off="${off}">${inner}</div>`;
+  const home = kind === "home", lx = home ? 80 : 82, ly = home ? 26 : 20;
+  const sparks = (home ? [[62, 22, 3], [71, 14, 2], [84, 34, 2], [58, 40, 2], [90, 20, 3], [76, 44, 2], [66, 52, 2], [48, 30, 2], [94, 48, 2], [80, 8, 2]]
+    : [[30, 20, 2], [62, 16, 3], [70, 30, 2], [38, 34, 2], [54, 8, 2], [22, 40, 2], [76, 12, 2]])
+    .map(([x, y, z], i) => `<span class="p21-spark" style="left:${x}%;top:${y}%;--z:${z}px;animation-delay:${(-i * 0.73).toFixed(2)}s;animation-duration:${(2.6 + (i % 5) * 0.7).toFixed(1)}s"><i></i></span>`).join("");
+  const rays = [-44, -26, -12, 2, 16, 34].map((a, i) => `<span class="p21-ray" style="height:${vw(380 + i * 60)};transform:rotate(${a}deg);opacity:${(0.22 + 0.06 * (i % 3)).toFixed(2)}"></span>`).join("");
+  const rings = home ? [0, 1, 2, 3].map(i => `<div class="p21-hring" style="--w:${vw(1900 - i * 340)};--a:${10 + i * 5}%;--f:${6 + i * 3}%"></div>`).join("") : "";
+  return (SKY[kind] = `<div class="p20-sky p21-sky p20-sky-${kind}" aria-hidden="true" data-sky>
+    ${stars(0.04, 1.2, 14, "380px 280px", 0.5)}${stars(0.1, 1.8, 8, "620px 420px", 0.7)}
+    <div class="p21-moon" data-par="0.12" style="left:${lx}%;top:${ly}%"><span class="p21-moonglow"></span>${rays}<span class="p21-moondisc"></span></div>
+    ${bank(0.15, 0.03, 1, C([[4, 16, 900, 70], [52, 10, 760, 60], [30, 26, 600, 50]], "wisp"))}
+    ${bank(0.28, 0.022, 2, C([[0, 52, 620, 150], [18, 49, 720, 170], [38, 53, 560, 140], [54, 48, 760, 180], [72, 51, 640, 150], [86, 47, 560, 140]], "far"))}
+    ${home ? "" : `<div class="p21-bank" data-par="0.3"><div class="p21-floor"></div></div>`}${rings}
+    ${bank(0.55, 0.016, 4, C([[-6, 62, 900, 230], [22, 64, 980, 250], [48, 60, 860, 230], [70, 63, 1000, 250]], "mid"))}
+    ${bank(1, 0.012, 0, C([[-14, 78, 1200, 340], [20, 82, 1300, 360], [56, 79, 1200, 340], [84, 81, 1100, 330]], "near"))}
+    ${sparks}
+    <div class="p21-vignette"></div>
+  </div>`);
+}
+
+/* Muse in the beret: the agent's image, never redrawn. Speech goes in a bubble. */
+function museBox(text, cls) {
+  return `<div class="p21-musebox ${cls || ""}">
+    <img class="p21-muse" data-muse src="${MUSE}" alt="Muse" width="120" height="150">
+    <div class="p21-bubble" role="note"><span class="p21-bk">${esc(t().museName)}</span><span class="p21-bt" data-muse-say aria-live="polite">${esc(text)}</span></div>
   </div>`;
 }
+function museIdleText() { return signedRec() ? t().museDone : st.signing ? t().museForm : t().museIdle; }
 
 function convLang() { return st.conv && I18N()[st.conv] ? st.conv : null; }
 function langMenu() {
@@ -197,11 +261,23 @@ function signBlock() {
 
 function door(kind, n) {
   const tt = t(), d = kind === "leagues" ? tt.doorL : tt.doorS, href = kind === "leagues" ? "#/leagues" : "#/space";
-  return `<a class="p20-door" href="${href}" data-door="${kind}">
-    <span class="p20-stage" aria-hidden="true"></span><span class="p20-floor" aria-hidden="true"></span>
-    <span class="p20-half l" aria-hidden="true"></span><span class="p20-half r" aria-hidden="true"></span>
-    <span class="p20-pelmet" aria-hidden="true"></span><span class="p20-fringe" aria-hidden="true"></span><span class="p20-trim" aria-hidden="true"></span>
-    <span class="p20-doorlabel"><span class="p20-n">${n}</span><span class="p20-doortitle">${esc(d.title)}</span><span class="p20-doorsub">${esc(d.sub)}</span><span class="p20-enter">${esc(d.enter)}<i class="ph ph-arrow-right" aria-hidden="true"></i></span></span>
+  /* Stone arch in depth: side walls, light inside, two leaves that swing open.
+     The medal on the seam splits when the leaves open: seven League colours on
+     the Leagues arch, a stave with a note on My space. Gold and red stay lines. */
+  const medal = kind === "leagues"
+    ? LCOL.map((c, i) => `<i class="p21-mdot" style="background:${c};transform:rotate(${Math.round(i * 360 / 7)}deg) translateY(calc(var(--w) * -.13))"></i>`).join("")
+    : `<i class="p21-staff"></i><i class="p21-nhead"></i><i class="p21-stem"></i>`;
+  const leaf = s => `<span class="p21-leaf ${s}"><span class="p21-leafline"></span><span class="p21-medal">${medal}</span></span>`;
+  return `<a class="p20-door p21-arch" href="${href}" data-door="${kind}">
+    <span class="p21-spill" aria-hidden="true"></span><span class="p21-shadow" aria-hidden="true"></span>
+    <span class="p21-body" aria-hidden="true">
+      <span class="p21-side l"></span><span class="p21-side r"></span>
+      <span class="p21-frame"></span>
+      <span class="p21-inner"><span class="p21-glow"></span><span class="p21-nest"></span><span class="p21-nest"></span><span class="p21-nest"></span></span>
+      ${leaf("l")}${leaf("r")}
+      <span class="p21-redline"></span>
+    </span>
+    <span class="p20-doorlabel"><span class="p21-lt"><span class="p20-n">${n}</span><span class="p20-doortitle">${esc(d.title)}</span></span><span class="p20-doorsub">${esc(d.sub)}</span><span class="p20-enter">${esc(d.enter)}<i class="ph ph-arrow-right" aria-hidden="true"></i></span></span>
   </a>`;
 }
 
@@ -235,12 +311,16 @@ function shutter(kind) {
 
 function home() {
   const tt = t();
-  return `<div class="p20 p20-home${st.shut.how ? " shut" : ""}">${sky("home")}${header()}
+  return `<div class="p20 p21 p20-home${st.shut.how ? " shut" : ""}">${sky("home")}${header()}
     <main id="main" tabindex="-1" class="p20-main">
       ${route(0)}
       <div class="p20-homegrid">
         <div class="p20-left"><h1 class="p20-promise">${esc(tt.promise)}</h1>${convCard()}</div>
-        <div class="p20-doors">${door("leagues", "02")}${door("space", "03")}</div>
+        <div class="p21-right">
+          ${museBox(museIdleText(), "home")}
+          <div class="p21-stagewrap"><span class="p21-plinth" aria-hidden="true"></span>
+            <div class="p20-doors p21-doors">${door("leagues", "02")}${door("space", "03")}</div></div>
+        </div>
       </div>
       <details class="p20-mnotes"><summary>${esc(tt.howTitle)}<i class="ph ph-caret-down" aria-hidden="true"></i></summary><div class="p20-shutbody">${howBody()}</div></details>
       <p class="p20-about">${esc(tt.about)}</p>
@@ -252,27 +332,31 @@ function home() {
 
 function leagues() {
   const tt = t(), L = leagues7(), sel = st.sel;
-  const card = sel == null ? `<div class="p20-hint"><i class="ph ph-hand-grabbing" aria-hidden="true"></i><div><strong>${esc(tt.hintTitle)}</strong><span class="p20-hintfull">${esc(tt.hint)}</span><span class="p20-hintm">${esc(tt.mHint)}</span></div></div>`
-    : `<section class="p20-lcard" aria-live="polite" aria-label="${esc(L[sel].name)}">
-      <div class="p20-lcardhead"><span>${esc(L[sel].family)}</span><span class="p20-n">0${sel + 1}</span><button class="p20-x" data-lsel="none" aria-label="${esc(tt.close)}"><i class="ph ph-x"></i></button></div>
+  const ink = c => `color-mix(in oklch, ${c}, var(--color-bg) 78%)`;
+  const card = sel == null ? "" : `<section class="p20-lcard" aria-live="polite" aria-label="${esc(L[sel].name)}" style="--c:${LCOL[sel]}">
+      <div class="p20-lcardhead"><span class="p21-cardorb" aria-hidden="true"><i class="ph-fill ${L[sel].icon}" style="color:${ink(LCOL[sel])}"></i></span><span>${esc(L[sel].family)}</span><span class="p20-n">0${sel + 1} / 07</span><button class="p20-x" data-lsel="none" aria-label="${esc(tt.close)}"><i class="ph ph-x"></i></button></div>
       <h2>${esc(L[sel].name)}</h2><p>${esc(L[sel].instr)}</p>
+      <div class="p21-cardmuse"><img class="p21-muse" data-muse src="${MUSE}" alt="Muse" width="48" height="60"><p><span class="p21-bk">${esc(tt.museName)}</span><span class="p21-bt" data-muse-say>${esc(SAY[lang()][sel])}</span></p></div>
       <div class="p20-lcardnav"><button class="p20-sq" data-lstep="-1" aria-label="${esc(tt.prev)}"><i class="ph ph-caret-left"></i></button>
         <a class="p20-gold" href="#/league/${L[sel].id}">${esc(tt.enterLeague)}<i class="ph ph-arrow-right" aria-hidden="true"></i></a>
         <button class="p20-sq" data-lstep="1" aria-label="${esc(tt.next)}"><i class="ph ph-caret-right"></i></button></div>
     </section>`;
-  return `<div class="p20 p20-leagues${st.shut.what ? " shut" : ""}">${sky("leagues")}${header()}
+  return `<div class="p20 p21 p20-leagues${st.shut.what ? " shut" : ""}">${sky("leagues")}${header()}
     <main id="main" tabindex="-1" class="p20-main">
       ${route(1)}
       <div class="p20-lside p20-lhead"><h1>${esc(tt.leaguesTitle)}</h1><p>${esc(tt.leaguesSub)}</p></div>
       <div class="p20-graph" data-graph tabindex="0" role="group" aria-label="${esc(tt.graphLabel)}">
+        <div class="p21-gring" data-ring="1"></div><div class="p21-gring dash" data-ring="0.55"></div>
         ${[0, 1, 2, 3, 4, 5, 6].flatMap(i => [`<div class="p20-edge" data-edge data-a="h" data-b="${i}"></div>`, `<div class="p20-edge" data-edge data-a="${i}" data-b="${(i + 1) % 7}"></div>`]).join("")}
         <div class="p20-hub" data-hub><span><img src="assets/lyre.png" alt=""></span><em>${esc(tt.hubLabel)}</em></div>
-        ${L.map((x, i) => `<button class="p20-node${sel === i ? " on" : ""}" data-node="${i}" tabindex="-1" aria-hidden="true"><span class="p20-orb"><i class="ph ${x.icon}"></i></span><span class="p20-nname">${esc(x.name)}</span><span class="p20-nfam">${esc(x.family)}</span></button>`).join("")}
+        ${L.map((x, i) => `<button class="p20-node${sel === i ? " on" : ""}" data-node="${i}" tabindex="-1" aria-hidden="true" style="--c:${LCOL[i]}"><span class="p20-orb"><i class="ph-fill ${x.icon}" style="color:${ink(LCOL[i])}"></i></span><span class="p20-nname">${esc(x.name)}</span><span class="p20-nfam">${esc(x.family)}</span></button>`).join("")}
       </div>
       <div class="p20-lside p20-llist">
-        <ul aria-label="${esc(tt.leaguesTitle)}">${L.map((x, i) => `<li><button data-lsel="${i}" aria-pressed="${sel === i}"><span class="p20-n">0${i + 1}</span><span class="p20-lname">${esc(x.name)}</span><i class="ph ${x.icon}" aria-hidden="true"></i></button></li>`).join("")}</ul>
+        <span class="p21-legend">${esc(tt.legend)}</span>
+        <ul aria-label="${esc(tt.leaguesTitle)}">${L.map((x, i) => `<li><button data-lsel="${i}" aria-pressed="${sel === i}" style="--c:${LCOL[i]}"><span class="p20-n">0${i + 1}</span><span class="p21-ldot" aria-hidden="true"></span><span class="p20-lname">${esc(x.name)}</span><i class="ph ${x.icon}" aria-hidden="true"></i></button></li>`).join("")}</ul>
+        ${sel == null ? `<p class="p21-ghint"><i class="ph ph-hand-grabbing" aria-hidden="true"></i><span class="p20-hintfull">${esc(tt.hint)}</span><span class="p20-hintm">${esc(tt.mHint)}</span></p>` : ""}
       </div>
-      <div class="p20-lfoot">${card}</div>
+      <div class="p20-lfoot">${sel == null ? museBox(tt.museLeagues, "leagues") : card}</div>
     </main>
     ${shutter("what")}
   </div>`;
@@ -306,6 +390,13 @@ function bind() {
     const root = document.querySelector(".p20"); a.classList.add("go"); if (root) root.classList.add("leaving");
     setTimeout(() => { location.hash = a.getAttribute("href"); }, 760);
   });
+  document.querySelectorAll("[data-door]").forEach(a => {
+    const say = () => document.querySelector("[data-muse-say]");
+    const inn = () => { const s = say(); if (s) s.textContent = a.dataset.door === "leagues" ? t().museDoorL : t().museDoorS; mz.lean = a.dataset.door === "leagues" ? 0.6 : 1; };
+    const out = () => { const s = say(); if (s) s.textContent = museIdleText(); mz.lean = 0; };
+    on(a, "mouseenter", inn); on(a, "focus", inn); on(a, "mouseleave", out); on(a, "blur", out);
+  });
+  document.querySelectorAll("[data-muse]").forEach(m => on(m, "click", () => { mz.joy = performance.now() / 1000; }));
   document.querySelectorAll("[data-lsel]").forEach(b => b.onclick = () => { const v = b.dataset.lsel; select(v === "none" ? null : +v, true); });
   document.querySelectorAll("[data-lstep]").forEach(b => b.onclick = () => select(((st.sel == null ? 0 : st.sel) + +b.dataset.lstep + 7) % 7, true));
   bindSign();
@@ -333,6 +424,7 @@ function bindSign() {
     if (!sig.notes.length) { st.draft = nm; st.signMsg = tt.noNotes; keepScroll(rerender); return; }
     ss.set("som_signed", { name: nm, reading: sig.reading, notes: sig.notes, algo: sig.algo_version, at: new Date().toISOString() });
     st.signing = false; st.signMsg = ""; st.draft = ""; st.draftReading = "";
+    mz.joy = performance.now() / 1000;
     keepScroll(rerender);
     const l = document.querySelector("[data-p20-listen]"); if (l) l.focus();
   };
@@ -366,23 +458,29 @@ function playNotes(notes, btn) {
 }
 function keepScroll(fn) { const y = window.scrollY; fn(); window.scrollTo(0, y); }
 const g = { th: 0.5, v: 0, pend: 0, snap: false, drag: false, lx: 0, moved: 0, hover: false };
+const mz = { lean: 0, joy: -9, px: 0, py: 0, mx: null, my: null, r: 0 };
 function select(i, snap) {
   st.sel = i; g.snap = snap && i != null;
+  if (i != null) mz.joy = performance.now() / 1000;
   const y = window.scrollY; rerender(); window.scrollTo(0, y);
   if (i != null) { const b = document.querySelector(`[data-lsel="${i}"]`); if (b) b.focus({ preventScroll: true }); }
 }
 
 function startLoop() {
   const graph = document.querySelector("[data-graph]");
-  const clouds = [...document.querySelectorAll("[data-cloud]")];
-  if (!graph && !clouds.length) return;
+  const layers = [...document.querySelectorAll("[data-sky] [data-par]")];
+  const muses = [...document.querySelectorAll("[data-muse]")];
+  if (!graph && !layers.length) return;
+  on(window, "pointermove", e => { mz.mx = e.clientX; mz.my = e.clientY; }, { passive: true });
+  on(document, "pointerleave", () => { mz.mx = null; });
   if (graph) {
     on(graph, "pointerdown", e => { g.drag = true; g.lx = e.clientX; g.moved = 0; g.snap = false; try { graph.setPointerCapture(e.pointerId); } catch (x) {} });
     on(graph, "pointermove", e => { if (!g.drag) return; const dx = e.clientX - g.lx; g.lx = e.clientX; g.moved += Math.abs(dx); g.th += dx * 0.006; g.v = reduced() ? 0 : dx * 0.0036; });
     const up = e => { if (!g.drag) return; g.drag = false;
       if (g.moved < 6) { const n = document.elementsFromPoint(e.clientX, e.clientY).find(x => x.dataset && x.dataset.node != null); if (n) select(+n.dataset.node, true); } };
     on(graph, "pointerup", up); on(graph, "pointercancel", () => { g.drag = false; });
-    on(graph, "mouseenter", () => { g.hover = true; }); on(graph, "mouseleave", () => { g.hover = false; });
+    on(graph, "mouseenter", () => { g.hover = true; }); on(graph, "mouseleave", () => { g.hover = false; g.hi = null; });
+    on(graph, "pointerover", e => { const n = e.target.closest && e.target.closest("[data-node]"); g.hi = n ? +n.dataset.node : null; });
     on(graph, "keydown", e => {
       if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); g.snap = false; g.pend += (e.key === "ArrowRight" ? 1 : -1) * TAU / 7; }
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(frontIndex(), true); }
@@ -393,19 +491,39 @@ function startLoop() {
     const dt = Math.min(0.1, (now - last) / 1000); last = now; const R = reduced();
     if (!document.hidden) {
       if (!R) stT += dt;
-      clouds.forEach(el => { el.style.transform = `translateX(${(Math.sin(stT * +el.dataset.sp + +el.dataset.off) * 140).toFixed(1)}px)`; });
-      if (graph) paintGraph(graph, dt, R);
+      paintSky(layers, muses, stT, R);
+      if (graph) paintGraph(graph, dt, R, stT);
     }
     raf = requestAnimationFrame(tick);
   };
   raf = requestAnimationFrame(tick);
 }
+/* Depth: each layer drifts on its own and leans away from the pointer by its depth.
+   Phones get half the movement; reduced motion keeps the sky still. */
+function paintSky(layers, muses, t, R) {
+  const W = innerWidth, H = innerHeight, calm = W < 900 ? 0.5 : 1;
+  const tx = R || mz.mx == null ? 0 : (mz.mx / W - 0.5) * 2, ty = R || mz.my == null ? 0 : (mz.my / H - 0.5) * 2;
+  mz.px += (tx - mz.px) * 0.06; mz.py += (ty - mz.py) * 0.06;
+  layers.forEach(el => { const d = +el.dataset.par, sp = +(el.dataset.sp || 0), off = +(el.dataset.off || 0);
+    const dx = R ? 0 : Math.sin(t * sp + off) * 70 * d * calm;
+    el.style.transform = `translate3d(${(dx - mz.px * 36 * d * calm).toFixed(1)}px,${(-mz.py * 16 * d * calm).toFixed(1)}px,0)`; });
+  const now = performance.now() / 1000;
+  muses.forEach(el => {
+    if (R) { el.style.transform = "none"; return; }
+    const target = mz.lean || mz.px * 0.5;
+    mz.r += (target - mz.r) * 0.1;
+    const j = now - mz.joy < 1.6 ? 1 - (now - mz.joy) / 1.6 : 0;
+    const y = Math.sin(t * 1.2) * 5 * calm - Math.abs(Math.sin(t * 9)) * 16 * j;
+    const rot = mz.r * 7 + Math.sin(t * 13) * 9 * j;
+    el.style.transform = `perspective(500px) translateY(${y.toFixed(1)}px) rotateY(${(mz.r * 22).toFixed(1)}deg) rotate(${rot.toFixed(1)}deg) scale(${(1 + 0.06 * j).toFixed(3)})`;
+  });
+}
 let lastPts = null;
 function frontIndex() { if (!lastPts) return 0; let b = 0; lastPts.forEach((p, i) => { if (p.k > lastPts[b].k) b = i; }); return b; }
-function paintGraph(el, dt, R) {
+function paintGraph(el, dt, R, t) {
   const sel = st.sel, narrow = el.clientWidth < 700;
   const W = el.clientWidth, side = narrow ? 0 : 330;
-  const r = narrow ? Math.min(150, W * 0.36) : Math.max(150, Math.min(250, (W - side) / 2 - 110)), F = 900;
+  const r = narrow ? Math.min(150, W * 0.36) : Math.max(150, Math.min(260, (W - side) / 2 - 110)), F = 900;
   const cx = narrow ? W / 2 : (side + W) / 2, cy = el.clientHeight * 0.47, ys = narrow ? 0.7 : 1;
   const cp = Math.cos(-0.36), sp = Math.sin(-0.36);
   if (!g.drag) {
@@ -418,22 +536,29 @@ function paintGraph(el, dt, R) {
   }
   const c = Math.cos(g.th), s = Math.sin(g.th);
   const P = (x, y, z) => { const x1 = x * c + z * s, z1 = -x * s + z * c, y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp, k = F / (F + z2); return { x: cx + x1 * k, y: cy + y2 * k, k, z: z2 }; };
-  const pts = YS.map((y, i) => { const a = i * TAU / 7; return P(r * Math.sin(a), y * ys, r * Math.cos(a)); });
+  /* spheres float: each bobs on its own phase */
+  const pts = YS.map((y, i) => { const a = i * TAU / 7; return P(r * Math.sin(a), (y + (R ? 0 : Math.sin(t * 0.9 + i * 1.3) * 9)) * ys, r * Math.cos(a)); });
   lastPts = pts;
   const hub = P(0, 0, 0), kmin = F / (F + r), kmax = F / (F - r);
   const dep = p => Math.max(0, Math.min(1, (p.k - kmin) / (kmax - kmin)));
   const sc = narrow ? 0.72 : 1;
+  el.querySelectorAll("[data-ring]").forEach(rg => { const f = +rg.dataset.ring;
+    rg.style.left = (cx - r * f) + "px"; rg.style.top = (cy - r * f * 0.36 * ys) + "px"; rg.style.width = (2 * r * f) + "px"; rg.style.height = (2 * r * f * 0.36 * ys) + "px"; });
   el.querySelectorAll("[data-node]").forEach(n => { const i = +n.dataset.node, p = pts[i], dim = sel != null && sel !== i;
-    n.style.transform = `translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px) translate(-50%,-34%) scale(${(p.k * sc).toFixed(3)})`;
-    n.style.zIndex = String(Math.round(1000 - p.z)); n.style.opacity = (dim ? 0.3 : 0.5 + 0.5 * dep(p)).toFixed(2); });
+    n._h = (n._h || 0) + ((g.hi === i ? 1 : 0) - (n._h || 0)) * (R ? 1 : 0.18);
+    n.style.transform = `translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px) translate(-50%,-32%) scale(${(p.k * sc * (1 + 0.16 * n._h)).toFixed(3)})`;
+    n.style.zIndex = String(Math.round(1000 - p.z)); n.style.opacity = (dim && g.hi !== i ? 0.38 : 0.62 + 0.38 * Math.max(dep(p), n._h)).toFixed(2); });
   const h = el.querySelector("[data-hub]"); if (h) { h.style.transform = `translate(${hub.x.toFixed(1)}px,${hub.y.toFixed(1)}px) translate(-50%,-40%) scale(${sc})`; h.style.zIndex = String(Math.round(1000 - hub.z)); }
   el.querySelectorAll("[data-edge]").forEach(e => { const a = e.dataset.a, b = +e.dataset.b, p = a === "h" ? hub : pts[+a], q = pts[b];
-    const dx = q.x - p.x, dy = q.y - p.y, hot = sel != null && a === "h" && b === sel, dimE = sel != null && !hot;
+    const dx = q.x - p.x, dy = q.y - p.y, hot = sel != null && (b === sel || (a !== "h" && +a === sel)), dimE = sel != null && !hot;
+    if (e.dataset.c !== "1") { const ca = a === "h" ? "var(--color-gold-400)" : LCOL[+a]; e.style.background = `linear-gradient(90deg,${ca},${LCOL[b]})`; e.dataset.c = "1"; }
     e.style.width = Math.hypot(dx, dy).toFixed(1) + "px";
     e.style.transform = `translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px) rotate(${Math.atan2(dy, dx).toFixed(4)}rad)`;
     const d = (dep(q) + (a === "h" ? 0.6 : dep(p))) / 2;
-    e.style.opacity = (hot ? 1 : dimE ? 0.12 : (a === "h" ? 0.28 : 0.2) + 0.45 * d).toFixed(2);
-    e.classList.toggle("hot", hot); });
+    e.style.opacity = (hot ? 1 : dimE ? 0.14 : (a === "h" ? 0.34 : 0.22) + 0.46 * d).toFixed(2);
+    e.style.height = hot ? "2px" : "1px";
+    e.style.boxShadow = hot ? `0 0 10px ${LCOL[b]}` : `0 0 5px color-mix(in oklch, ${LCOL[b]} 50%, transparent)`;
+    e.style.zIndex = String(Math.round(1000 - Math.max(p.z, q.z)) - 2); });
 }
 function stop() {
   stopNotes();
