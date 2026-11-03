@@ -74,6 +74,65 @@ cd harness-bench && /private/tmp/cx1-som-launch-20261031/venv/bin/python -m unit
 ```
 
 ## Modal deploy (NOT performed here; no cloud action taken)
+
+### Budget history reconciliation before an update
+
+Do not upload the local ledger over the deployed ledger. The observed local
+and cloud histories have common reservation IDs plus distinct actual charges.
+`service.reconcile_budget` compares **provided snapshots**, using OS read-only
+descriptors and SQLite only in memory, and can prepare a separate offline ledger:
+
+```sh
+python -m service.reconcile_budget --local /private/operator/local.sqlite3 --cloud /private/operator/cloud-snapshot.sqlite3
+python -m service.reconcile_budget --local /private/operator/local.sqlite3 --cloud /private/operator/cloud-snapshot.sqlite3 --stage /private/operator/NEW-unapproved-stage.sqlite3
+```
+
+The output path must not exist. No source ledger, cap, token, cloud resource or
+model is changed. Shared IDs are deduplicated only when **every stored field
+matches**. Different lineage/metadata/caps or conflicting shared reservations
+fail closed; the tool never chooses a winner or raises the allowance. Distinct
+HOLD/BLOCKED entries stay intact. A union above the stop still preserves the
+original stop and reports the budget blocked. Unknown/corrupt schema or row
+accounting is rejected, rather than omitted.
+
+Only quiescent rollback-mode snapshots are supported. WAL-mode headers and any
+`-wal`, `-shm` or `-journal` sidecar cause rejection: ignoring WAL can lose real
+charges, while even SQLite `mode=ro` can create an absent `-shm` file. The helper
+never SQLite-opens the source pathname. It checks the descriptor, inode, size
+and nanosecond modification/change times before and after reading bytes, then
+validates a deserialized in-memory image. A changing input is rejected. Obtain
+a proper checkpointed snapshot through a separately controlled writer handoff;
+this helper never checkpoints or modifies an active database for you.
+
+The staging database is built in memory and written through an exclusive new
+0600 file descriptor. Existing paths/symlinks cannot be overwritten; a swapped
+path cannot redirect SQLite writes into a source. The resulting snapshot and
+source snapshots are checked again. Descriptor-bound verification and a final
+file-version/path check reject late swaps and in-place changes. A source change or failed check produces
+no success receipt; any incomplete or unapproved output requires inspection,
+never automatic retry/overwrite/upload. Reports contain counts, integer
+micro-USD and snapshot hashes, not raw reservation IDs or note content.
+
+**A stage is not deployment approval or proof of fresh cloud history.** Every
+report keeps `cloud_freshness_verified=false` and `deployment_approved=false`.
+An operator must first obtain a fresh snapshot from the correct account and
+verify the single-writer handoff/quiescence. Compare again before any separately
+reviewed replacement. Do not re-seed permits, reset history or assume that an
+old downloaded cloud snapshot is current. The helper contains no upload,
+resource-management, cap-increase or token-creation command.
+
+The 3 November read-only comparison independently verified the available
+snapshots: local24 settled/$0.036050, cloud snapshot6/$0.010601, four identical
+shared rows, and two cloud-only rows/$0.003911. Their union is26 settled/$0.039961
+under the unchanged $0.05 allocation/$0.0475 stop, remaining$0.007539.
+This is snapshot evidence, not a refreshed cloud balance or a working-ledger
+replacement. The existing Modal profile was checked with one read-only
+`modal app list`; the provider reported that its token had expired. No new
+token/login flow was started. The already-pending owner readiness and allowance
+questions remain in force.
+
+### Existing cloud resources
+
 One-time operator provisioning (exact commands; operator supplies all
 secret values interactively — no values in source, no automatic secret
 creation by this code, nothing uploaded by this change):
