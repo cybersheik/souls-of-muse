@@ -120,3 +120,15 @@ production scaling, no horizontal scaling claim, no SLA. A real first
 Harness/Muse test still requires the operator to provision tokens/key/$1
 ledger and run one supervised live EN→VI and VI→EN exchange — no paid
 call was made in this change.
+
+## Cabinet integration (0.3.0)
+
+Run the site and backend together with `uvicorn service.site:app --host 127.0.0.1 --port 54403` after supplying the existing `SERVICE_DATA_DIR` and model/budget configuration. This does not initialize or reset a budget ledger.
+
+Set `SOM_WEB_ACCOUNTS` on the server to a JSON object keyed by stable participant IDs, each containing `role` (`maestro` or `artist`), `name`, and `password_hash`. Generate hashes with `service.identity.password_hash`; never store plaintext passwords in the repository. Account registration remains operator-managed for this private build. Set `SOM_COOKIE_SECURE=0` only on a loopback HTTP development server. Cookies are HttpOnly, SameSite Strict, scoped to `/api/harness`, expire after eight hours, and are revoked by logout. Browser writes require an allowed Origin.
+
+For Vercel set server-only `SOM_HARNESS_URL` to the deployed Modal service. The `/api/harness/*` function forwards only participant cookies and explicitly allowed routes. Add the exact preview Origin to backend `SOM_WEB_ORIGINS` for a preview login. The main `https://soulsofmuse.app` Origin is included. Pilot bearer tokens and model credentials stay on the server.
+
+A Maestro creates a meeting for a registered Artist ID. Both accounts can see only their own meetings. Start, join from both accounts, submit text EN ↔ VI, inspect and approve as Maestro, refresh as Artist, then complete. Replays preserve the client event ID. The original Kimi `heart/` lives in `harness-bench/heart` with its existing event schema. `HEART_ED25519_KEY` supplies the existing private signing key on the server. Completion queues one deterministic event per participating account in the same transaction as meeting completion. The durable outbox retries after restart, and the journal deduplicates by event ID. Missing signing configuration leaves delivery pending. Heart pair limits and cryptography are unchanged.
+
+Offline verification uses injected adapters, never paid models. Run `python -m unittest discover -s service/tests -v` and `PYTHONPATH=harness-bench python -m pytest harness-bench/heart/tests -q`. Browser acceptance and real-model/cloud acceptance are separate results.

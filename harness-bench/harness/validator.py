@@ -66,6 +66,10 @@ def term_ids(text, glossary):
         if pat.search(t):
             ids.add(tid)
             t = pat.sub(lambda m: " " * len(m.group()), t)
+    # BPM explicitly measures tempo in either language. A faithful translation
+    # may spell out "tempo" where the source only specifies the BPM value.
+    if "BPM" in ids:
+        ids.add("TEMPO")
     return ids
 
 

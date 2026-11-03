@@ -16,11 +16,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-VERSION = "0.2.0"
-LEAGUES = {"guitar", "keys", "winds", "drums", "electronic", "voice", "folk"}
+VERSION = "0.3.0"
+LEAGUES = {"string", "bow", "keys", "winds", "drums", "electronic", "vocal", "guitar", "voice", "folk"}
 KINDS = {"individual", "group", "stream"}
 LANGS = {"en", "vi"}
-ALLOWED_ORIGINS = ["https://preview.soulsofmuse.com", "https://soulsofmuse.com"]
+ALLOWED_ORIGINS = ["https://soulsofmuse.app", "https://preview.soulsofmuse.com", "https://soulsofmuse.com"]
 MAX_TEXT = 2000
 MAX_BODY = 32768
 MAX_RESPONSE_CHARS = 4000
@@ -165,6 +165,7 @@ def verify_audit_chain(conn):
 class SessionIn(BaseModel):
     kind: str; league: str; maestro_alias: str = Field(min_length=1, max_length=80)
     artist_alias: str = Field(min_length=1, max_length=80); source_lang: str; target_lang: str
+    artist_id: str | None = Field(default=None, max_length=100)
 
 class MessageIn(BaseModel):
     client_event_id: str = Field(min_length=1, max_length=120); speaker: str
@@ -224,7 +225,7 @@ def _validate_translation(src_text, src_lang, out_text, tgt_lang, glossary):
     except Exception:
         return []
 
-def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_concurrent=1, on_write=None, maestro_token=None, artist_token=None):
+def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_concurrent=1, on_write=None, maestro_token=None, artist_token=None, heart_key=None):
     env = os.environ if environ is None else environ
     data_dir = data_dir or env.get("SERVICE_DATA_DIR") or env.get("SOM_DATA_DIR")
     if not data_dir or not Path(data_dir).is_dir():
@@ -256,6 +257,10 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
     cols = {r[1] for r in conn_init.execute("PRAGMA table_info(messages)").fetchall()}
     if "request_hash" not in cols:
         conn_init.execute("ALTER TABLE messages ADD COLUMN request_hash TEXT")
+    for column in ("maestro_id", "artist_id"):
+        session_cols = {r[1] for r in conn_init.execute("PRAGMA table_info(sessions)")}
+        if column not in session_cols:
+            conn_init.execute(f"ALTER TABLE sessions ADD COLUMN {column} TEXT")
     conn_init.commit(); conn_init.close()
     if on_write is not None:
         on_write()  # propagate: startup fails closed if durable commit fails
@@ -283,6 +288,17 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
     app = FastAPI(title="Souls of Muse Harness", version=VERSION)
     app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type"])
     app.add_middleware(BodyLimitMiddleware)
+    from .identity import Identity
+    from .heart_bridge import HeartBridge
+    origins = ALLOWED_ORIGINS + [v for v in env.get("SOM_WEB_ORIGINS", "").split(",") if v]
+    identity = Identity(app, db, _commit, env, origins)
+    if heart_key is None and env.get("HEART_ED25519_KEY"):
+        from cryptography.hazmat.primitives import serialization
+        configured_key = env["HEART_ED25519_KEY"]
+        key_bytes = configured_key.encode() if configured_key.startswith("-----BEGIN") else Path(configured_key).read_bytes()
+        heart_key = serialization.load_pem_private_key(key_bytes, password=None)
+    bridge = HeartBridge(db, _commit, data_dir, heart_key)
+    bridge.drain()
 
     @app.middleware("http")
     async def bounds(request: Request, call_next):
@@ -292,10 +308,18 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
             if len(rate) > 10000: rate.clear()
         if count > 120:
             return JSONResponse({"detail": "rate_limited"}, status_code=429)
-        return await call_next(request)
+        response = await call_next(request)
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
-    def actor_from_auth(authorization):
-        """Return (actor, error_response). Actor comes from token only."""
+    def actor_from_auth(authorization, request):
+        """Resolve the participant cookie or a private legacy pilot credential."""
+        user = identity.user(request)
+        request.state.participant = user
+        if user:
+            if request.method == "POST" and not identity.same_origin(request):
+                return None, err(403, "origin_not_allowed")
+            return identity.accounts[user]["role"], None
         if not tokens_valid:
             return None, err(503, "role_tokens_not_configured")
         if not authorization or not authorization.startswith("Bearer "):
@@ -307,8 +331,12 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
             return "artist", None
         return None, err(401, "unauthorized")
 
-    def get_session(c, sid):
-        return c.execute("SELECT * FROM sessions WHERE id=?", (sid,)).fetchone()
+    def get_session(c, sid, request):
+        row = c.execute("SELECT * FROM sessions WHERE id=?", (sid,)).fetchone()
+        user = getattr(request.state, "participant", None)
+        if user and row and user not in (row["maestro_id"], row["artist_id"]):
+            return None
+        return row
     def msg_dict(r, include_draft=True):
         d = {"id": r["id"], "speaker": r["speaker"], "source_lang": r["source_lang"], "target_lang": r["target_lang"], "state": r["state"], "created_at": r["created_at"]}
         if r["state"] == "approved" or include_draft:
@@ -325,15 +353,15 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         # auth_ready/role_ready reflect the role-token configuration
         # only (private pilot tokens, not full participant identity);
         # an invalid/missing token must not look fully usable.
-        auth_ready = bool(tokens_valid)
+        auth_ready = bool(tokens_valid or identity.accounts)
         pilot_ready = bool(auth_ready and model_ready)
         return {"status": "ok", "version": VERSION, "model_ready": bool(model_ready),
                 "auth_ready": auth_ready, "role_ready": auth_ready,
                 "roles_ready": auth_ready, "pilot_ready": pilot_ready,
                 "production_ready": False, "full_participant_identity": False,
-                "capabilities": {"text_interpretation_en_vi": bool(pilot_ready), "sessions": bool(auth_ready), "maestro_approval": bool(auth_ready), "hash_linked_audit": True,
+                "capabilities": {"text_interpretation_en_vi": bool(pilot_ready), "sessions": bool(auth_ready), "maestro_approval": bool(auth_ready), "hash_linked_audit": True, "participant_login": bool(identity.accounts), "scoped_session_membership": True, "heart_journal_integration": bridge.key is not None, "heart_outbox": True,
                                  "responses": False, "asr": False, "sam": False, "tts": False, "media_rooms": False, "watches": False, "registration": False, "votes": False},
-                "not_implemented": ["lessons_media", "group_media_streams", "league_interactions_beyond_text_sessions", "responses", "asr", "sam", "tts", "watches", "heart_journal_integration", "full_participant_identity", "production_readiness"]}
+                "not_implemented": ["lessons_media", "group_media_streams", "league_interactions_beyond_text_sessions", "responses", "asr", "sam", "tts", "watches", "full_participant_identity", "production_readiness"]}
 
     @app.get("/pilot")
     def pilot():
@@ -341,17 +369,24 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         return FileResponse(str(p), media_type="text/html") if p.exists() else err(404, "pilot_not_found")
 
     @app.post("/sessions", status_code=201)
-    def create_session(body: SessionIn, authorization: str = Header(default="")):
-        actor, e = actor_from_auth(authorization)
+    def create_session(body: SessionIn, request: Request, authorization: str = Header(default="")):
+        actor, e = actor_from_auth(authorization, request)
         if e: return e
         if actor != "maestro": return err(403, "maestro_required")
         if body.kind not in KINDS or body.league not in LEAGUES or body.source_lang not in LANGS or body.target_lang not in LANGS or body.source_lang == body.target_lang:
             return err(422, "invalid_session_fields")
+        participant = getattr(request.state, "participant", None)
+        artist_id = None
+        if participant:
+            artist_id = body.artist_id
+            account = identity.accounts.get(artist_id)
+            if not account or account["role"] != "artist":
+                return err(422, "registered_artist_required")
         sid = uuid.uuid4().hex
         c = db()
         try:
             c.execute("BEGIN IMMEDIATE")
-            c.execute("INSERT INTO sessions VALUES(?,?,?,?,?,?,?,?,?)", (sid, body.kind, body.league, body.maestro_alias, body.artist_alias, body.source_lang, body.target_lang, "created", _now()))
+            c.execute("INSERT INTO sessions(id,kind,league,maestro_alias,artist_alias,source_lang,target_lang,state,created_at,maestro_id,artist_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)", (sid, body.kind, body.league, body.maestro_alias, body.artist_alias, body.source_lang, body.target_lang, "created", _now(), participant, artist_id))
             audit(c, sid, "session_created", "", actor); _commit(c)
         except PersistenceError:
             return err(503, "persistence_failed")
@@ -359,14 +394,14 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         return {"id": sid, "state": "created", "kind": body.kind, "league": body.league}
 
     @app.post("/sessions/{sid}/start")
-    def start_session(sid: str, authorization: str = Header(default="")):
-        actor, e = actor_from_auth(authorization)
+    def start_session(sid: str, request: Request, authorization: str = Header(default="")):
+        actor, e = actor_from_auth(authorization, request)
         if e: return e
         if actor != "maestro": return err(403, "maestro_required")
         c = db()
         try:
             c.execute("BEGIN IMMEDIATE")
-            s = get_session(c, sid)
+            s = get_session(c, sid, request)
             if not s: return err(404, "session_not_found")
             cur = c.execute("UPDATE sessions SET state='active' WHERE id=? AND state='created'", (sid,))
             if cur.rowcount != 1: return err(409, "invalid_transition")
@@ -377,29 +412,35 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         finally: c.close()
 
     @app.post("/sessions/{sid}/complete")
-    def complete_session(sid: str, authorization: str = Header(default="")):
-        actor, e = actor_from_auth(authorization)
+    def complete_session(sid: str, request: Request, authorization: str = Header(default="")):
+        actor, e = actor_from_auth(authorization, request)
         if e: return e
         if actor != "maestro": return err(403, "maestro_required")
         c = db()
         try:
             c.execute("BEGIN IMMEDIATE")
-            s = get_session(c, sid)
+            s = get_session(c, sid, request)
             if not s: return err(404, "session_not_found")
+            if s["state"] == "completed" and getattr(request.state, "participant", None):
+                c.rollback()
+                bridge.drain()
+                return {"id": sid, "state": "completed"}
             if s["state"] != "active": return err(409, "invalid_transition")
             busy = c.execute("SELECT COUNT(*) FROM messages WHERE session_id=? AND state='processing'", (sid,)).fetchone()[0]
             if busy: return err(409, "session_has_processing_messages")
             cur = c.execute("UPDATE sessions SET state='completed' WHERE id=? AND state='active'", (sid,))
             if cur.rowcount != 1: return err(409, "invalid_transition")
+            bridge.enqueue_completion(c, s, _now())
             audit(c, sid, "session_completed", "", actor); _commit(c)
+            bridge.drain()
             return {"id": sid, "state": "completed"}
         except PersistenceError:
             return err(503, "persistence_failed")
         finally: c.close()
 
     @app.post("/sessions/{sid}/messages", status_code=201)
-    def create_message(sid: str, body: MessageIn, authorization: str = Header(default="")):
-        actor, e = actor_from_auth(authorization)
+    def create_message(sid: str, body: MessageIn, request: Request, authorization: str = Header(default="")):
+        actor, e = actor_from_auth(authorization, request)
         if e: return e
         if body.speaker not in ("maestro", "artist") or body.source_lang not in LANGS or body.target_lang not in LANGS or body.source_lang == body.target_lang:
             return err(422, "invalid_message_fields")
@@ -411,7 +452,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         c = db()
         try:
             c.execute("BEGIN IMMEDIATE")
-            s = get_session(c, sid)
+            s = get_session(c, sid, request)
             if not s: return err(404, "session_not_found")
             if s["state"] != "active": return err(409, "session_not_active")
             existing = c.execute("SELECT * FROM messages WHERE session_id=? AND client_event_id=?", (sid, body.client_event_id)).fetchone()
@@ -474,7 +515,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         c = db()
         try:
             c.execute("BEGIN IMMEDIATE")
-            s = get_session(c, sid)
+            s = get_session(c, sid, request)
             row0 = c.execute("SELECT * FROM messages WHERE id=?", (mid,)).fetchone()
             if not s or s["state"] != "active" or not row0 or row0["state"] != "processing":
                 # Session completed meanwhile: never persist/deliver a draft.
@@ -491,14 +532,14 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         finally: c.close()
 
     @app.post("/sessions/{sid}/messages/{mid}/approve")
-    def approve(sid: str, mid: str, body: ApproveIn = None, authorization: str = Header(default="")):
-        actor, e = actor_from_auth(authorization)
+    def approve(sid: str, mid: str, request: Request, body: ApproveIn = None, authorization: str = Header(default="")):
+        actor, e = actor_from_auth(authorization, request)
         if e: return e
         if actor != "maestro": return err(403, "maestro_approval_required")
         c = db()
         try:
             c.execute("BEGIN IMMEDIATE")
-            s = get_session(c, sid)
+            s = get_session(c, sid, request)
             if not s: return err(404, "session_not_found")
             if s["state"] == "completed": return err(409, "session_completed")
             r = c.execute("SELECT * FROM messages WHERE id=? AND session_id=?", (mid, sid)).fetchone()
@@ -516,13 +557,13 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         finally: c.close()
 
     @app.get("/sessions/{sid}")
-    def get_one(sid: str, authorization: str = Header(default="")):
-        actor, e = actor_from_auth(authorization)
+    def get_one(sid: str, request: Request, authorization: str = Header(default="")):
+        actor, e = actor_from_auth(authorization, request)
         if e: return e
         include_draft = (actor == "maestro")
         c = db()
         try:
-            s = get_session(c, sid)
+            s = get_session(c, sid, request)
             if not s: return err(404, "session_not_found")
             rows = c.execute("SELECT * FROM messages WHERE session_id=? ORDER BY created_at", (sid,)).fetchall()
             deliveries = [msg_dict(r, include_draft=include_draft) for r in rows if r["state"] == "approved" or include_draft]
@@ -530,27 +571,69 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         finally: c.close()
 
     @app.get("/sessions/{sid}/events")
-    def events(sid: str, authorization: str = Header(default="")):
-        actor, e = actor_from_auth(authorization)
+    def events(sid: str, request: Request, authorization: str = Header(default="")):
+        actor, e = actor_from_auth(authorization, request)
         if e: return e
         c = db()
         try:
-            if not get_session(c, sid): return err(404, "session_not_found")
+            if not get_session(c, sid, request): return err(404, "session_not_found")
             rows = c.execute("SELECT event_type, ref_id, actor, hash, created_at FROM audit WHERE session_id=? ORDER BY id", (sid,)).fetchall()
             return {"events": [dict(r) for r in rows]}
         finally: c.close()
 
     @app.get("/sessions/{sid}/audit/verify")
-    def audit_verify(sid: str, authorization: str = Header(default="")):
-        actor, e = actor_from_auth(authorization)
+    def audit_verify(sid: str, request: Request, authorization: str = Header(default="")):
+        actor, e = actor_from_auth(authorization, request)
         if e: return e
         if actor != "maestro": return err(403, "maestro_required")
         c = db()
         try:
-            if not get_session(c, sid): return err(404, "session_not_found")
+            if not get_session(c, sid, request): return err(404, "session_not_found")
             valid, count = verify_audit_chain(c)
             return {"valid": valid, "events": count, "scope": "service_audit_hash_linked"}
         finally: c.close()
+
+    @app.get("/sessions")
+    def my_sessions(request: Request):
+        user = identity.user(request)
+        if not user:
+            return err(401, "unauthorized")
+        c = db()
+        try:
+            rows = c.execute("SELECT id,state,maestro_alias,artist_alias FROM sessions WHERE maestro_id=? OR artist_id=? ORDER BY created_at DESC", (user, user)).fetchall()
+            return {"sessions": [dict(row) for row in rows]}
+        finally:
+            c.close()
+
+    @app.post("/sessions/{sid}/join")
+    def join(sid: str, request: Request, authorization: str = Header(default="")):
+        actor, e = actor_from_auth(authorization, request)
+        if e: return e
+        user = getattr(request.state, "participant", None)
+        if not user: return err(403, "participant_login_required")
+        c = db()
+        try:
+            s = get_session(c, sid, request)
+            if not s: return err(404, "session_not_found")
+            if s["state"] != "active": return err(409, "session_not_active")
+            c.execute("INSERT OR IGNORE INTO session_presence VALUES(?,?)", (sid, user))
+            _commit(c)
+            return {"id": sid, "role": actor, "state": s["state"]}
+        finally:
+            c.close()
+
+    @app.get("/sessions/{sid}/heart")
+    def heart_state(sid: str, request: Request, authorization: str = Header(default="")):
+        actor, e = actor_from_auth(authorization, request)
+        if e: return e
+        user = getattr(request.state, "participant", None)
+        if not user: return err(403, "participant_login_required")
+        c = db()
+        try:
+            if not get_session(c, sid, request): return err(404, "session_not_found")
+            return bridge.state(c, sid, user)
+        finally:
+            c.close()
 
     return app
 

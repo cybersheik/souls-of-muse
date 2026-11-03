@@ -28,12 +28,12 @@ function cabLangSwitch() {
 }
 function cabHead(role, sessTitle, sessSub) {
   const C = cabT();
-  const [who, soul] = CabPS.CAB.people[role] || CabPS.CAB.people.artist;
+  const [who, soul] = window.CabinetHarness?.state.user ? [CabinetHarness.state.user.name, CabinetHarness.state.user.id] : (CabPS.CAB.people[role] || CabPS.CAB.people.artist);
   return `<header class="cab-head">
     <a class="cab-brand" href="#/space/${role}"><img src="assets/lyre.png" alt="Golden Lyre"><span>${cabEsc(C.brand)}</span></a>
     ${sessTitle ? `<span class="cab-sess-title">${cabEsc(sessTitle)} <span>${cabEsc(sessSub || "")}</span></span>` : ""}
     <div class="cab-head-right">
-      <span class="cab-tag cab-tag-neutral">${cabEsc(C.exampleData)}</span>
+      <span class="cab-tag cab-tag-neutral">${cabEsc(window.CabinetHarness?.state.meeting ? (cabLang() === "ru" ? "Текстовая встреча" : "Text meeting") : C.exampleData)}</span>
       ${role === "admirer" && sessTitle ? `<span class="cab-tag cab-tag-outline">${cabEsc(C.proposal)}</span>` : ""}
       <span class="cab-who"><span>${cabEsc(who)}</span><span aria-hidden="true">·</span><span class="soul text-gold">${cabEsc(soul)}</span></span>
       ${cabLangSwitch()}
@@ -98,6 +98,7 @@ function home(role) {
     </aside>
     <main id="main" tabindex="-1" class="cab-main">
       <div><h1>${cabEsc(C.playToday)}</h1><p class="cab-sub">${cabEsc(isA ? C.subArtist : isM ? C.subMaestro : C.subAdmirer)}</p></div>
+      ${window.CabinetHarness ? CabinetHarness.panel() : ""}
       <div class="cab-tiles">
         <section class="cab-tile-session" aria-label="${cabEsc(C.session)}">
           <div class="cab-tile-head"><span class="cab-tile-num"><span class="num-gold">01</span> · ${cabEsc(C.session)}</span><span style="flex:1"></span>
@@ -184,6 +185,7 @@ function rosterHTML(role, mode, C) {
   return `<div class="cab-roster">${everyone}${cards}</div>`;
 }
 function chatHTML(role, mode, C) {
+  if (window.CabinetHarness?.state.user) return CabinetHarness.messages();
   const F = role === "maestro" ? (mode === "one" ? "london" : cabState.focus) : "london";
   let msgs;
   if (role === "admirer") msgs = C.chat.filter(m => m.to === "all");
@@ -218,8 +220,9 @@ function session(role, mode) {
   const isM = role === "maestro", isA = role === "artist", isAd = role === "admirer";
   if (isM && mode === "one") cabState.focus = "london";
   const F = isM ? cabState.focus : "london";
-  const focusName = (C.roster.find(r => r.id === F) || {}).name || "";
-  const sub = isM ? (mode === "one" ? C.sessSubMaestroOne : C.sessSubMaestroCircle)
+  const live = window.CabinetHarness?.state.meeting;
+  const focusName = live ? (isM ? live.artist_alias : live.maestro_alias) : (C.roster.find(r => r.id === F) || {}).name || "";
+  const sub = live ? `${live.maestro_alias} · ${live.artist_alias}` : isM ? (mode === "one" ? C.sessSubMaestroOne : C.sessSubMaestroCircle)
     : isA ? (mode === "one" ? C.sessSubArtistOne : C.sessSubArtistCircle) : C.sessSubAdmirer;
   const plan = C.plan, step = plan[cabState.step];
   const centre = isM ? `
@@ -242,7 +245,7 @@ function session(role, mode) {
         <button type="button" class="cab-btn cab-btn-ghost cab-icon-btn" data-cab-bpm="-1" aria-label="−"><i class="ph ph-minus"></i></button>
         <span class="cab-bpm"><b data-cab-bpm-val>${cabMetro.bpm}</b><span>BPM</span></span>
         <button type="button" class="cab-btn cab-btn-ghost cab-icon-btn" data-cab-bpm="1" aria-label="+"><i class="ph ph-plus"></i></button>
-        <span style="flex:1"></span><span style="font-size:12px;color:var(--color-neutral-500)">${cabEsc(mode === "one" ? C.inSync : C.forCircle)}</span>
+        <span style="flex:1"></span><span style="font-size:12px;color:var(--color-neutral-500)">${cabEsc(live ? (cabLang() === "ru" ? "Локальный метроном" : "Local metronome") : mode === "one" ? C.inSync : C.forCircle)}</span>
       </div>` : `
       <div class="cab-plan-head"><span class="cab-plan-title">${cabEsc(isAd ? C.sessionPlan : C.practicePlan)}</span>
         <span class="cab-tag cab-tag-outline">${cabEsc(C.stepOf(cabState.step + 1, plan.length))}</span>
@@ -251,7 +254,7 @@ function session(role, mode) {
         <div><div class="cab-step-now text-gold">${cabEsc(C.now)} · ${cabEsc(step.d)}</div>
         <div class="cab-step-big">${cabEsc(step.t)}</div>
         <p class="cab-step-goal" style="padding-left:0">${cabEsc(step.goal)}</p></div>
-        ${isA ? `<div class="cab-muse-status"><span style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--color-accent-200)"><i class="ph ph-sparkle"></i><span style="flex:1">Muse: ${cabEsc(C.roster[0].status)}</span><span class="mono" style="font-size:12px">55%</span></span>
+        ${isA && !live ? `<div class="cab-muse-status"><span style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--color-accent-200)"><i class="ph ph-sparkle"></i><span style="flex:1">Muse: ${cabEsc(C.roster[0].status)}</span><span class="mono" style="font-size:12px">55%</span></span>
         <span class="cab-bar"><i style="width:55%"></i></span><span class="cab-mono-lines">${cabEsc(C.museStatusArtist)}</span></div>` : ""}
         <div>${step.tips.map(t => `<span class="cab-tip" style="padding-left:0;font-size:13px;color:var(--color-neutral-200)"><i class="ph ph-check"></i>${cabEsc(t)}</span>`).join("")}</div>
         <div class="cab-plan-mini">${plan.map((p, i) => {
@@ -263,7 +266,7 @@ function session(role, mode) {
         <span class="cab-beats">${[0, 1, 2, 3].map(() => "<i></i>").join("")}</span>
         <span class="cab-bpm"><b>72</b><span>BPM</span></span><span style="flex:1"></span>
         <span style="font-size:12px;color:var(--color-neutral-500)">${cabEsc(C.metroOff)}</span></div>`;
-  const left = `
+  const left = live ? `<div class="cab-label">${cabLang() === "ru" ? "Встреча EN ↔ VI" : "EN ↔ VI meeting"}</div><p>${cabLang() === "ru" ? "Голос и видео ожидают подключения. Сообщения и одобрение перевода работают в чате Muse." : "Voice and video are awaiting connection. Use the Muse chat for messages and translation approval."}</p>` : `
       <div style="display:flex;flex-direction:column;gap:11px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span class="cab-label">${cabEsc(isM ? (F === "all" ? C.soundAll : C.soundPrivate) : isAd ? C.soundAdmirer : C.soundArtist)}</span><span class="cab-tag cab-tag-neutral">${cabEsc(C.exampleTag)}</span></div>
         <div class="cab-sound" aria-hidden="true"><i></i></div>
@@ -276,30 +279,31 @@ function session(role, mode) {
         ${isAd ? "" : isM ? `<button type="button" class="cab-btn" data-cab-video><i class="ph ph-video-camera"></i>${cabEsc(C.videoCheck)}</button><button type="button" class="cab-btn" data-cab-video><i class="ph ph-monitor-play"></i>${cabEsc(C.videoDemo)}</button>` : `<button type="button" class="cab-btn" data-cab-video><i class="ph ph-monitor-play"></i>${cabEsc(C.videoDemo)}</button>`}
         <p class="cab-status" role="status" data-cab-video-out></p>
       </div>`;
-  const chatLabel = isAd ? C.circleChatRO : isM ? (F === "all" ? C.circleChat : C.privateChat(focusName)) : C.circleChat;
+  const chatLabel = live ? (cabLang() === "ru" ? "Личный чат Muse" : "Private Muse chat") : isAd ? C.circleChatRO : isM ? (F === "all" ? C.circleChat : C.privateChat(focusName)) : C.circleChat;
   const right = `
       <div style="display:flex;align-items:center;gap:8px"><span class="cab-btn cab-btn-primary" style="cursor:default"><i class="ph ph-sparkle"></i>Muse</span><span style="flex:1"></span>
-        <span class="cab-tag cab-tag-neutral"><i class="ph ph-translate"></i>${isM && F === "all" ? "PT → 4" : "PT → RU"}</span></div>
-      <span class="cab-dictating"><i class="ph ph-waveform"></i>${cabEsc(isM ? C.dictatingM : C.dictatingA)}</span>
+        <span class="cab-tag cab-tag-neutral"><i class="ph ph-translate"></i>${live ? (isM ? "EN → VI" : "VI → EN") : isM && F === "all" ? "PT → 4" : "PT → RU"}</span></div>
+      ${live ? "" : `<span class="cab-dictating"><i class="ph ph-waveform"></i>${cabEsc(isM ? C.dictatingM : C.dictatingA)}</span>`}
       <span class="cab-label">${cabEsc(chatLabel)}</span>
       <div class="cab-chat">${chatHTML(role, mode, C)}</div>
       ${isAd ? "" : `<form class="cab-chat-form" data-cab-chat-form><input data-cab-chat-input autocomplete="off" placeholder="${cabEsc(isM ? (F === "all" ? C.writeAll : C.writeTo(focusName)) : C.writeMaestro)}"><button type="submit" class="cab-btn cab-btn-primary cab-icon-btn" aria-label="→"><i class="ph ph-paper-plane-right"></i></button></form>`}
       <div class="cab-notes">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span class="cab-label" style="flex:1">${cabEsc(isA ? C.notesQuestions : C.myNotes)}</span>
-        ${isA ? `<button type="button" class="cab-btn cab-btn-ghost" data-cab-hand aria-pressed="${cabState.hand}" style="font-size:12px"><i class="ph ${cabState.hand ? "ph-fill ph-hand-waving" : "ph-hand-waving"}"></i>${cabEsc(cabState.hand ? C.handRaised : C.raiseHand)}</button>` : ""}
-        <button type="button" class="cab-btn cab-btn-ghost" data-cab-rec aria-pressed="${cabState.rec}" style="font-size:12px"><i class="ph ph-microphone"></i>${cabEsc(cabState.rec ? C.done : C.dictate)}</button></div>
+        ${isA ? `<button type="button" class="cab-btn cab-btn-ghost" data-cab-hand ${window.CabinetHarness?.state.meeting ? "disabled" : ""} aria-pressed="${cabState.hand}" style="font-size:12px"><i class="ph ${cabState.hand ? "ph-fill ph-hand-waving" : "ph-hand-waving"}"></i>${cabEsc(cabState.hand ? C.handRaised : C.raiseHand)}</button>` : ""}
+        <button type="button" class="cab-btn cab-btn-ghost" data-cab-rec ${window.CabinetHarness?.state.meeting ? "disabled" : ""} aria-pressed="${cabState.rec}" style="font-size:12px"><i class="ph ph-microphone"></i>${cabEsc(cabState.rec ? C.done : C.dictate)}</button></div>
         ${cabState.rec ? `<span class="cab-dictating"><i class="ph ph-waveform"></i>${cabEsc(C.museListening)}</span>` : ""}
         ${notesFor(role, mode, C).map(n => `<span class="cab-note"><i class="ph ph-note-pencil"></i><span>${cabEsc(n)}</span></span>`).join("")}
       </div>`;
-  return `<div class="cab" data-cab-screen="session-${role}-${mode}">${cabHead(role, C.session3, sub)}
+  return `<div class="cab" data-cab-screen="session-${role}-${mode}">${cabHead(role, live ? (cabLang() === "ru" ? "Музыкальная встреча" : "Music meeting") : C.session3, sub)}
   <div class="cab-session">
     <div class="cab-sess-bar">
       <a class="cab-btn" href="#/space/${role}"><i class="ph ph-arrow-left"></i>${cabEsc(C.backCabinet)}</a>
-      <span class="cab-elapsed"><i></i>12:34</span><span style="flex:1"></span>
-      <a class="cab-btn" href="#/space/${role}"><i class="ph ph-sign-out"></i>${cabEsc(isM ? C.endSession : C.leave)}</a>
+      <span class="cab-elapsed"><i></i>${cabEsc(window.CabinetHarness?.state.meeting ? CabinetHarness.state.meeting.state : "12:34")}</span><span style="flex:1"></span>
+      <a class="cab-btn" ${live ? "data-harness-end" : ""} href="#/space/${role}"><i class="ph ph-sign-out"></i>${cabEsc(isM ? C.endSession : C.leave)}</a>
     </div>
-    <p class="cab-notlive bar-muse" role="note">${cabEsc(C.notLive)}</p>
-    ${rosterHTML(role, mode, C)}
+    <p class="cab-notlive bar-muse" role="note">${cabEsc(window.CabinetHarness?.state.meeting ? (cabLang() === "ru" ? "Перевод EN ↔ VI. План и нотная тетрадь — образцы." : "EN ↔ VI interpretation. The plan and notebook show examples.") : C.notLive)}</p>
+    ${window.CabinetHarness?.state.meeting ? `<div class="cab-live"><b>${cabEsc(CabinetHarness.state.meeting.maestro_alias)} · ${cabEsc(CabinetHarness.state.meeting.artist_alias)}</b></div>` : rosterHTML(role, mode, C)}
+    ${window.CabinetHarness ? CabinetHarness.panel() : ""}
     <main id="main" tabindex="-1" class="cab-grid">
       <div class="cab-col">${left}</div>
       <div class="cab-col">${centre}</div>
@@ -370,6 +374,7 @@ function cabMetroOff() {
 }
 function cabRerender() { if (typeof render === "function") render(); }
 function bind() {
+  if (window.CabinetHarness) CabinetHarness.bind();
   document.querySelectorAll("[data-cab-lang]").forEach(b => b.onclick = () => {
     if (window.P01) { P01.state.lang = b.dataset.cabLang; try { localStorage.setItem("som_p01_lang", P01.state.lang); } catch (e) {} }
     cabRerender();
@@ -410,6 +415,7 @@ function bind() {
     e.preventDefault();
     const inp = form.querySelector("[data-cab-chat-input]");
     const text = (inp.value || "").trim(); if (!text) return;
+    if (window.CabinetHarness) { CabinetHarness.send(text, role); return; }
     const isM = role === "maestro";
     cabState.extraChat.push({ from: isM ? "maestro" : "london", to: isM ? cabState.focus : "london", text });
     cabRerender();
