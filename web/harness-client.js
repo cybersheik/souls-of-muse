@@ -75,11 +75,29 @@ window.CabinetHarness = (() => {
         ${state.heart ? `<p>♥ ${word("Meetings", "Встречи")} ${state.heart.counters.happened} · ${word("Useful", "Полезно")} ${state.heart.counters.useful} · ${word("Progress", "Прогресс")} ${state.heart.counters.progress}</p>` : ""}` : ""}
       <p role="status">${esc(state.status)}</p></section>`;
   }
+  function reviewNote(message) {
+    if (state.user?.role !== "maestro" || (!message.review && message.state !== "flagged")) return "";
+    const review = message.review;
+    let text;
+    if (review?.state === "complete") {
+      const verdict = review.verdict === "faithful" ? word("Meaning preserved", "Смысл сохранён")
+        : review.verdict === "unfaithful" ? word("Meaning changed", "Смысл изменён")
+        : word("Meaning needs review", "Нужна проверка смысла");
+      text = verdict + " · " + review.reason;
+    } else if (review?.state === "processing") {
+      text = word("Checking translation…", "Проверяем перевод…");
+    } else {
+      text = word("Translation check unavailable. Send the message again after the service recovers.",
+        "Проверка перевода недоступна. Отправьте реплику заново после восстановления сервиса.");
+    }
+    return `<span class="cab-msg-check">${esc(text)}</span>`;
+  }
   function messages() {
     return (state.meeting?.deliveries || []).map(message => `<div class="cab-msg muse"><span class="cab-msg-who">Muse · ${esc(message.speaker)} · ${esc(message.state)}</span>
       ${message.source_text ? `<span class="cab-msg-orig">${esc(message.source_text)}</span>` : ""}<span class="cab-msg-text">${esc(message.text)}</span>
       ${message.validation_issues?.length ? `<strong>${esc(message.validation_issues.join(", "))}</strong>` : ""}
-      ${state.user?.role === "maestro" && ["draft", "flagged"].includes(message.state) ? `<button class="cab-btn" data-harness-approve="${esc(message.id)}" data-flagged="${message.state === "flagged"}">${word("Approve translation", "Одобрить перевод")}</button>` : ""}
+      ${reviewNote(message)}
+      ${state.user?.role === "maestro" && ["draft", "flagged"].includes(message.state) ? `<button class="cab-btn" data-harness-approve="${esc(message.id)}" data-flagged="${message.state === "flagged"}"${state.busy || message.approval_allowed === false || (message.state === "flagged" && message.review?.state !== "complete") ? " disabled" : ""}>${word("Approve translation", "Одобрить перевод")}</button>` : ""}
       ${state.tts && message.state === "approved" ? `<button class="cab-btn" data-harness-speak="${esc(message.id)}" ${state.busy ? "disabled" : ""}>${word("Listen to translation", "Прослушать перевод")}</button><span data-harness-audio="${esc(message.id)}"></span>` : ""}</div>`).join("") || `<p>${word("Approved messages will appear here", "Здесь появятся одобренные сообщения")}</p>`;
   }
   async function send(text, role) {

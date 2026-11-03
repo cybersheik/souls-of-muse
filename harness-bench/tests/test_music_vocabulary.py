@@ -59,6 +59,26 @@ class MusicalPitchValidation(unittest.TestCase):
             with self.subTest(changed=changed):
                 self.assertTrue(any("ноты" in issue for issue in compare(src, signature(changed, "vi", self.glossary))))
 
+    def test_vietnamese_ordinal_thu_is_not_a_minor_key(self):
+        source = signature("Play the second measure slowly.", "en", self.glossary)
+        translated = signature("Hãy chơi ô nhịp thứ hai thật chậm.", "vi", self.glossary)
+        self.assertEqual(compare(source, translated), [])
+        chord = signature("Chơi hợp âm La thứ ba lần.", "vi", self.glossary)
+        self.assertIn("KEY_MINOR", chord["terms"])
+        self.assertEqual(compare(signature("Play the A minor chord 3 times.", "en", self.glossary), chord), [])
+
+    def test_rootless_minor_repetition_is_distinct_from_chord_ordinal(self):
+        for source, translated in [
+            ("Play the minor chord 3 times.", "Chơi hợp âm thứ ba lần."),
+            ("Play the minor scale 3 times.", "Chơi gam thứ ba lần."),
+            ("Play the minor chord 23 times.", "Chơi hợp âm thứ hai mươi ba lần."),
+            ("Play the third chord.", "Chơi hợp âm thứ ba."),
+            ("Play the third chord 2 times.", "Chơi hợp âm thứ ba hai lần."),
+        ]:
+            with self.subTest(source=source):
+                self.assertEqual(compare(signature(source, "en", self.glossary),
+                                         signature(translated, "vi", self.glossary)), [])
+
     def test_unqualified_letters_or_solfege_in_prose_do_not_invent_notes(self):
         for text in ["Play a little slower.", "Do not speed up.", "Let me see.",
                      "La is an alias.", "A and B are participants.", "Please do repeat.",

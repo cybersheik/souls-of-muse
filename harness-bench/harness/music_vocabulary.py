@@ -6,6 +6,7 @@ names; enharmonic spellings remain distinct so a changed accidental flags.
 """
 import re
 import unicodedata
+from .spoken_numbers import numeric_text
 
 
 VI_PITCHES = {"đô": "C", "do": "C", "rê": "D", "re": "D", "mi": "E",
@@ -15,6 +16,25 @@ _ACC = r"(?:sharp|flat|thăng|giáng|[#♯b♭])"
 _PITCH = rf"(?P<root>{_ROOT})(?:[\s\-‐‑]*(?P<acc>{_ACC}))?(?![\w#♯♭\-‐‑])"
 _AFTER = re.compile(rf"(?<!\w){_PITCH}\s+(?:major|minor|chord|scale|trưởng|thứ|hợp\s+âm)\b", re.I)
 _BEFORE = re.compile(rf"\b(?:note|chord|key(?:\s+of)?|scale(?:\s+of)?|nốt(?:\s+nhạc)?|hợp\s+âm|gam|giọng)\s+{_PITCH}", re.I)
+_PITCH_END = re.compile(rf"(?<!\w){_PITCH}\s*$", re.I)
+_ORDINAL_THU = re.compile(r"\bthứ(?=\s+(?:nhất|một|hai|ba|tư|bốn|năm|sáu|bảy|tám|chín|mười|\d+)\b)", re.I)
+
+
+def ordinal_thu_spans(text):
+    """Exclude ordinal thứ hai from minor, preserving La thứ ba lần (Am ×3)."""
+    out = set()
+    for match in _ORDINAL_THU.finditer(text):
+        prefix = text[:match.start()]
+        if _PITCH_END.search(prefix):
+            continue
+        quality = re.search(r"\b(?:hợp\s+âm|gam|giọng|âm\s+giai)\s*$", prefix, re.I)
+        # "minor chord three times" does not require a named root. A single
+        # numeric phrase before lần marks repetitions; "third chord two times"
+        # has two independent numbers and keeps the ordinal interpretation.
+        if quality and re.match(r"\s*\d+(?:[.,]\d+)?\s+lần\b", numeric_text(text[match.end():], "vi")):
+            continue
+        out.add((match.start(), match.end()))
+    return out
 
 
 def contextual_pitches(text):

@@ -3,7 +3,7 @@
 All model calls use injected fake adapters/transports. No paid calls.
 Run: /private/tmp/cx1-som-launch-20261031/venv/bin/python -m unittest service.tests.test_service -v
 """
-import os, sys, tempfile, threading, time, unittest
+import json, os, sys, tempfile, threading, time, unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "harness-bench"))
 from fastapi.testclient import TestClient
@@ -19,6 +19,8 @@ class FakeAdapter:
     def complete(self, role, system, user, fault="none"):
         self.calls += 1
         if self.fail: raise RuntimeError("upstream secret key=ABC123 exploded")
+        if role == "reviewer":
+            return {"text": json.dumps({"verdict": "uncertain", "reason": "Explicit offline review fixture."})}
         return {"text": self.text, "usage": {"prompt_tokens": 10, "completion_tokens": 5}, "cost_usd": 0.001, "reservation_id": "fake-res"}
 
 class BlockingAdapter:
@@ -192,14 +194,16 @@ class TestIdempotencyProvider(unittest.TestCase):
         body={"client_event_id":"evt-1","speaker":"artist","text":"I play the third measure.","source_lang":"en","target_lang":"vi"}
         r1 = c.post(f"/sessions/{sid}/messages", headers=auth("artist"), json=body)
         r2 = c.post(f"/sessions/{sid}/messages", headers=auth("artist"), json=body)
-        self.assertEqual(r1.json()["id"], r2.json()["id"]); self.assertEqual(ad.calls, 1)
+        # This source triggers a flag: one interpretation plus one review,
+        # and replay causes neither model to run again.
+        self.assertEqual(r1.json()["id"], r2.json()["id"]); self.assertEqual(ad.calls, 2)
     def test_changed_body_replay_409(self):
         ad = FakeAdapter(); c,_ = make_client(adapter=ad); sid = make_session(c)
         body={"client_event_id":"evt-1","speaker":"maestro","text":"Play bar 3.","source_lang":"en","target_lang":"vi"}
         r1 = c.post(f"/sessions/{sid}/messages", headers=auth(), json=body)
         self.assertEqual(r1.status_code, 201, r1.text)
         r2 = c.post(f"/sessions/{sid}/messages", headers=auth(), json={**body, "text":"Play bar 9."})
-        self.assertEqual(r2.status_code, 409, r2.text); self.assertEqual(ad.calls, 1)
+        self.assertEqual(r2.status_code, 409, r2.text); self.assertEqual(ad.calls, 2)
     def test_upstream_failure_safe502_no_leak_no_retry(self):
         ad = FakeAdapter(fail=True); c,_ = make_client(adapter=ad); sid = make_session(c)
         body={"client_event_id":"evt-9","speaker":"maestro","text":"Play slowly.","source_lang":"en","target_lang":"vi"}

@@ -1,0 +1,82 @@
+{
+  "result": "PARTIAL",
+  "base_commit": "b9704f40e2d946683085553d86144b6803aed30e",
+  "scope": "two real Spark reviewer calls with fixed synthetic text; interpreter is explicitly offline, no audio/real translation quality acceptance",
+  "real_reviewer": "muse-spark-1.3",
+  "reviewer_max_tokens": 512,
+  "real_paid_calls": 2,
+  "automatic_delivery": false,
+  "cases": [
+    {
+      "id": "changed-tempo",
+      "source": "Play the A minor chord four times at 60 bpm. Do not speed up.",
+      "draft": "Hãy chơi hợp âm La thứ bốn lần ở 80 nhịp mỗi phút. Đừng tăng tốc.",
+      "expected_verdict": "unfaithful",
+      "latency_s": 13.424,
+      "state": "flagged",
+      "validation_issues": [
+        "числа: потеряно ['60'], лишние ['80']"
+      ],
+      "review": {
+        "state": "complete",
+        "verdict": "unfaithful",
+        "reason": "Tempo number mismatch: source specifies 60 bpm, translation states 80 bpm, changing required speed."
+      },
+      "ordinary_approval_blocked": true
+    },
+    {
+      "id": "faithful-ordinal",
+      "source": "Play the second measure slowly.",
+      "draft": "Hãy chơi ô nhịp thứ hai thật chậm.",
+      "expected_verdict": "faithful",
+      "latency_s": 6.213,
+      "state": "flagged",
+      "validation_issues": [
+        "term_id: потеряно —, лишние ['KEY_MINOR']"
+      ],
+      "review": {
+        "state": "failed"
+      },
+      "ordinary_approval_blocked": true
+    }
+  ],
+  "findings": [
+    "Changed tempo60→80: reviewer unfaithful, deterministic flag retained, no automatic delivery.",
+    "Faithful ordinal: reviewer failed closed; exact failure cause was not established and no paid retry was made.",
+    "The pre-existing false KEY_MINOR flag for thứ hai was fixed after this real probe. Offline HTTP replay with current validator now yields a clean draft with interpreter-only and no review call. La thứ ba lần still retains minor.",
+    "Source interpreter outputs in this probe were explicit fixtures; this does not establish actual translation, human voice or full EN↔VI product acceptance."
+  ],
+  "budget": {
+    "new_cost_usd": 0.004853,
+    "local_settled": 20,
+    "local_spent_usd": 0.019384,
+    "unsettled": 0,
+    "allocation_usd": 0.05,
+    "stop_usd": 0.0475,
+    "last_verified_cloud_only_usd": 0.003911,
+    "last_known_aggregate_usd": 0.023295,
+    "cloud_ledger_not_refreshed": true
+  },
+  "browser": {
+    "result": "PASS",
+    "scope": "actual site with explicit offline translation/reviewer fixtures; no provider calls",
+    "layouts": [
+      {
+        "width": 1440,
+        "overflow": false
+      },
+      {
+        "width": 390,
+        "overflow": false
+      }
+    ],
+    "untrusted_reason_escaped": true,
+    "failed_check_disables_approval": true,
+    "artist_cannot_see_review": true,
+    "EN_RU": true,
+    "page_errors": []
+  },
+  "latency_target_accepted": false,
+  "human_voice_accepted": false,
+  "cloud_deployed": false
+}

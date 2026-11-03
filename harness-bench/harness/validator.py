@@ -5,7 +5,7 @@ term_id — из справочника (стабильный идентифик
 import json, re, unicodedata
 from pathlib import Path
 from .spoken_numbers import numeric_text
-from .music_vocabulary import contextual_pitches
+from .music_vocabulary import contextual_pitches, ordinal_thu_spans
 
 NUM_RE = re.compile(r"\d+(?:[.,]\d+)?")
 NEG_EN = re.compile(r"\b(?:not|no|never|n't|don'?t|do not)\b", re.I)
@@ -50,6 +50,7 @@ def term_ids(text, glossary):
     регионов: вложенные формы («rải hợp âm» ⊃ «hợp âm») не дают ложных term_id.
     Синонимы — это несколько форм одного term_id (списки в полях en/vi канона)."""
     t = " " + _norm(text) + " "
+    ordinals = ordinal_thu_spans(t)
     forms = []
     for term in glossary:
         for lang in ("en", "vi"):
@@ -61,9 +62,11 @@ def term_ids(text, glossary):
     ids = set()
     for f, tid in sorted(forms, key=lambda x: -len(x[0])):
         pat = re.compile(rf"(?<![\w]){re.escape(f)}(?![\w])")
-        if pat.search(t):
+        spans = {(match.start(), match.end()) for match in pat.finditer(t)
+                 if not (tid == "KEY_MINOR" and f == "thứ" and (match.start(), match.end()) in ordinals)}
+        if spans:
             ids.add(tid)
-            t = pat.sub(lambda m: " " * len(m.group()), t)
+            t = pat.sub(lambda m: " " * len(m.group()) if (m.start(), m.end()) in spans else m.group(), t)
     # BPM explicitly measures tempo in either language. A faithful translation
     # may spell out "tempo" where the source only specifies the BPM value.
     if "BPM" in ids:

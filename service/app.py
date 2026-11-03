@@ -56,6 +56,9 @@ def _request_hash(body):
 class PersistenceError(RuntimeError):
     """Durable write (e.g. Volume.commit) could not be verified."""
 
+class ValidationUnavailable(RuntimeError):
+    """A missing or failed validator can never mean a clean translation."""
+
 class PersistentBudgetGuard:
     """Persistence-aware proxy around the real BudgetGuard.
 
@@ -219,7 +222,10 @@ def _build_real_adapter(data_dir, environ, on_write=None, transport=None):
         if guard.total_micro > PILOT_TOTAL_MAX_MICRO or guard.stop_micro > PILOT_STOP_MAX_MICRO:
             return None, False
         models = yaml.safe_load((_BENCH / "config" / "models.yaml").read_text(encoding="utf-8")) or {}
-        cfg = dict(models); cfg["roles"] = {"interpreter": {"model": "muse-spark-1.3", "endpoint": "/chat/completions", "reasoning_effort": "low", "temperature": 0.1, "max_tokens": 1024}}
+        cfg = dict(models); cfg["roles"] = {
+            "interpreter": {"model": "muse-spark-1.3", "endpoint": "/chat/completions", "reasoning_effort": "low", "temperature": 0.1, "max_tokens": 1024},
+            "reviewer": {"model": "muse-spark-1.3", "endpoint": "/chat/completions", "reasoning_effort": "low", "temperature": 0.0, "max_tokens": 512},
+        }
         cfg["roles"]["asr"] = {"model": "muse-voice-transcribe-1.0", "endpoint_file": "/asr/transcribe", "enabled": environ.get("SOM_ENABLE_ASR") == "1"}
         wrapped = PersistentBudgetGuard(guard, on_write)
         return MetaAdapter(cfg, wrapped, transport=transport, environ=environ), True
@@ -236,12 +242,12 @@ def _load_glossary():
 
 def _validate_translation(src_text, src_lang, out_text, tgt_lang, glossary):
     if not glossary:
-        return []
+        raise ValidationUnavailable("validation_unavailable")
     try:
         from harness.validator import signature, compare
         return compare(signature(src_text, src_lang, glossary), signature(out_text, tgt_lang, glossary))
     except Exception:
-        return []
+        raise ValidationUnavailable("validation_unavailable") from None
 
 def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_concurrent=1, on_write=None, maestro_token=None, artist_token=None, heart_key=None, speech=None, media=None):
     env = os.environ if environ is None else environ
@@ -274,6 +280,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
       CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT, event_type TEXT, ref_id TEXT, actor TEXT, prev_hash TEXT, hash TEXT, created_at TEXT);
       CREATE TRIGGER IF NOT EXISTS audit_no_update BEFORE UPDATE ON audit BEGIN SELECT RAISE(ABORT,'audit_append_only'); END;
       CREATE TRIGGER IF NOT EXISTS audit_no_delete BEFORE DELETE ON audit BEGIN SELECT RAISE(ABORT,'audit_append_only'); END;
+      CREATE TABLE IF NOT EXISTS message_reviews(message_id TEXT PRIMARY KEY, state TEXT NOT NULL, verdict TEXT, reason TEXT, created_at TEXT NOT NULL);
     """)
     cols = {r[1] for r in conn_init.execute("PRAGMA table_info(messages)").fetchall()}
     if "request_hash" not in cols:
@@ -282,6 +289,10 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         session_cols = {r[1] for r in conn_init.execute("PRAGMA table_info(sessions)")}
         if column not in session_cols:
             conn_init.execute(f"ALTER TABLE sessions ADD COLUMN {column} TEXT")
+    # A single writer owns this database. Interrupted paid work is never replayed
+    # at startup; budget reservations remain untouched for reconciliation.
+    conn_init.execute("UPDATE messages SET state='failed' WHERE state='processing'")
+    conn_init.execute("UPDATE message_reviews SET state='failed' WHERE state='processing'")
     conn_init.commit(); conn_init.close()
     if on_write is not None:
         on_write()  # propagate: startup fails closed if durable commit fails
@@ -369,6 +380,16 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
             d["source_text"] = r["source_text"]
             try: d["validation_issues"] = json.loads(r["validation_issues"] or "[]")
             except Exception: d["validation_issues"] = []
+            c = db()
+            try:
+                review = c.execute("SELECT state,verdict,reason FROM message_reviews WHERE message_id=?", (r["id"],)).fetchone()
+            finally:
+                c.close()
+            if review:
+                d["review"] = {"state": review["state"]}
+                if review["state"] == "complete":
+                    d["review"].update(verdict=review["verdict"], reason=review["reason"])
+            d["approval_allowed"] = r["state"] == "draft" or (r["state"] == "flagged" and bool(review) and review["state"] == "complete")
         return d
 
     @app.get("/health")
@@ -378,7 +399,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         # only (private pilot tokens, not full participant identity);
         # an invalid/missing token must not look fully usable.
         auth_ready = bool(tokens_valid or identity.accounts)
-        pilot_ready = bool(auth_ready and model_ready)
+        pilot_ready = bool(auth_ready and model_ready and glossary)
         return {"status": "ok", "version": VERSION, "model_ready": bool(model_ready),
                 "auth_ready": auth_ready, "role_ready": auth_ready,
                 "roles_ready": auth_ready, "pilot_ready": pilot_ready,
@@ -492,6 +513,8 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
             return err(403, "speaker_mismatch")
         if not model_ready or adapter is None:
             return err(503, "model_not_ready")
+        if not glossary:
+            return err(503, "validation_unavailable")
         req_hash = _request_hash(body)
         c = db()
         try:
@@ -505,7 +528,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
                     return err(409, "idempotency_conflict")
                 if existing["state"] == "processing": return err(409, "duplicate_in_progress")
                 if existing["state"] == "failed": return err(502, "upstream_failed")
-                return msg_dict(existing, include_draft=(actor == "maestro" or existing["state"] == "approved"))
+                return msg_dict(existing, include_draft=(actor == "maestro"))
             mid = uuid.uuid4().hex
             try:
                 c.execute("INSERT INTO messages VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", (mid, sid, body.client_event_id, body.speaker, body.text, body.source_lang, body.target_lang, None, "processing", "[]", _now(), req_hash))
@@ -523,7 +546,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         # Single serialized inference, bounded wait. Budget HOLD is
         # retained inside MetaAdapter on upstream failure; no retry.
         user = f"Translate from {body.source_lang} to {body.target_lang}:\n{body.text}"
-        draft = None; failure = None; fail_code = "upstream_failed"
+        draft = None; failure = None; fail_code = "upstream_failed"; issues = []
         if not inference_gate.acquire(timeout=30):
             failure = "busy"; fail_code = "inference_busy"
         else:
@@ -534,6 +557,32 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
                     failure = "empty"; draft = None
                 elif len(draft) > MAX_RESPONSE_CHARS:
                     failure = "oversized"; fail_code = "upstream_response_too_large"; draft = None
+                if failure is None:
+                    issues = _validate_translation(body.text, body.source_lang, draft, body.target_lang, glossary)
+                    if issues:
+                        c = db()
+                        try:
+                            c.execute("INSERT INTO message_reviews VALUES(?,'processing',NULL,NULL,?)", (mid, _now()))
+                            audit(c, sid, "translation_review_started", mid, actor); _commit(c)
+                        finally:
+                            c.close()
+                        from .review import review_translation
+                        try:
+                            review = review_translation(adapter, body.text, body.source_lang, draft, body.target_lang, issues)
+                        except PersistenceError:
+                            raise
+                        except Exception:
+                            review = None
+                        c = db()
+                        try:
+                            c.execute("UPDATE message_reviews SET state=?,verdict=?,reason=? WHERE message_id=?",
+                                      ("complete" if review else "failed", review["verdict"] if review else None,
+                                       review["reason"] if review else None, mid))
+                            audit(c, sid, "translation_review_completed" if review else "translation_review_failed", mid, actor); _commit(c)
+                        finally:
+                            c.close()
+            except ValidationUnavailable:
+                failure = "validation"; fail_code = "validation_unavailable"
             except PersistenceError:
                 failure = "persistence"
             except Exception:
@@ -551,10 +600,11 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
             finally: c.close()
             if failure == "persistence":
                 return err(503, "persistence_failed")
+            if failure == "validation":
+                return err(503, fail_code)
             if fail_code == "inference_busy":
                 return err(429, fail_code)
             return err(502, fail_code)
-        issues = _validate_translation(body.text, body.source_lang, draft, body.target_lang, glossary)
         state = "flagged" if issues else "draft"
         c = db()
         try:
@@ -570,7 +620,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
             if cur.rowcount != 1: return err(409, "invalid_transition")
             audit(c, sid, "draft_flagged" if issues else "draft_created", mid, actor); _commit(c)
             row = c.execute("SELECT * FROM messages WHERE id=?", (mid,)).fetchone()
-            return msg_dict(row, include_draft=(actor == "maestro" or row["state"] == "approved"))
+            return msg_dict(row, include_draft=(actor == "maestro"))
         except PersistenceError:
             return err(503, "persistence_failed")
         finally: c.close()
@@ -588,9 +638,24 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
             if s["state"] == "completed": return err(409, "session_completed")
             r = c.execute("SELECT * FROM messages WHERE id=? AND session_id=?", (mid, sid)).fetchone()
             if not r: return err(404, "message_not_found")
+            if r["state"] not in ("draft", "flagged"): return err(409, "invalid_transition")
+            try:
+                current_issues = _validate_translation(r["source_text"], r["source_lang"], r["draft_text"], r["target_lang"], glossary)
+            except ValidationUnavailable:
+                return err(503, "validation_unavailable")
+            if r["state"] == "draft" and current_issues:
+                # A legacy draft may predate the current validator. Do not do
+                # paid work on an approval request or trust its earlier state.
+                c.execute("UPDATE messages SET state='flagged',validation_issues=? WHERE id=?",
+                          (json.dumps(current_issues, ensure_ascii=False), mid))
+                audit(c, sid, "draft_revalidation_flagged", mid, actor); _commit(c)
+                return err(409, "translation_requires_review")
+            if r["state"] == "flagged":
+                review = c.execute("SELECT state FROM message_reviews WHERE message_id=?", (mid,)).fetchone()
+                if not review or review["state"] != "complete":
+                    return err(409, "translation_review_unavailable")
             if r["state"] == "flagged" and not (body and body.confirm_flagged):
                 return err(409, "flagged_requires_maestro_confirmation")
-            if r["state"] not in ("draft", "flagged"): return err(409, "invalid_transition")
             cur = c.execute("UPDATE messages SET state='approved' WHERE id=? AND session_id=? AND state IN ('draft','flagged')", (mid, sid))
             if cur.rowcount != 1: return err(409, "invalid_transition")
             audit(c, sid, "message_approved", mid, actor); _commit(c)

@@ -135,6 +135,14 @@ A Maestro creates a meeting for a registered Artist ID. Both accounts can see on
 
 Offline verification uses injected adapters, never paid models. Run `python -m unittest discover -s service/tests -v` and `PYTHONPATH=harness-bench python -m pytest harness-bench/heart/tests -q`. Browser acceptance and real-model/cloud acceptance are separate results.
 
+## Flagged translation review
+
+The required reviewer stage now runs after a deterministic flag, using `muse-spark-1.3`, low reasoning, temperature 0 and a 512-token output bound under the same budget guard. Source transcript, canonical draft and flags are sent as quoted JSON data. A strict two-field reply (`verdict`, `reason`) is checked locally; unknown fields, duplicate keys, invalid verdicts or empty/oversized reasons fail closed. This is a second opinion about the supplied transcript, not acoustic recognition or proof that a performance occurred. It never edits the translation, clears a deterministic flag or approves delivery.
+
+Review state is committed before paid inference. A successful verdict remains visible only to Maestro, including on replay; an Artist sees only approved text. Maestro must explicitly confirm a flagged translation even when the reviewer calls it faithful. Unavailable/malformed review blocks approval even with that confirmation. Replays and restarts do not repeat paid work; interrupted messages/reviews become failed, and budget holds remain untouched. Legacy flagged messages without a completed review stay blocked. Approval revalidates earlier drafts with the current validator, makes no paid call and stops if validation is unavailable. A missing glossary also prevents new interpretation calls and makes pilot readiness false.
+
+Actual Spark testing on two fixed synthetic text pairs was **partial**: it correctly identified a changed tempo of 60→80, but review of a faithful ordinal phrase failed closed. No retry or automatic delivery occurred; the cause of that second failure was not established. A related false `KEY_MINOR` flag for Vietnamese ordinal `thứ hai` was fixed independently and checked through HTTP without another model call; `La thứ ba lần` still means A minor repeated three times. The two reviewer requests cost $0.004853 in the existing ledger. Their measured HTTP times were 13.424 and 6.213 seconds; these are not full voice latency or a P95 result. Interpreter structured lesson output, broader reviewer reliability and the ≤5-second voice target remain open. See `docs/qa-translation-review-20261103.json`.
+
 ## Optional microphone input
 
 `SOM_ENABLE_ASR=1` enables Muse Voice Transcribe on the same existing model key and budget ledger. The browser records only after a click, stops after ten seconds or a second click, converts to mono 16-bit PCM WAV at 16 kHz, and closes microphone tracks. The participant reviews the recognized text before submitting it for interpretation. Navigation and logout cancel capture.
