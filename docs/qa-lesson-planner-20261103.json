@@ -108,5 +108,33 @@
     "responses_accounting_output_variants": 15,
     "serialized_queue_stale_snapshot": true,
     "targeted_node_checks": 21
+  },
+  "final_form_layout": {
+    "result": "PASS",
+    "checks": [
+      {
+        "width": 1440,
+        "overflow": false,
+        "styled": true,
+        "full_field": true,
+        "font": "13px"
+      },
+      {
+        "width": 390,
+        "overflow": false,
+        "styled": true,
+        "full_field": true,
+        "font": "13px"
+      },
+      {
+        "width": 320,
+        "overflow": false,
+        "styled": true,
+        "full_field": true,
+        "font": "13px"
+      }
+    ],
+    "additional_fixture_calls": 0,
+    "provider_calls": 0
   }
 }
