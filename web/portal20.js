@@ -227,6 +227,7 @@ function leagues() {
     <main id="main" tabindex="-1" class="p20-main">
       ${route(1)}
       <div class="p20-lside p20-lhead"><h1>${esc(tt.leaguesTitle)}</h1><p>${esc(tt.leaguesSub)}</p></div>
+      <details class="p20-mnotes"><summary>${esc(tt.whatTitle)}<i class="ph ph-caret-down" aria-hidden="true"></i></summary><div class="p20-shutbody">${whatBody()}</div></details>
       <div class="p20-graph" data-graph tabindex="0" role="group" aria-label="${esc(tt.graphLabel)}">
         ${[0, 1, 2, 3, 4, 5, 6].flatMap(i => [`<div class="p20-edge" data-edge data-a="h" data-b="${i}"></div>`, `<div class="p20-edge" data-edge data-a="${i}" data-b="${(i + 1) % 7}"></div>`]).join("")}
         <div class="p20-hub" data-hub><span><img src="assets/lyre.png" alt=""></span><em>${esc(tt.hubLabel)}</em></div>

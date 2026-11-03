@@ -29,4 +29,4 @@ jobs:
           python -m pip install pytest==9.2.0
           PYTHONPATH=harness-bench python -m pytest harness-bench/heart/tests -q
       - name: Verify cabinet and portal
-        run: node --test tests/test_cabinet.cjs tests/test_p01.cjs tests/test_portal.cjs tests/test_harness_gateway.cjs tests/test_audio_capture.cjs tests/test_media_client.cjs
+        run: node --test tests/test_*.cjs

@@ -227,7 +227,8 @@
   .p20-mnotes summary::-webkit-details-marker{display:none}
   .p20-mnotes[open] summary i{transform:rotate(180deg)}
   .p20-mnotes .p20-shutbody{padding:0 18px 18px}
-  .p20-leagues .p20-mnotes{display:none}
+  .p20-leagues .p20-mnotes{position:relative;z-index:25;width:290px;max-width:100%;margin:0 0 16px}
+  .p20-leagues .p20-main{padding-bottom:320px}
 }
 @media (max-width:899px){
   .p20-homegrid{grid-template-columns:minmax(0,1fr);gap:24px}
@@ -256,7 +257,7 @@
   .p20-hint{width:auto}
   .p20-hintfull{display:none}.p20-hintm{display:inline}
   .p20-lcard{border-radius:18px 18px 12px 12px}
-  .p20-leagues .p20-main{padding-bottom:200px}
+  .p20-leagues .p20-mnotes{width:auto}
 }
 @media (max-width:420px){
   .p20-brand span{font-size:20px}

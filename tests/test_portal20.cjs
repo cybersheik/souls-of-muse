@@ -38,6 +38,7 @@ for (const lang of ["en", "ru"]) {
   assert.equal((lg.match(/data-lsel="\d"/g) || []).length, 7, `seven-item League list ${lang}`);
   assert.ok(lg.includes("data-graph") && lg.includes(T.graphLabel), `graph labelled ${lang}`);
   assert.ok(lg.includes(T.whatTitle), `What is a League shutter ${lang}`);
+  assert.match(lg, /<details class="p20-mnotes">[\s\S]*?<summary>[\s\S]*?<\/summary>[\s\S]*?<\/details>/, `League explanation remains reachable when the desktop shutter is hidden ${lang}`);
   for (const L of S.LEAGUES) assert.ok(lg.includes(lang === "en" ? L[1] : L[2]), `League name ${L[1]} ${lang}`);
   assert.ok(goldCount(lg) <= 1, `leagues ${lang}: at most one filled gold button`);
 }
