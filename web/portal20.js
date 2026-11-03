@@ -82,7 +82,7 @@ Object.assign(T.en, {
   museDoorL: "Seven Leagues behind this arch. Find yours by your instrument.",
   museDoorS: "Your space: sessions, practice plan, your League.",
   museLeagues: "Each colour is a League. Turn the circle, or pick one from the list.",
-  legend: "Leagues by colour", autoRotate: "Turns by itself",
+  legend: "Leagues by colour", autoRotate: "Rotate",
   whatCircle: "In the centre is the Golden Lyre, the Convention. Each League has its own colour; glowing threads link every League to the Lyre and to its neighbours.",
 });
 Object.assign(T.ru, {
@@ -92,7 +92,7 @@ Object.assign(T.ru, {
   museDoorL: "За этой аркой семь Лиг. Найдите свою по инструменту.",
   museDoorS: "Ваше пространство: встречи, план практики, ваша Лига.",
   museLeagues: "Каждый цвет — Лига. Поверните круг или выберите из списка.",
-  legend: "Лиги по цветам", autoRotate: "Вращение само",
+  legend: "Лиги по цветам", autoRotate: "Вращение",
   whatCircle: "В центре — Золотая лира, Конвенция. У каждой Лиги свой цвет; светящиеся нити связывают каждую Лигу с лирой и с соседними Лигами.",
 });
 /* League colours (Portal 2.1 legend): Teal, Orchid, Sky, Mint, Apricot, Violet, Lime. */

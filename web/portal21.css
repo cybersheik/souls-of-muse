@@ -139,7 +139,7 @@
 .p21-orbits{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:0}
 .p21-orbits path{fill:none;stroke:color-mix(in oklch,var(--color-accent-300) 26%,transparent);stroke-width:1}
 .p21-orbits path.dash{stroke:color-mix(in oklch,var(--color-accent-300) 16%,transparent);stroke-dasharray:4 6}
-.p21-auto{position:absolute;right:20px;bottom:24px;z-index:1200;display:flex;align-items:center;gap:7px;min-height:36px;padding:0 12px;border-radius:999px;cursor:pointer;
+.p21-auto{position:absolute;right:20px;top:10px;z-index:1200;display:flex;align-items:center;gap:7px;min-height:36px;padding:0 12px;border-radius:999px;cursor:pointer;
   border:1px solid var(--color-neutral-600);background:color-mix(in oklch,var(--color-bg) 70%,transparent);color:var(--color-neutral-300);font:500 12.5px Inter,system-ui,sans-serif}
 .p21-auto:hover{background:var(--color-neutral-800)}
 .p21-auto.on{border-color:var(--color-accent-500);color:var(--color-accent-200)}
@@ -191,7 +191,7 @@
   .p21-musebox.leagues .p21-bubble{max-width:none}
   .p21-musebox.leagues .p21-bt{font-size:13.5px}
   .p21-ghint{display:none}
-  .p21-auto{top:8px;bottom:auto;right:16px}
+  .p21-auto{top:8px;right:16px}
   .p21 .p20-leagues .p20-main,.p20-leagues.p21 .p20-main{padding-bottom:300px}
 }
 @media (prefers-reduced-motion:reduce){
