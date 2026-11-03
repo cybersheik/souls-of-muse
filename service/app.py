@@ -1,8 +1,8 @@
 """Souls of Muse — minimal real Harness backend (vertical slice).
 
 Text EN<->VI interpretation and optional push-to-talk ASR use the
-harness-bench MetaAdapter. No /responses,
-SAM, TTS, media, watches, registration or votes.
+harness-bench MetaAdapter. Optional local MMS speech is a separate
+evaluation. No /responses, SAM, media, watches, registration or votes.
 Fail-closed: no auto-created budget ledger, no default pilot token,
 roles and meeting membership are resolved server-side.
 Initial service: Meta Muse Wonder. Identity, heart and voice integration: CX1.

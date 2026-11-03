@@ -1,14 +1,12 @@
 # Souls of Muse — Harness service (vertical slice)
 
-Author: Meta Muse Wonder. Minimal real backend reusing `harness-bench`
-`MetaAdapter` (`/chat/completions`, `muse-spark-1.3` only) and the atomic
-SQLite `BudgetGuard`. No duplicate paid-client path. Existing frontend in
-`web/` is untouched.
+Initial service: Meta Muse Wonder. Cabinet, participant access and voice integration: CX1. Original signed heart: Kimi.
+
+The backend reuses `harness-bench` `MetaAdapter` and the atomic SQLite `BudgetGuard`. Cabinet integration uses a same-origin API; paid text/ASR requests retain one budget path. Optional local MMS speech is a separate evaluation. As of 3 November, code 0.3.0 is under review in PR #5; the deployed cloud service remains 0.2.0 pending renewed Modal access. Existing budget volumes and writer permits must be preserved; do not repeat first-time provisioning on them.
 
 ## Implemented
-Text-only EN↔VI teacher-led interpretation: sessions
-(`individual|group|stream`, seven leagues `guitar, keys, winds, drums,
-electronic, voice, folk`), `created→active→completed`, private drafts,
+EN↔VI teacher-led text interpretation with optional microphone input and speech evaluation (see below): sessions
+(`individual|group|stream`, seven canonical leagues `string, bow, keys, winds, drums, electronic, vocal`; legacy IDs remain API-compatible), `created→active→completed`, private drafts,
 role-bound credentials (see below), flagged drafts need
 `{"confirm_flagged": true}`, Artist view sees approved deliveries only,
 idempotent `client_event_id` replay (identical body → same result, no
@@ -17,15 +15,17 @@ in-progress duplicate → `409`), single serialized inference, model
 response capped at 4000 chars (oversized → `502`), upstream failure →
 safe `502` with the budget reservation left on HOLD inside
 `MetaAdapter` (no retry, no leak), hash-linked audit events in the
-service DB only (append-only triggers, serialized `BEGIN IMMEDIATE`
+service DB (append-only triggers, serialized `BEGIN IMMEDIATE`
 writes, `GET /sessions/{id}/audit/verify` recomputes the chain — this
-is **not** a heart-journal integration), deterministic glossary/validator
+is separate from the original heart journal), deterministic glossary/validator
 flags (numbers/negations/notes/terms — not full semantic validation).
 
-## Auth (private pilot credentials, not social accounts)
+## Legacy private pilot credentials
+
+Participant login and scoped meeting membership are described under Cabinet integration below. This legacy server-only pilot path remains compatible:
 Two distinct operator-provided tokens, at least 16 chars, never equal:
-`SOM_MAESTRO_TOKEN` and `SOM_ARTIST_TOKEN`. The server derives the actor
-from the `Authorization: Bearer …` token only; `X-Actor` and the body
+`SOM_MAESTRO_TOKEN` and `SOM_ARTIST_TOKEN`. The server derives this pilot actor
+from the `Authorization: Bearer …` token; `X-Actor` and the body
 `speaker` cannot escalate (body `speaker` must match the token role).
 Maestro can create/start/complete/approve and sees drafts; Artist can
 only send as `artist` and reads approved deliveries only. Missing,
@@ -34,9 +34,9 @@ This is private pilot credential separation, not full participant
 identity/accounts.
 
 ## Not implemented (honest list)
-`/responses`, ASR, SAM, TTS, media rooms, group/stream media, watches,
-League interactions beyond text sessions, lessons media, registration,
-votes, badges/heart counters, heart-journal integration (separate system).
+`/responses`, SAM, media rooms, group/stream media, watches,
+League interactions beyond text sessions, lessons media, public registration and votes.
+ASR, MMS speech and the original heart journal have integration paths below; this does not establish full voice or product acceptance.
 
 ## Provisioning (explicit, fail-closed — app never creates a ledger)
 Local preparation (example paths are operator-chosen; no machine path
