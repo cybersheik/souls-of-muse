@@ -69,3 +69,4 @@ def install_speech(app, db, commit, authorize, get_session, err, speech, gate):
             return {"wav_base64": base64.b64encode(audio).decode(), "language": language}
         finally:
             c.close()
+    return speak

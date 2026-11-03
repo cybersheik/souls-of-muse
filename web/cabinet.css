@@ -259,3 +259,6 @@ button.cab-chord{cursor:pointer}
 @media (prefers-reduced-motion:reduce){.cab *{transition:none!important;animation:none!important}}
 
 .cab-live{border:1px solid var(--border, #736446);border-radius:10px;padding:14px;margin:12px 0;overflow-wrap:anywhere}.cab-live form,.cab-live-meetings{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.cab-live label{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px}.cab-live input{font:inherit;color:inherit;background:transparent;border:1px solid #736446;border-radius:5px;padding:8px;min-width:0;width:100%;box-sizing:border-box}.cab-live button:disabled{opacity:.5;cursor:wait}
+[data-harness-media-audio]{width:100%;max-width:100%;min-width:0}
+[data-harness-media-audio] audio{display:block;width:100%;max-width:100%;min-width:0}
+.cab-session>.cab-live{margin-right:32px}

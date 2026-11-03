@@ -1,5 +1,11 @@
 "use strict";
 
+const routes = [
+  /^(health|auth\/(login|logout|me))$/,
+  /^sessions(?:\/[a-zA-Z0-9_-]+(?:\/(?:start|complete|join|heart|events|transcriptions|audit\/verify|messages(?:\/[a-zA-Z0-9_-]+\/(?:approve|speech))?))?)?$/,
+  /^sessions\/[a-zA-Z0-9_-]+\/media\/(?:status|join|leave|recordings(?:\/[a-zA-Z0-9_-]+\/(?:stop|cancel))?|speech\/[a-zA-Z0-9_-]+)$/,
+];
+
 // The browser uses its host-only HttpOnly participant cookie. Global pilot
 // credentials and model keys are never accepted from, or sent to, the browser.
 module.exports = async function handler(req, res) {
@@ -7,7 +13,7 @@ module.exports = async function handler(req, res) {
   if (!base) return res.status(503).json({ detail: "harness_not_configured" });
   const parts = req.query.path;
   const path = Array.isArray(parts) ? parts.join("/") : String(parts || "");
-  if (!/^(health|auth\/(login|logout|me)|sessions(?:\/[a-zA-Z0-9_-]+(?:\/(?:start|complete|join|heart|events|transcriptions|audit\/verify|messages(?:\/[a-zA-Z0-9_-]+\/(?:approve|speech))?))?)?)$/.test(path)) {
+  if (!routes.some(route => route.test(path))) {
     return res.status(404).json({ detail: "route_not_found" });
   }
   if (!["GET", "POST"].includes(req.method)) {

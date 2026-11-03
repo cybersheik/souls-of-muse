@@ -31,6 +31,7 @@ class Identity:
         self.commit = commit
         self.secure = env.get("SOM_COOKIE_SECURE", "1") != "0"
         self.origins = origins
+        self.on_logout = None
         self.accounts = json.loads(env.get("SOM_WEB_ACCOUNTS", "{}"))
         for user, account in self.accounts.items():
             if not user or account.get("role") not in ("maestro", "artist"):
@@ -69,13 +70,20 @@ class Identity:
                                 status_code=200 if user else 401, headers={"Cache-Control": "no-store"})
 
         @app.post("/auth/logout")
-        def logout(request: Request):
+        async def logout(request: Request):
             if not self.same_origin(request):
                 return JSONResponse({"detail": "origin_not_allowed"}, status_code=403)
+            cleanup_pending = False
+            user = self.user(request)
+            if user and self.on_logout:
+                try:
+                    await self.on_logout(user)
+                except Exception:
+                    cleanup_pending = True
             with closing(db()) as c:
                 c.execute("DELETE FROM web_logins WHERE token_hash=?", (self.digest(request.cookies.get(COOKIE, "")),))
                 commit(c)
-            response = JSONResponse({"signed_out": True})
+            response = JSONResponse({"signed_out": True, **({"detail":"media_cleanup_pending"} if cleanup_pending else {})}, status_code=503 if cleanup_pending else 200)
             response.delete_cookie(COOKIE, path=COOKIE_PATH, secure=self.secure, httponly=True, samesite="strict")
             return response
 

@@ -1,0 +1,52 @@
+{
+  "native": {
+    "result": "PASS",
+    "server": "LiveKit v1.13.11 compiled official source",
+    "sdk": "livekit 1.2.0",
+    "real_ingress_samples": 19200,
+    "raw_microphone_leaked": false,
+    "approved_MMS_decoded_frames": 246,
+    "receive_only_publish_denied": true,
+    "deleted_room_stale_token_denied": true,
+    "admission": "COMPLETED"
+  },
+  "browser": {
+    "result": "PASS",
+    "media": "real localhost LiveKit WebRTC",
+    "mic": "synthetic browser microphone with actual RTP",
+    "asr_and_translation": "explicit offline fixtures",
+    "tts": "real Meta MMS EN and VI",
+    "rawA": {
+      "energy": 1.7882484876221444e-09,
+      "packets": 13
+    },
+    "playedA": {
+      "energy": 0.49652032046504596,
+      "packets": 188
+    },
+    "beforeM": {
+      "energy": 1.0505959864779988e-08,
+      "packets": 47
+    },
+    "playedM": {
+      "energy": 0.7014630075620486,
+      "packets": 219
+    },
+    "rawMicrophoneLeaked": false,
+    "mobileOverflow": false,
+    "closedAudioRemoved": true,
+    "heartIncrementBoth": 1
+  },
+  "heart_signature_and_chain": true,
+  "offline_checks": {
+    "service": 84,
+    "harness": 34,
+    "root": 37,
+    "original_heart": 5,
+    "node": 36,
+    "total": 196
+  },
+  "client_cleanup_review": "generation-bound leave on explicit close, cancelled join, pagehide and terminal RTC disconnect; five concurrency regressions pass",
+  "models_called": "local MMS only; no paid Meta API calls",
+  "cloud_deployment": false
+}

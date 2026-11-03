@@ -57,3 +57,19 @@ test("gateway passes speech JSON for the approved message route", async () => {
     assert.equal(JSON.parse(res.body).language, "vi");
   } finally { global.fetch = oldFetch; delete process.env.SOM_HARNESS_URL; }
 });
+
+test("gateway permits only the scoped media controls", async () => {
+  const oldFetch = global.fetch;
+  process.env.SOM_HARNESS_URL = "https://backend.example";
+  try {
+    global.fetch = async () => new Response('{}', { status: 200 });
+    for (const path of ["media/join", "media/leave", "media/status", "media/recordings", "media/recordings/id/stop", "media/recordings/id/cancel", "media/speech/id"]) {
+      const res = response();
+      await handler({ query: { path: ["sessions", "meeting", ...path.split("/")] }, method: "POST", headers: {} }, res);
+      assert.equal(res.code, 200, path);
+    }
+    const res = response();
+    await handler({ query: { path: ["sessions", "meeting", "media", "admin"] }, method: "POST", headers: {} }, res);
+    assert.equal(res.code, 404);
+  } finally { global.fetch = oldFetch; delete process.env.SOM_HARNESS_URL; }
+});

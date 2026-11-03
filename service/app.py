@@ -9,6 +9,7 @@ Initial service: Meta Muse Wonder. Identity, heart and voice integration: CX1.
 Signed heart journal: Kimi.
 """
 import hashlib, hmac, json, os, sqlite3, sys, threading, time, uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -242,7 +243,7 @@ def _validate_translation(src_text, src_lang, out_text, tgt_lang, glossary):
     except Exception:
         return []
 
-def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_concurrent=1, on_write=None, maestro_token=None, artist_token=None, heart_key=None, speech=None):
+def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_concurrent=1, on_write=None, maestro_token=None, artist_token=None, heart_key=None, speech=None, media=None):
     env = os.environ if environ is None else environ
     if speech is None:
         from .mms_tts import MmsSpeech
@@ -312,6 +313,9 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
     from .heart_bridge import HeartBridge
     origins = ALLOWED_ORIGINS + [v for v in env.get("SOM_WEB_ORIGINS", "").split(",") if v]
     identity = Identity(app, db, _commit, env, origins)
+    from .media_api import ParticipantMedia
+    if media is None:
+        media = ParticipantMedia.from_environ(env, data_dir, on_write)
     if heart_key is None and env.get("HEART_ED25519_KEY"):
         from cryptography.hazmat.primitives import serialization
         configured_key = env["HEART_ED25519_KEY"]
@@ -380,7 +384,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
                 "roles_ready": auth_ready, "pilot_ready": pilot_ready,
                 "production_ready": False, "full_participant_identity": False,
                 "capabilities": {"text_interpretation_en_vi": bool(pilot_ready), "sessions": bool(auth_ready), "maestro_approval": bool(auth_ready), "hash_linked_audit": True, "participant_login": bool(identity.accounts), "scoped_session_membership": True, "heart_journal_integration": bridge.key is not None, "heart_outbox": True,
-                                 "responses": False, "asr": bool(getattr(adapter, "asr_enabled", False)), "sam": False, "tts": speech is not None, "media_rooms": False, "watches": False, "registration": False, "votes": False},
+                                 "responses": False, "asr": bool(getattr(adapter, "asr_enabled", False)), "sam": False, "tts": speech is not None, "private_media_transport": media is not None, "media_rooms": False, "watches": False, "registration": False, "votes": False},
                 "not_implemented": ["lessons_media", "group_media_streams", "league_interactions_beyond_text_sessions", "responses", "sam", "watches", "full_participant_identity", "production_readiness"] + ([] if getattr(adapter, "asr_enabled", False) else ["asr"]) + ([] if speech is not None else ["tts"])}
 
     @app.get("/pilot")
@@ -432,10 +436,17 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         finally: c.close()
 
     @app.post("/sessions/{sid}/complete")
-    def complete_session(sid: str, request: Request, authorization: str = Header(default="")):
+    async def complete_session(sid: str, request: Request, authorization: str = Header(default="")):
         actor, e = actor_from_auth(authorization, request)
         if e: return e
         if actor != "maestro": return err(403, "maestro_required")
+        if media:
+            check = db()
+            try:
+                if not get_session(check, sid, request): return err(404,"session_not_found")
+            finally:
+                check.close()
+            media.reconcile(sid)
         c = db()
         try:
             c.execute("BEGIN IMMEDIATE")
@@ -445,10 +456,23 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
                 c.rollback()
                 bridge.drain()
                 return {"id": sid, "state": "completed"}
-            if s["state"] != "active": return err(409, "invalid_transition")
+            if s["state"] not in (("active", "closing") if media else ("active",)): return err(409, "invalid_transition")
             busy = c.execute("SELECT (SELECT COUNT(*) FROM messages WHERE session_id=? AND state='processing') + (SELECT COUNT(*) FROM transcriptions WHERE session_id=? AND state='processing')", (sid, sid)).fetchone()[0]
+            if media:
+                busy += c.execute("SELECT (SELECT COUNT(*) FROM media_recordings WHERE session_id=? AND state IN ('capturing','processing')) + (SELECT COUNT(*) FROM media_deliveries WHERE session_id=? AND state='processing')",(sid,sid)).fetchone()[0]
+                busy += bool(media.busy(sid))
             if busy: return err(409, "session_has_processing_messages")
-            cur = c.execute("UPDATE sessions SET state='completed' WHERE id=? AND state='active'", (sid,))
+            if media:
+                c.execute("UPDATE sessions SET state='closing' WHERE id=? AND state='active'",(sid,)); _commit(c)
+                try:
+                    await media.close(sid)
+                except Exception:
+                    return err(503,"media_cleanup_pending")
+                c.execute("BEGIN IMMEDIATE")
+                latest=get_session(c,sid,request)
+                if latest["state"]=="completed" and getattr(request.state,"participant",None):
+                    c.rollback();bridge.drain();return {"id":sid,"state":"completed"}
+            cur = c.execute("UPDATE sessions SET state='completed' WHERE id=? AND state=?", (sid, "closing" if media else "active"))
             if cur.rowcount != 1: return err(409, "invalid_transition")
             bridge.enqueue_completion(c, s, _now())
             audit(c, sid, "session_completed", "", actor); _commit(c)
@@ -656,9 +680,23 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
             c.close()
 
     from .voice import install_voice
-    install_voice(app, db, _commit, actor_from_auth, get_session, err, adapter, inference_gate, data_dir, glossary)
+    transcribe = install_voice(app, db, _commit, actor_from_auth, get_session, err, adapter, inference_gate, data_dir, glossary)
     from .speech import install_speech
-    install_speech(app, db, _commit, actor_from_auth, get_session, err, speech, inference_gate)
+    speak = install_speech(app, db, _commit, actor_from_auth, get_session, err, speech, inference_gate)
+    if media:
+        media.bind(app, db, _commit, actor_from_auth, get_session, err, transcribe, speak)
+        identity.on_logout = media.logout
+        original_lifespan = app.router.lifespan_context
+        @asynccontextmanager
+        async def media_lifespan(application):
+            async with original_lifespan(application):
+                try:
+                    yield
+                finally:
+                    # The existing Modal wrapper must not return its writer
+                    # permit before native tasks and external rooms are closed.
+                    await media.shutdown()
+        app.router.lifespan_context = media_lifespan
     return app
 
 app = None  # No import-time app: provisioning must be explicit. Use create_app.

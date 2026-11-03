@@ -1,7 +1,7 @@
 "use strict";
 
 window.CabinetHarness = (() => {
-  const state = { user: null, meeting: null, sessions: [], heart: null, busy: false, status: "", pending: null, recording: false, asr: false, tts: false };
+  const state = { user: null, meeting: null, sessions: [], heart: null, busy: false, status: "", pending: null, recording: false, asr: false, tts: false, media: false };
   let capture = null, captureAbort = null, composeText = "", focusCompose = false;
   let speechAudio = null, speechURL = null, speechAbort = null, speechMessage = null;
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -24,6 +24,7 @@ window.CabinetHarness = (() => {
     const data = await response.json();
     if (response.status === 401) {
       cancelCapture(); stopSpeech();
+      window.SomMedia?.disconnect(true).catch(() => {});
       Object.assign(state, { user: null, meeting: null, sessions: [], heart: null });
     }
     if (!response.ok) throw new Error(data.detail || "request_failed");
@@ -69,6 +70,8 @@ window.CabinetHarness = (() => {
         ${state.user.role === "maestro" && state.meeting.state === "created" ? `<button class="cab-btn" data-harness-start${disabled}>${word("Start", "Начать")}</button>` : ""}
         ${state.meeting.state === "active" ? `<button class="cab-btn" data-harness-join${disabled}>${word("Join", "Присоединиться")}</button>
           ${state.user.role === "maestro" ? `<button class="cab-btn" data-harness-complete${disabled}>${word("Complete", "Завершить")}</button>` : ""}` : ""}
+        ${state.meeting.state === "closing" && state.user.role === "maestro" ? `<button class="cab-btn" data-harness-complete${disabled}>${word("Finish closing", "Завершить закрытие")}</button>` : ""}
+        ${state.media && state.meeting.state === "active" && !home ? `<button class="cab-btn" data-harness-media${disabled}>${window.SomMedia?.connected(state.meeting.id) ? word("Disconnect voice", "Отключить голос") : word("Connect voice", "Подключить голос")}</button><div data-harness-media-audio></div>` : ""}
         ${state.heart ? `<p>♥ ${word("Meetings", "Встречи")} ${state.heart.counters.happened} · ${word("Useful", "Полезно")} ${state.heart.counters.useful} · ${word("Progress", "Прогресс")} ${state.heart.counters.progress}</p>` : ""}` : ""}
       <p role="status">${esc(state.status)}</p></section>`;
   }
@@ -119,22 +122,33 @@ window.CabinetHarness = (() => {
       await refresh(); location.hash = "#/session/" + state.user.role + "/one-to-one";
     }));
     on("[data-harness-refresh]", "click", () => action(refresh));
-    on("[data-harness-logout]", "click", () => action(async () => { cancelCapture(); stopSpeech(); await call("auth/logout", {}); sessionStorage.removeItem("som_meeting"); Object.assign(state, { user: null, meeting: null, sessions: [], heart: null, pending: null }); }));
+    on("[data-harness-logout]", "click", () => action(async () => {
+      cancelCapture(); stopSpeech();
+      await window.SomMedia?.disconnect(true).catch(() => {});
+      try { await call("auth/logout", {}); }
+      finally { sessionStorage.removeItem("som_meeting"); Object.assign(state, { user: null, meeting: null, sessions: [], heart: null, pending: null }); }
+    }));
+    on("[data-harness-media]", "click", () => action(async () => {
+      if (SomMedia.connected(state.meeting.id)) await SomMedia.disconnect(true);
+      else await SomMedia.connect(state.meeting.id);
+    }));
     for (const verb of ["start", "join", "complete"]) on(`[data-harness-${verb}]`, "click", () => action(async () => {
       await call(`sessions/${state.meeting.id}/${verb}`, {});
       if (verb === "start") await call(`sessions/${state.meeting.id}/join`, {});
+      if (verb === "complete") await window.SomMedia?.disconnect(false);
       await refresh();
     }));
     on("[data-harness-end]", "click", event => {
       event.preventDefault();
       action(async () => {
-        if (state.user.role === "maestro" && state.meeting.state === "active") await call(`sessions/${state.meeting.id}/complete`, {});
+        if (state.user.role === "maestro" && ["active","closing"].includes(state.meeting.state)) await call(`sessions/${state.meeting.id}/complete`, {});
         await refresh(); location.hash = "#/space/" + state.user.role;
       });
     });
     const input = document.querySelector("[data-cab-chat-input]");
     if (input) input.addEventListener("input", () => { composeText = input.value; });
     bindApprovals();
+    window.SomMedia?.mount();
   }
   function bindApprovals() {
     document.querySelectorAll("[data-harness-approve]").forEach(button => button.onclick = () => {
@@ -151,7 +165,7 @@ window.CabinetHarness = (() => {
   }
   async function capabilities() {
     const caps = (await call("health")).capabilities;
-    state.asr = !!caps.asr; state.tts = !!caps.tts;
+    state.asr = !!caps.asr; state.tts = !!caps.tts; state.media = !!caps.private_media_transport;
   }
   function stopSpeech() {
     if (speechAbort) speechAbort.abort();
@@ -162,6 +176,10 @@ window.CabinetHarness = (() => {
   async function playSpeech(mid) {
     if (state.busy || !state.meeting || !state.tts) return;
     stopSpeech();
+    if (window.SomMedia?.connected(state.meeting.id)) {
+      await action(() => SomMedia.say(mid));
+      return;
+    }
     const controller = new AbortController(); speechAbort = controller;
     const meeting = state.meeting.id;
     await action(async () => {
@@ -212,17 +230,19 @@ window.CabinetHarness = (() => {
   }
   async function record() {
     if (capture) { capture.stop(); return; }
+    if (state.recording && captureAbort) { captureAbort.abort(); return; }
     if (!state.asr || state.busy || state.recording || !state.meeting || state.meeting.state !== "active") return;
     const controller = new AbortController();
     captureAbort = controller;
     state.recording = true; state.status = word("Recording · up to 10 seconds", "Запись · до 10 секунд"); redraw();
     try {
-      capture = await SomAudio.start(controller.signal);
+      const viaRoom = !!window.SomMedia?.connected(state.meeting.id);
+      capture = viaRoom ? await SomMedia.record(controller.signal) : await SomAudio.start(controller.signal);
       const audio = await capture.result;
       const meeting = state.meeting.id;
       state.recording = false; capture = null;
       await action(async () => {
-        const transcript = await call(`sessions/${meeting}/transcriptions`, {
+        const transcript = viaRoom ? audio : await call(`sessions/${meeting}/transcriptions`, {
           client_event_id: crypto.randomUUID(), language: state.user.role === "maestro" ? "en" : "vi", wav_base64: audio,
         });
         if (controller.signal.aborted) return;
@@ -240,6 +260,7 @@ window.CabinetHarness = (() => {
       redraw();
     }
   }
-  window.addEventListener("hashchange", () => { cancelCapture(); stopSpeech(); });
+  window.addEventListener("som-media-changed", redraw);
+  window.addEventListener("hashchange", () => { cancelCapture(); stopSpeech(); window.SomMedia?.disconnect(true).catch(() => {}); });
   return { state, panel, messages, send, bind, record };
 })();

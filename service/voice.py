@@ -93,3 +93,4 @@ def install_voice(app, db, commit, authorize, get_session, err, adapter, gate, d
         finally:
             c.close()
         return {"text": result["text"], "language": body.language} if result is not None else err(status, reason)
+    return transcribe

@@ -109,17 +109,19 @@ raises **before** any paid HTTP call. `/health` reports
 fully usable); pilot role tokens are not full participant identity
 and this is not production readiness. `/pilot` is public HTML but
 cannot read protected content without a role token.
-Auth to Modal is pending Aidar's action-time permission — not attempted
-here. No keys have been uploaded. Health may be published with
-`model_ready=false`; a real test happens only after operator
-authorization and budget evidence.
+The original 0.2.0 pilot is already deployed in the authorized Modal
+account. Its expired CLI login must be renewed before deploying this
+0.3.0 integration; do not replace the existing model secret or reset
+the budget ledger. Health may be published with `model_ready=false`;
+live model tests require the existing authorization and budget evidence.
 
 ## Limitations
 Single-writer SQLite on one volume; deliberately limited pilot, not
 production scaling, no horizontal scaling claim, no SLA. A real first
-Harness/Muse test still requires the operator to provision tokens/key/$1
-ledger and run one supervised live EN→VI and VI→EN exchange — no paid
-call was made in this change.
+Harness/Muse acceptance requires a supervised live EN→VI and VI→EN
+exchange and a cold restart against the existing ledger. Earlier 0.2.0
+text calls do not establish acceptance of this integration. Offline
+tests in this change make no paid model calls.
 
 ## Cabinet integration (0.3.0)
 
@@ -150,3 +152,17 @@ For a private technical evaluation, install `service/requirements-tts.txt` into 
 `POST /sessions/{sid}/messages/{mid}/speech` checks the same meeting membership and Origin rules as other participant writes. It speaks only the canonical approved translation and language; request-supplied text cannot replace them. Neither role may hear a draft. The durable audio cache is keyed by message plus text/language/model/normalization revision. Browser playback starts after a click, exposes audio controls, and stops on navigation/logout. Audio is limited to 30 seconds of mono PCM16 at 16 kHz, and source text to 400 characters; longer text remains readable. Unsupported characters or ambiguous numeric formatting fail instead of silently disappearing. Musical numbers, decimal zeros, ranges, accidentals and time signatures are normalized before tokenization.
 
 On 3 November, real CPU synthesis produced four EN/VI WAVs. The first request took 5.98 seconds including imports/load; subsequent samples took 0.25–0.56 seconds. Peak macOS process RSS reached 1364 MiB with both languages loaded, so the existing 512 MiB Modal configuration is insufficient for this implementation. It has not been increased or deployed. Production resource sizing, listening review and genuine microphone → ASR → translation → approval → speech acceptance are still open. The two-profile browser test used fixture translations and real MMS output; it confirmed EN and VI playback, no draft audio, no overflow at 390 px and cleanup on logout. It does not establish real ASR or translation quality.
+
+## Optional private RTC voice transport
+
+Install `service/requirements-media.txt` in the backend environment and provision a dedicated admission database explicitly with `python -m service.prepare_media --database /absolute/operator/path/admission.sqlite3 --capacity 5`. Capacity is an operator choice for concurrent hosted lessons, not a product-wide participant limit. Existing valid databases are verified without reset; a capacity mismatch fails closed. The existing Modal writer permit or a single local orchestrator must own all related SQLite stores before app construction.
+
+Set server-only `SOM_ENABLE_MEDIA=1`, `SOM_MEDIA_ADMISSION_DB`, `SOM_LIVEKIT_URL`, `SOM_LIVEKIT_API_KEY` and `SOM_LIVEKIT_API_SECRET`. Runtime never provisions a hosting account. Public operation requires a separately provisioned SFU with TLS/TURN and measured resource limits; none was deployed by this change. LiveKit must have `room.auto_create: false`: a real negative handshake probe verifies that participant tokens cannot create rooms. `deploy/livekit/local.example.yaml` is loopback-only; the official server accepts private key configuration through `LIVEKIT_KEYS`.
+
+Each authenticated member gets a separate publish-only ingress room and subscribe-only Muse playback room. Room names/identities are keyed pseudonyms; 60-second participant JWTs grant no room administration, data publishing or metadata changes. No participant gets another member's ingress capability. The server subscribes to microphone audio only and **never copies raw ingress to playback**. Camera, performance/VAD/SAM processing, groups and streams remain unfinished stages. The browser SDK is pinned and vendored with its Apache-2.0 license, and loads only after an explicit voice connection. Microphone capture starts only on a recording click and is bounded to ten seconds independently on the server. RTC PCM uses the same persisted ASR/budget path as HTTP recordings, producing editable text rather than automatic delivery. Approved speech uses the existing canonical translation/cache and is published only by Muse.
+
+Creation reserves admission and persists `provision_started` before any room API. Uncertain creation/deletion retains the slot. Completion enters `closing`, refuses new speech jobs, confirms all room deletions, then awards the original heart event. Failed cleanup is retryable; logout attempts every owned meeting and revokes the cookie even if some cleanup is pending. Server shutdown closes native workers and rooms before its existing writer permit can be returned. A stale generation's leave request cannot close reopened rooms. Client cleanup sends generation-bound keepalive immediately and serializes reconnect behind confirmed cleanup. Lost previous-owner PCM is cancelled; interrupted delivery/RTC recognition is marked uncertain without replay, while every model budget HOLD remains intact.
+
+For an opt-in real localhost check, run `python scripts/verify_private_media.py --credentials /private/operator/livekit.json --data-dir /absolute/dedicated/test-directory --wav /absolute/mms-sample.wav`. The private JSON contains `url`, `key`, `secret`; it is never included in the repository. The verifier sends synthetic PCM into the actual SFU, decodes the supplied WAV at the recipient, rejects publish from a receive-only capability and verifies that a still-valid token gets 404 after confirmed deletion.
+
+On 3 November, the verifier measured 19200 real ingress samples and 246 decoded MMS frames with no raw microphone leak; deletion freed admission. Two independent Chrome profiles passed real WebRTC recording/playback in both directions, a disconnect/reconnect cycle, 390 px layout and completion with exactly one heart increment per participant; the original heart signature/chain verified. **ASR and translation were explicit offline fixtures in that browser run.** This proves the private transport path, not real-model speech quality, cloud capacity, instrument/video handling, full group/stream behavior or watch acceptance. `/health` exposes `private_media_transport` separately and keeps full `media_rooms` and production readiness false.

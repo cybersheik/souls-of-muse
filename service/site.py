@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 
 from .main import app as harness
 
-app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=harness.router.lifespan_context)
 app.mount("/api/harness", harness)
 @app.get("/convention")
 def convention():
