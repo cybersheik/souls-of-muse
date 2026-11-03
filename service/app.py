@@ -448,6 +448,8 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
                 return None, err(403, "origin_not_allowed")
             return identity.accounts[user]["role"], None
         if not tokens_valid:
+            if identity.accounts:
+                return None,err(401,"unauthorized")
             return None, err(503, "role_tokens_not_configured")
         if not authorization or not authorization.startswith("Bearer "):
             return None, err(401, "unauthorized")

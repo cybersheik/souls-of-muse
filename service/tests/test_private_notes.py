@@ -22,10 +22,10 @@ class PrivateNotes(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(prefix='cx1-private-notes-',dir='/private/tmp'if Path('/private/tmp').is_dir()else None);self.addCleanup(self.temp.cleanup);self.adapter=NoModels();self.fail_commit=False;self.build()
         self.m=self.login('M');self.a=self.login('A');self.sid=self.create();self.route='/api/harness/sessions/'+self.sid+'/notes'
-    def build(self):
+    def build(self,legacy=True):
         def persist():
             if self.fail_commit:raise RuntimeError('fixture durability failure')
-        self.site=FastAPI();self.site.mount('/api/harness',create_app(data_dir=self.temp.name,adapter=self.adapter,environ={'SOM_WEB_ACCOUNTS':json.dumps(self.accounts),'SOM_COOKIE_SECURE':'0'},maestro_token='maestro-fixture-token-private',artist_token='artist-fixture-token-private',on_write=persist))
+        self.site=FastAPI();self.site.mount('/api/harness',create_app(data_dir=self.temp.name,adapter=self.adapter,environ={'SOM_WEB_ACCOUNTS':json.dumps(self.accounts),'SOM_COOKIE_SECURE':'0'},maestro_token='maestro-fixture-token-private'if legacy else None,artist_token='artist-fixture-token-private'if legacy else None,on_write=persist))
     def login(self,name):
         c=TestClient(self.site,headers={'Origin':'http://testserver','X-SOM-Participant':quote(name,safe='')});r=c.post('/api/harness/auth/login',json={'username':name,'password':'fixture-password'});self.assertEqual(r.status_code,200,r.text);return c
     def create(self):
@@ -104,3 +104,8 @@ class PrivateNotes(unittest.TestCase):
     def test_unicode_account_context_is_encoded_in_headers_and_still_owned_by_the_cookie(self):
         name='Маэстро';self.accounts={**self.accounts,name:{'role':'maestro','password_hash':password_hash('fixture-password')}};self.build();self.m=self.login(name);self.sid=self.create();self.route='/api/harness/sessions/'+self.sid+'/notes'
         r=self.save('Моя заметка');self.assertEqual(r.status_code,200,r.text);self.assertEqual(r.headers['X-SOM-Participant'],quote(name,safe=''));self.assertEqual(self.m.get(self.route).json()['text'],'Моя заметка')
+    def test_expired_participant_cookie_returns_401_without_legacy_pilot_tokens(self):
+        self.save('Private before expiry');self.build(legacy=False)
+        with sqlite3.connect(self.temp.name+'/service.sqlite3')as c:c.execute('UPDATE web_logins SET expires=0')
+        stale=TestClient(self.site,cookies=self.m.cookies,headers={'Origin':'http://testserver','X-SOM-Participant':'M'})
+        r=stale.get(self.route);self.assertEqual(r.status_code,401,r.text);self.assertNotIn('Private before expiry',r.text)

@@ -45,12 +45,12 @@
   ],
   "date": "2026-11-03",
   "base_commit": "e8e307956b7aae80d4ed9f96a395bf95e9a5c6df",
-  "service_checks": 178,
+  "service_checks": 179,
   "harness_checks": 65,
   "root_checks": 37,
   "original_heart_checks": 5,
   "node_checks": 84,
-  "total_offline_checks": 369,
+  "total_offline_checks": 370,
   "cloud_deployed": false,
   "production_merged": false,
   "real_budget_changed": false,
@@ -72,7 +72,8 @@
     "request_account_precondition_matches_cookie_before_data_access": true,
     "private_writes_require_account_precondition": true,
     "wrong_owner_response_marker_rejected": true,
-    "unicode_account_header_round_trip": true
+    "unicode_account_header_round_trip": true,
+    "expired_cookie_401_without_legacy_tokens": true
   },
   "verified_real_local_ledger": {
     "settled_calls": 24,
@@ -89,7 +90,8 @@
     "backend_cas_pagination_durability": true,
     "actual_cookie_switch_http_reproduction_and_fix": true,
     "combined_hclient_editor_input_submit_handlers": true,
-    "targeted_node_checks": 28
+    "targeted_node_checks": 28,
+    "expired_cookie_http_without_legacy_tokens": true
   },
   "final_visual_check": {
     "result": "PASS",

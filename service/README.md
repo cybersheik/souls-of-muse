@@ -195,8 +195,8 @@ Notes use revision-based compare-and-swap and exact-content replay: a lost save
 response does not add a revision, and another tab's different stale text gets
 409. The editor retains the unsaved draft on failure/conflict and clears it on
 account or meeting change. A late old-account save cannot replace current state;
-a delayed poll cannot roll back an acknowledged higher note revision. Current
-account expiry immediately clears private state and redraws the visible page.
+a delayed poll cannot roll back an acknowledged higher note revision. An unauthorized
+response clears private state and redraws the visible page.
 No drafts are stored in localStorage. Text is escaped, bounded to 8000 characters
 and 24000 UTF-8 bytes, and never silently truncated.
 
