@@ -108,7 +108,10 @@ def build_writer_app(queue, volume, app_factory):
 @app.function(
     image=image, cpu=1, memory=512, min_containers=0, max_containers=1, buffer_containers=0,
     scaledown_window=60, volumes={"/data/som": volume},
-    secrets=[modal.Secret.from_name("som-pilot")],  # existing operator secret: SOM_MAESTRO_TOKEN, SOM_ARTIST_TOKEN, MODEL_API_KEY; never hardcoded
+    secrets=[
+        modal.Secret.from_name("som-pilot"),  # existing model and private pilot credentials
+        modal.Secret.from_name("som-participants"),  # participant password hashes, allowed preview Origin, heart signing key
+    ],
 )
 @modal.asgi_app()
 def web():
