@@ -110,6 +110,8 @@
 .p20-sublabel{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#7A5A12;font-weight:500}
 .p20-score{overflow-x:auto;margin:0 -6px}
 .p20-score svg{display:block;max-width:100%;height:auto}
+.p20-trnote{margin:-6px 0 0;font-size:12.5px;font-style:italic;color:var(--p01-muted)}
+.p20-card [dir="rtl"]{text-align:right}
 .p20-signnote{margin:0;display:flex;align-items:center;gap:6px;font-size:13px;line-height:1.4;color:var(--p01-muted)}
 .p20-example{padding-top:12px;border-top:1px solid var(--p01-line)}
 .p20-exlabel{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--p01-muted)}

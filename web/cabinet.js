@@ -30,7 +30,8 @@ function cabHead(role, sessTitle, sessSub) {
   const C = cabT();
   const [who, soul] = window.CabinetHarness?.state.user ? [CabinetHarness.state.user.name, CabinetHarness.state.user.id] : (CabPS.CAB.people[role] || CabPS.CAB.people.artist);
   return `<header class="cab-head">
-    <a class="cab-brand" href="#/space/${role}"><img src="assets/lyre.png" alt="Golden Lyre"><span>${cabEsc(C.brand)}</span></a>
+    <a class="cab-brand" href="#/"><img src="assets/lyre.png" alt="Golden Lyre"><span>${cabEsc(C.brand)}</span></a>
+    ${cabSiteNav(role)}
     ${sessTitle ? `<span class="cab-sess-title">${cabEsc(sessTitle)} <span>${cabEsc(sessSub || "")}</span></span>` : ""}
     <div class="cab-head-right">
       <span class="cab-tag cab-tag-neutral">${cabEsc(window.CabinetHarness?.state.meeting ? (cabLang() === "ru" ? "Музыкальная встреча" : "Music meeting") : C.exampleData)}</span>
@@ -38,6 +39,14 @@ function cabHead(role, sessTitle, sessSub) {
       <span class="cab-who"><span>${cabEsc(who)}</span><span aria-hidden="true">·</span><span class="soul text-gold">${cabEsc(soul)}</span></span>
       ${cabLangSwitch()}
     </div></header>`;
+}
+/* Site route (Portal 2.0 Golden Lyre): back to the Convention and the Leagues from any cabinet screen. */
+function cabSiteNav(role) {
+  const T = window.Portal20 && window.Portal20.T ? window.Portal20.T[cabLang() === "ru" ? "ru" : "en"] : null;
+  const labels = T ? T.route : (cabLang() === "ru" ? ["Конвенция", "Лиги", "Моё пространство"] : ["Convention", "Leagues", "My space"]);
+  const hrefs = ["#/convention", "#/leagues", `#/space/${role}`];
+  return `<nav class="cab-sitenav" aria-label="${cabEsc(T ? T.routeLabel : "Souls of Muse")}">${labels.map((l, i) =>
+    `<a href="${hrefs[i]}"${i === 2 ? ' aria-current="page"' : ""}><span class="num-gold">0${i + 1}</span>${cabEsc(l)}</a>`).join("")}</nav>`;
 }
 function roleButtons(active) {
   return cabRoles().map(([id, label, ic]) => {

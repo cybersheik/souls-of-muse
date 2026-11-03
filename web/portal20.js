@@ -70,7 +70,8 @@ const T = {
     noNotes: "Введите имя буквами — оно будет записано нотами.",
   },
 };
-const LANGS = [["en", "English"], ["es", "Español"], ["fr", "Français"], ["de", "Deutsch"], ["pt", "Português"], ["it", "Italiano"], ["ja", "日本語"], ["ko", "한국어"], ["zh", "中文"], ["hi", "हिन्दी"], ["vi", "Tiếng Việt"], ["kk", "Қазақша"], ["ru", "Русский"], ["tr", "Türkçe"], ["ar", "العربية"], ["id", "Bahasa Indonesia"]];
+const LANGS = [["en", "English"], ["es", "Español"], ["fr", "Français"], ["de", "Deutsch"], ["pt", "Português"], ["it", "Italiano"], ["ja", "日本語"], ["ko", "한국어"], ["zh", "中文"], ["hi", "हिन्दी"], ["vi", "Tiếng Việt"], ["kk", "Қазақша"], ["ru", "Русский"], ["uk", "Українська"], ["pl", "Polski"], ["tr", "Türkçe"], ["ar", "العربية"], ["id", "Bahasa Indonesia"], ["th", "ไทย"]];
+const I18N = () => window.CONV_I18N || {};
 const GRIDS = [
   ["ABCDEFG", "HIJKLMN", "OPQRSTU", "VWXYZ"],
   ["イロハニホヘト", "チリヌルヲワカ", "ヨタレソツネナ", "ラムウヰノオク", "ヤマケフコエテ", "アサキユメミシ", "ヱヒモセス"],
@@ -85,7 +86,7 @@ const ss = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
 };
-const st = { menu: false, how: {}, sel: null, shut: ss.get("som_p20_shut", {}), signing: false, signMsg: "", draft: "", draftReading: "" };
+const st = { menu: false, how: {}, sel: null, shut: ss.get("som_p20_shut", {}), signing: false, signMsg: "", draft: "", draftReading: "", conv: ss.get("som_conv_lang", null) };
 const signedRec = () => { const r = ss.get("som_signed", null); return r && r.name && Array.isArray(r.notes) && r.notes.length ? r : null; };
 let raf = null, offs = [];
 const lang = () => (window.P01 && window.P01.state.lang === "ru") ? "ru" : "en";
@@ -108,12 +109,13 @@ function sky(kind) {
   </div>`;
 }
 
+function convLang() { return st.conv && I18N()[st.conv] ? st.conv : null; }
 function langMenu() {
-  const tt = t(), cur = lang();
+  const tt = t(), cur = lang(), cl = convLang();
   return `<div class="p20-lang">
-    <button class="p20-langbtn" data-p20-menu aria-haspopup="listbox" aria-expanded="${st.menu}"><i class="ph ph-globe-simple" aria-hidden="true"></i>${esc(tt.langName)}<i class="ph ph-caret-down" aria-hidden="true"></i></button>
+    <button class="p20-langbtn" data-p20-menu aria-haspopup="listbox" aria-expanded="${st.menu}"><i class="ph ph-globe-simple" aria-hidden="true"></i>${esc(cl ? I18N()[cl].name : tt.langName)}<i class="ph ph-caret-down" aria-hidden="true"></i></button>
     ${st.menu ? `<div class="p20-langlist" role="listbox" aria-label="${esc(tt.language)}">${LANGS.map(([code, label]) => {
-      const avail = code === "en" || code === "ru", current = code === cur;
+      const avail = code === "en" || code === "ru" || !!I18N()[code], current = cl ? code === cl : code === cur;
       return `<button role="option" aria-selected="${current}" aria-disabled="${!avail}" ${avail ? `data-p20-lang="${code}"` : "tabindex=\"-1\""} class="${avail ? "" : "soon"}"><span dir="auto">${esc(label)}</span>${avail ? "" : `<span class="p20-soon">${esc(tt.soon)}</span>`}${current ? '<i class="ph ph-check" aria-hidden="true"></i>' : ""}</button>`;
     }).join("")}</div>` : ""}
   </div>`;
@@ -138,11 +140,13 @@ function route(here) {
 }
 
 function convCard() {
-  const tt = t(), P = window.P01, cv = P.CONV[lang()], open = !!P.state.convOpen;
+  const tt = t(), P = window.P01, cl = convLang(), tr = cl ? I18N()[cl] : null, cv = tr || P.CONV[lang()], open = !!P.state.convOpen;
+  const da = tr ? ` lang="${cl}" dir="${tr.dir}"` : "";
   return `<section class="p20-card p01-ent-card" aria-label="${esc(cv.title)}">
-    <div class="p01-ent-cardhead"><img src="assets/lyre.png" alt="Golden Lyre"><h2>${esc(cv.title)}</h2></div>
-    <p class="p01-ent-first">${esc(cv.first)}</p>
-    ${open ? cv.rest.map(p => `<p class="p01-ent-rest">${esc(p)}</p>`).join("") : ""}
+    <div class="p01-ent-cardhead"><img src="assets/lyre.png" alt="Golden Lyre"><h2${da}>${esc(cv.title)}</h2></div>
+    ${tr ? `<p class="p20-trnote"${da}>${esc(tr.note)}</p>` : ""}
+    <p class="p01-ent-first"${da}>${esc(cv.first)}</p>
+    ${open ? cv.rest.map(p => `<p class="p01-ent-rest"${da}>${esc(p)}</p>`).join("") : ""}
     <button class="p01-ent-toggle" data-conv aria-expanded="${open}"><i class="ph ${open ? "ph-caret-up" : "ph-caret-down"}"></i>${esc(open ? cv.collapse : cv.readAll)}</button>
     ${signBlock()}
     ${signedRec() ? "" : `<div class="p01-ent-sig p20-example">
@@ -283,9 +287,13 @@ function bind() {
   document.querySelectorAll("[data-p20-menu]").forEach(b => b.onclick = e => { e.stopPropagation(); st.menu = !st.menu; rerender(); const nb = document.querySelector("[data-p20-menu]"); if (nb) nb.focus(); });
   document.querySelectorAll("[data-p20-lang]").forEach(b => b.onclick = () => {
     st.menu = false;
-    if (window.P01) { window.P01.state.lang = b.dataset.p20Lang; try { localStorage.setItem("som_p01_lang", b.dataset.p20Lang); } catch (e) {} }
-    document.documentElement.lang = b.dataset.p20Lang;
-    rerender();
+    const code = b.dataset.p20Lang;
+    if (code === "en" || code === "ru") {
+      st.conv = null;
+      if (window.P01) { window.P01.state.lang = code; try { localStorage.setItem("som_p01_lang", code); } catch (e) {} }
+    } else st.conv = code;
+    ss.set("som_conv_lang", st.conv);
+    keepScroll(rerender);
   });
   if (st.menu) on(document, "click", e => { if (!e.target.closest(".p20-lang")) { st.menu = false; rerender(); } });
   on(document, "keydown", e => { if (e.key === "Escape" && st.menu) { st.menu = false; rerender(); } });

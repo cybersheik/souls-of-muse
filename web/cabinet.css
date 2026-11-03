@@ -46,6 +46,11 @@
 .cab-head{display:flex;align-items:center;gap:16px;min-height:56px;padding:8px 22px;border-bottom:1px solid var(--color-divider);flex-wrap:wrap}
 .cab-brand{display:flex;align-items:center;gap:10px;color:var(--color-text);text-decoration:none;font-size:15px;font-weight:500}
 .cab-brand img{height:26px}
+.cab-sitenav{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.cab-sitenav a{display:inline-flex;align-items:baseline;gap:6px;min-height:36px;padding:8px 10px;border-radius:999px;color:var(--color-neutral-200);text-decoration:none;font-size:13.5px;font-weight:500}
+.cab-sitenav a:hover{background:var(--color-neutral-800);color:var(--color-text)}
+.cab-sitenav a[aria-current="page"]{color:var(--color-text);box-shadow:inset 0 -2px 0 var(--color-gold-400);border-radius:0}
+.cab-sitenav .num-gold{font-family:'JetBrains Mono',monospace;font-size:11px}
 .cab-head-right{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0}
 .cab-who{display:flex;align-items:center;gap:8px;font-size:14px;flex-wrap:wrap;min-width:0}
 .cab-who .soul{font-family:'JetBrains Mono',monospace;font-size:13px}

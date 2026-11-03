@@ -57,3 +57,19 @@ for (const bad of ["Muse Image", "I sign", "Подписываю", "These gifts 
   assert.ok(!userFacing.includes(bad), "removed for launch: " + bad);
 assert.ok(!/soulsofmuse\.com/.test(read("portal20.js") + read("index.html") + read("strings.js")), "soulsofmuse.app only");
 console.log("portal20: all checks passed");
+
+// Convention translations (from the Russian original) and the language menu
+const I = require(path.join(web, "convention-i18n.js"));
+assert.ok(Object.keys(I).length >= 17, "Convention in at least 17 more languages");
+for (const [k, c] of Object.entries(I)) {
+  assert.ok(c.name && c.title && c.first && c.rest.length === 4 && c.readAll && c.collapse && c.note, "complete translation: " + k);
+  assert.ok(c.dir === "ltr" || c.dir === "rtl", "text direction: " + k);
+}
+assert.equal(I.ar.dir, "rtl", "Arabic is right-to-left");
+assert.match(read("index.html"), /convention-i18n\.js[\s\S]*portal20\.js/, "translations load before portal20.js");
+
+// Cabinet header leads back to the site
+const cab = read("cabinet.js");
+assert.match(cab, /class="cab-brand" href="#\/"/, "cabinet wordmark goes to the site home");
+assert.match(cab, /cabSiteNav\(role\)/, "cabinet header shows the site route");
+console.log("portal20: translations and cabinet navigation checks passed");
