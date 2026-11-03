@@ -6,6 +6,8 @@ Music education is one part of this broader mission. The current prototype focus
 
 This public repository contains the current prototype and the model test bench prepared for the Meta Global AI Developer Hackathon 2026.
 
+**Reviewers:** start at [`docs/FOR_REVIEWERS.md`](docs/FOR_REVIEWERS.md). It maps each judging criterion to evidence across all seven [workstreams](docs/workstreams/README.md). Machine-readable index: [`llms.txt`](llms.txt). Publication rules for this repository: [`docs/DISCLOSURE_POLICY.md`](docs/DISCLOSURE_POLICY.md).
+
 ## Current state
 
 - `web/`: interactive Muse Lesson 2.0 design prototype. Student indicators, messages, video and lesson metrics are simulated. It is not a live lesson service.
