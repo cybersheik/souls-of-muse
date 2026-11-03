@@ -82,3 +82,7 @@ test('gateway forwards only the scoped lesson workspace route', async()=>{
   const res=response();await handler({query:{path:['sessions','meeting','lesson','admin']},method:'POST',headers:{}},res);assert.equal(res.code,404);assert.equal(calls,2);
  }finally{global.fetch=previous;if(oldURL===undefined)delete process.env.SOM_HARNESS_URL;else process.env.SOM_HARNESS_URL=oldURL;}
 });
+test('gateway forwards material generation and approval but rejects model/admin subroutes',async()=>{
+ const previous=global.fetch,oldURL=process.env.SOM_HARNESS_URL;process.env.SOM_HARNESS_URL='https://backend.example';let calls=0;
+ try{global.fetch=async()=>{calls++;return new Response('{}',{status:200});};for(const parts of [['translations'],['translations','job','approve']]){const res=response();await handler({query:{path:['sessions','meeting','lesson',...parts]},method:'POST',body:{},headers:{}},res);assert.equal(res.code,200);}const res=response();await handler({query:{path:['sessions','meeting','lesson','translations','job','reset']},method:'POST',headers:{}},res);assert.equal(res.code,404);assert.equal(calls,2);}finally{global.fetch=previous;if(oldURL===undefined)delete process.env.SOM_HARNESS_URL;else process.env.SOM_HARNESS_URL=oldURL;}
+});

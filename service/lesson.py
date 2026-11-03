@@ -123,3 +123,4 @@ def register_routes(app, db, commit, authenticate, find_session, audit, err):
             return {"revision": revision, **proposed}
         finally:
             c.close()
+    return load  # Translation uses the identical validated workspace snapshot.

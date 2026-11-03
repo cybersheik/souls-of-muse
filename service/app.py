@@ -237,6 +237,13 @@ def _build_real_adapter(data_dir, environ, on_write=None, transport=None):
         cfg["roles"] = {role: deepcopy(models["roles"][role]) for role in ("interpreter", "reviewer")}
         cfg["roles"]["interpreter"]["response_format"] = deepcopy(INTERPRETATION_FORMAT)
         cfg["roles"]["reviewer"]["response_format"] = deepcopy(REVIEW_FORMAT)
+        from .lesson_translations import STEP_FORMAT
+        # Material translation retains the full step fields. These bounded
+        # roles use the same pre-HTTP budget ledger, never a separate allowance.
+        cfg["roles"]["lesson_interpreter"] = deepcopy(models["roles"]["interpreter"])
+        cfg["roles"]["lesson_interpreter"].update(max_tokens=8192, response_format=deepcopy(STEP_FORMAT))
+        cfg["roles"]["lesson_reviewer"] = deepcopy(models["roles"]["reviewer"])
+        cfg["roles"]["lesson_reviewer"].update(max_tokens=2048, response_format=deepcopy(REVIEW_FORMAT))
         cfg["roles"]["asr"] = {"model": "muse-voice-transcribe-1.0", "endpoint_file": "/asr/transcribe", "enabled": environ.get("SOM_ENABLE_ASR") == "1"}
         wrapped = PersistentBudgetGuard(guard, on_write)
         return MetaAdapter(cfg, wrapped, transport=transport, environ=environ), True
@@ -344,6 +351,8 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
       CREATE TABLE IF NOT EXISTS message_reviews(message_id TEXT PRIMARY KEY, state TEXT NOT NULL, verdict TEXT, reason TEXT, created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS message_notes(message_id TEXT PRIMARY KEY, content TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS lesson_workspaces(session_id TEXT PRIMARY KEY, revision INTEGER NOT NULL, content TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS lesson_translations(id TEXT PRIMARY KEY, session_id TEXT NOT NULL, source_hash TEXT NOT NULL, source_json TEXT NOT NULL, source_lang TEXT NOT NULL, target_lang TEXT NOT NULL, state TEXT NOT NULL, target_json TEXT, issues_json TEXT NOT NULL DEFAULT '[]', review_json TEXT);
+      CREATE TABLE IF NOT EXISTS lesson_translation_requests(session_id TEXT NOT NULL, client_event_id TEXT NOT NULL, request_hash TEXT NOT NULL, translation_id TEXT NOT NULL, PRIMARY KEY(session_id,client_event_id));
     """)
     cols = {r[1] for r in conn_init.execute("PRAGMA table_info(messages)").fetchall()}
     if "request_hash" not in cols:
@@ -356,6 +365,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
     # at startup; budget reservations remain untouched for reconciliation.
     conn_init.execute("UPDATE messages SET state='failed' WHERE state='processing'")
     conn_init.execute("UPDATE message_reviews SET state='failed' WHERE state='processing'")
+    conn_init.execute("UPDATE lesson_translations SET state='failed',review_json=? WHERE state='processing'", (json.dumps({"state": "failed"}),))
     conn_init.commit(); conn_init.close()
     persist()  # startup fails closed if durable commit cannot be verified
 
@@ -441,7 +451,12 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
             return None
         return row
     from .lesson import register_routes as register_lesson_routes
-    register_lesson_routes(app, db, _commit, actor_from_auth, get_session, audit, err)
+    load_lesson = register_lesson_routes(app, db, _commit, actor_from_auth, get_session, audit, err)
+    from .lesson_translations import register_routes as register_lesson_translations
+    lesson_translations = register_lesson_translations(
+        app, db, _commit, actor_from_auth, get_session, audit, err, load_lesson, adapter,
+        model_ready, lambda source, sl, target, tl: _validate_translation(source, sl, target, tl, glossary),
+        lambda: bool(glossary), inference_gate, PersistenceError)
 
     def msg_dict(r, include_draft=True):
         d = {"id": r["id"], "speaker": r["speaker"], "source_lang": r["source_lang"], "target_lang": r["target_lang"], "state": r["state"], "created_at": r["created_at"]}
@@ -770,7 +785,11 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
             if not s: return err(404, "session_not_found")
             rows = c.execute("SELECT * FROM messages WHERE session_id=? ORDER BY created_at", (sid,)).fetchall()
             deliveries = [msg_dict(r, include_draft=include_draft) for r in rows if r["state"] == "approved" or include_draft]
-            return {"id": sid, "state": s["state"], "kind": s["kind"], "league": s["league"], "maestro_alias": s["maestro_alias"], "artist_alias": s["artist_alias"], "deliveries": deliveries}
+            try:
+                materials = lesson_translations(c, s, actor)
+            except (ValueError, TypeError):
+                return err(503, "lesson_unavailable")
+            return {"id": sid, "state": s["state"], "kind": s["kind"], "league": s["league"], "maestro_alias": s["maestro_alias"], "artist_alias": s["artist_alias"], "deliveries": deliveries, "lesson_translations": materials}
         finally: c.close()
 
     @app.get("/sessions/{sid}/events")

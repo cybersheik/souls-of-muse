@@ -25,13 +25,18 @@ REVIEW_SYSTEM = (
 )
 
 
-def review_translation(adapter, source, source_lang, translation, target_lang, issues, lesson_note=None):
+def review_translation(adapter, source, source_lang, translation, target_lang, issues, lesson_note=None,
+                       *, role="reviewer", system=REVIEW_SYSTEM):
     payload = {"source_text": source, "source_lang": source_lang,
                "translation": translation, "target_lang": target_lang, "validation_issues": issues}
     if lesson_note is not None:
         payload["lesson_note"] = lesson_note
-    result = adapter.complete("reviewer", REVIEW_SYSTEM, json.dumps(payload, ensure_ascii=False))
+    result = adapter.complete(role, system, json.dumps(payload, ensure_ascii=False))
     raw = result.get("text") if isinstance(result, dict) else None
+    return parse_review(raw)
+
+
+def parse_review(raw):
     if not isinstance(raw, str) or len(raw) > 2000:
         raise ValueError("invalid_review")
     def unique_object(pairs):

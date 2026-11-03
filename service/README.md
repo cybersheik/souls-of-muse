@@ -167,9 +167,9 @@ snapshot; a late old response cannot replace a newly selected meeting or log
 out another account. Unsaved forms remain in memory during errors/conflicts.
 Only one editor can be open, and its controls are disabled during a save;
 changing the step is unavailable while editing. No private document drafts
-are put in localStorage. Shared plan/Notebook text is displayed as authored;
-translation of these materials, private participant notes and full group
-fanout remain separate unfinished parts of the complete service.
+are put in localStorage. Maestro sees authored plan fields; Artist sees a
+labelled original until the matching reviewed translation is approved.
+Private participant notes and full group fanout remain unfinished.
 
 The Notation tab renders actual ABC through vendored **abcjs 6.7.2 / MIT**,
 with pinned npm SHA512 and file SHA256 in `web/vendor/abcjs-6.7.2.json`.
@@ -184,7 +184,54 @@ profiles, with inference explicitly forbidden. It checks authoring, automatic
 Artist progression, all three Notebook tabs, actual score SVG, hostile-title
 isolation, stale-edit retention and 1440/390/320 layouts. A separate server
 process restart preserved the workspace. This is local worksheet acceptance,
-not cloud, translation, group, acoustic-performance or full-service acceptance.
+not cloud, real-model translation, group, acoustic-performance or full-service acceptance.
+
+### Reviewed EN↔VI step translation
+
+POST `/sessions/{sid}/lesson/translations` takes the workspace revision, step
+index and stable client event ID; the meeting fixes the language pair. Only
+its Maestro can request or approve translation. The interpreter returns a
+strict object with translated title, duration, goal and ordered tips, retaining
+empty fields. Local parsing rejects duplicates, unknown/missing fields,
+misaligned tip counts and oversized output. Each field passes the existing
+music/number/negation validator. Full-context field alignment always requires
+the reviewer and explicit Maestro confirmation. A faithful verdict never
+automatically publishes material or clears deterministic flags.
+
+Immutable source/language hashes bind each result to its actual content.
+Changing a source field invalidates its translated view; changing the selected
+step or Notebook preserves a matching approval. Artist receives only approved
+target fields, in their original plan positions. Until then it shows a labelled
+original. A different workspace revision cannot mix new targets with an old
+client snapshot. Maestro alone can inspect unapproved targets and review.
+The projection travels with the existing session poll, adding no HTTP poll.
+
+Attempts and request aliases are committed before inference. Identical source
+requests share an in-flight/completed attempt; stable replay never repeats it.
+After failure, a new event ID alone cannot spend again: `retry:true` is required.
+An explicit retry of failed review reuses the canonical translation and reruns
+only the reviewer. Explicit regeneration leaves a previous approved target
+visible until a new approval. An older pending version cannot supersede a newer
+approved one. Restart marks interrupted attempts failed without replay; all
+budget holds remain for reconciliation. Source edits/meeting closure during
+inference discard the result, including before a second paid stage if detected.
+
+The material roles inherit the current Spark/minimal settings and share the
+same MetaAdapter/BudgetGuard, with 8192/2048 output bounds for full step fields.
+Conversation bounds remain 1024/512. This changes no allocation or stop limit.
+The full serialized schema/payload is bounded and reserved before HTTP; a
+failed durable reserve prevents HTTP and retains its hold. Oversized/truncated
+outputs or review failures cannot publish partial text. There is no automatic
+retry, source summarization, music-notation rewrite or separate budget ledger.
+
+Acceptance is currently **offline model contract only**: real HTTP/storage and
+two Chrome profiles with explicit interpreter/reviewer responses verified the
+original → private draft → Maestro confirmation → translated Artist fields,
+Notebook edit preservation, process restart and source invalidation. Factory
+tests use actual budget code with MockTransport in isolated test ledgers.
+No provider call, real allocation change, real material translation quality,
+cloud acceptance or latency result is claimed. See
+`docs/qa-lesson-translation-20261103.json`.
 
 ## Flagged translation review
 
