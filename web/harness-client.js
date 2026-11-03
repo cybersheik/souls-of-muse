@@ -5,7 +5,12 @@ window.CabinetHarness = (() => {
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const ru = () => window.P01?.state.lang === "ru";
   const word = (en, local) => ru() ? local : en;
-  const redraw = () => { if (typeof render === "function") render(); };
+  const redraw = () => {
+    if (typeof render !== "function") return;
+    const x = scrollX, y = scrollY;
+    render();
+    window.scrollTo(x, y);
+  };
   async function call(path, body) {
     const response = await fetch("/api/harness/" + path, {
       method: body === undefined ? "GET" : "POST", credentials: "same-origin",
@@ -121,9 +126,12 @@ window.CabinetHarness = (() => {
         await refresh(); location.hash = "#/space/" + state.user.role;
       });
     });
-    on("[data-harness-approve]", "click", event => {
-      const id = event.currentTarget.dataset.harnessApprove;
-      const flagged = event.currentTarget.dataset.flagged === "true";
+    bindApprovals();
+  }
+  function bindApprovals() {
+    document.querySelectorAll("[data-harness-approve]").forEach(button => button.onclick = () => {
+      const id = button.dataset.harnessApprove;
+      const flagged = button.dataset.flagged === "true";
       if (flagged && !window.confirm(word("The validator flagged this translation. Have you reviewed it?", "Валидатор отметил ошибку. Вы проверили перевод?"))) return;
       action(async () => { await call(`sessions/${state.meeting.id}/messages/${id}/approve`, { confirm_flagged: flagged }); await refresh(); });
     });
@@ -140,7 +148,16 @@ window.CabinetHarness = (() => {
   setInterval(async () => {
     if (!state.user || !state.meeting || state.busy || document.visibilityState !== "visible" || !location.hash.startsWith("#/session/")) return;
     if (document.activeElement?.matches("input,textarea")) return;
-    try { await refresh(); redraw(); } catch (_) { /* The explicit refresh action displays errors. */ }
+    const before = JSON.stringify({ state: state.meeting.state, heart: state.heart });
+    const messagesBefore = JSON.stringify(state.meeting.deliveries);
+    try {
+      await refresh();
+      if (before !== JSON.stringify({ state: state.meeting.state, heart: state.heart })) redraw();
+      else if (messagesBefore !== JSON.stringify(state.meeting.deliveries)) {
+        const chat = document.querySelector(".cab-chat");
+        if (chat) { chat.innerHTML = messages(); bindApprovals(); }
+      }
+    } catch (_) { /* The explicit refresh action displays errors. */ }
   }, 5000);
   return { state, panel, messages, send, bind };
 })();
