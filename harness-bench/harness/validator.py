@@ -5,14 +5,11 @@ term_id — из справочника (стабильный идентифик
 import json, re, unicodedata
 from pathlib import Path
 from .spoken_numbers import numeric_text
+from .music_vocabulary import contextual_pitches
 
 NUM_RE = re.compile(r"\d+(?:[.,]\d+)?")
 NEG_EN = re.compile(r"\b(?:not|no|never|n't|don'?t|do not)\b", re.I)
 NEG_VI = re.compile(r"\b(?:không|đừng|chớ|đừng có|chưa)\b", re.I)
-# Нота засчитывается только рядом с опорным словом — чтобы не путать ноту A и артикль a.
-# Опорные слова даны на обоих языках: валидатор обязан читать и EN-источник, и VI-перевод.
-NOTE_CTX = re.compile(
-    r"\b([A-G])([#b♯♭]?)\s+(major|minor|chord|trưởng|thứ|hợp\s+âm)\b", re.I)
 
 ORDINALS = {"first": "1", "second": "2", "third": "3", "fourth": "4", "fifth": "5",
             "sixth": "6", "seventh": "7", "eighth": "8", "ninth": "9", "tenth": "10"}
@@ -45,11 +42,7 @@ def negation_count(text, lang):
 
 
 def notes(text):
-    out = set()
-    for m in NOTE_CTX.finditer(text):
-        acc = m.group(2).replace("♯", "#").replace("♭", "b")
-        out.add(m.group(1).upper() + acc)
-    return out
+    return contextual_pitches(text)
 
 
 def term_ids(text, glossary):

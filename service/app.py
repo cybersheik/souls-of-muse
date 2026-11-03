@@ -680,7 +680,8 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
             c.close()
 
     from .voice import install_voice
-    transcribe = install_voice(app, db, _commit, actor_from_auth, get_session, err, adapter, inference_gate, data_dir, glossary)
+    transcribe = install_voice(app, db, _commit, actor_from_auth, get_session, err, adapter, inference_gate, data_dir, glossary,
+                              music_hints=env.get("SOM_ASR_MUSIC_HINTS") == "1")
     from .speech import install_speech
     speak = install_speech(app, db, _commit, actor_from_auth, get_session, err, speech, inference_gate)
     if media:

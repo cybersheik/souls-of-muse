@@ -86,6 +86,21 @@ class ParticipantIntegration(unittest.TestCase):
         self.assertEqual(restarted.get(self.path).json()["state"], "completed")
         self.assertEqual(restarted.get(self.path + "/heart").json()["counters"]["happened"], 1)
 
+    def test_lost_accidental_is_flagged_and_cannot_be_delivered_by_ordinary_approval(self):
+        self.active()
+        self.adapter.text = "Chơi nốt nhạc Fa và nốt nhạc Sol thăng."
+        response = self.m.post(self.path + "/messages", json={
+            "client_event_id": "lost-accidental", "speaker": "maestro",
+            "text": "Play note F-sharp and note G sharp.", "source_lang": "en", "target_lang": "vi"})
+        self.assertEqual(response.status_code, 201, response.text)
+        draft = response.json()
+        self.assertEqual(draft["state"], "flagged")
+        self.assertTrue(any("ноты" in issue for issue in draft["validation_issues"]))
+        mid = draft["id"]
+        self.assertEqual(self.m.post(self.path + f"/messages/{mid}/approve", json={}).status_code, 409)
+        self.assertEqual(self.a.post(self.path + f"/messages/{mid}/approve", json={"confirm_flagged": True}).status_code, 403)
+        self.assertEqual(self.a.get(self.path).json()["deliveries"], [])
+
     def test_other_participant_cannot_read_or_write_meeting(self):
         self.active()
         other = self.login("other")

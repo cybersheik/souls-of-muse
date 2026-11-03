@@ -1,0 +1,70 @@
+"""Pitch identity must survive translation between letter names and fixed-do names."""
+import unittest
+import unicodedata
+from pathlib import Path
+
+from harness.validator import compare, load_glossary, notes, signature
+
+
+class MusicalPitchValidation(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.glossary = load_glossary(Path(__file__).resolve().parents[1] / "data/seed_terms.jsonl")
+
+    def test_vietnamese_fixed_do_and_accidentals_have_the_same_pitch_identity(self):
+        cases = [
+            ("hợp âm La thứ", {"A"}),
+            ("Đô trưởng", {"C"}),
+            ("Rê giáng thứ", {"Db"}),
+            ("nốt Mi giáng", {"Eb"}),
+            ("nốt Pha thăng", {"F#"}),
+            ("gam Son trưởng", {"G"}),
+            ("hợp âm Si giáng trưởng", {"Bb"}),
+            ("hợp âm La thứ và Mi trưởng", {"A", "E"}),
+        ]
+        for text, expected in cases:
+            with self.subTest(text=text):
+                self.assertEqual(notes(text), expected)
+                self.assertEqual(notes(unicodedata.normalize("NFD", text)), expected)
+
+    def test_spoken_and_symbol_accidentals_are_equivalent_in_context(self):
+        for text, expected in [
+            ("Play the F sharp minor chord.", {"F#"}),
+            ("Play the F-sharp minor chord.", {"F#"}),
+            ("Play note F-sharp.", {"F#"}),
+            ("Play the B-flat major chord.", {"Bb"}),
+            ("Play B flat major.", {"Bb"}),
+            ("Play the C♯ minor chord.", {"C#"}),
+            ("Play the G♭ major scale.", {"Gb"}),
+            ("Play note E.", {"E"}),
+            ("Switch to the key of D.", {"D"}),
+            ("Play the chord B.", {"B"}),
+        ]:
+            with self.subTest(text=text):
+                self.assertEqual(notes(text), expected)
+
+    def test_faithful_en_vi_chord_translation_passes_and_changed_root_flags(self):
+        source = signature("Play the A minor chord.", "en", self.glossary)
+        correct = signature("Hãy chơi hợp âm La thứ.", "vi", self.glossary)
+        wrong = signature("Hãy chơi hợp âm Mi thứ.", "vi", self.glossary)
+        self.assertEqual(compare(source, correct), [])
+        self.assertTrue(any("ноты" in issue for issue in compare(source, wrong)))
+        self.assertTrue(any("ноты" in issue for issue in compare(correct, source | {"notes": {"E"}})))
+
+    def test_loss_or_reversal_of_spoken_accidental_flags(self):
+        src = signature("Play the F sharp minor chord.", "en", self.glossary)
+        faithful = signature("Hãy chơi hợp âm Fa thăng thứ.", "vi", self.glossary)
+        self.assertEqual(compare(src, faithful), [])
+        for changed in ["Hãy chơi hợp âm Fa thứ.", "Hãy chơi hợp âm Fa giáng thứ."]:
+            with self.subTest(changed=changed):
+                self.assertTrue(any("ноты" in issue for issue in compare(src, signature(changed, "vi", self.glossary))))
+
+    def test_unqualified_letters_or_solfege_in_prose_do_not_invent_notes(self):
+        for text in ["Play a little slower.", "Do not speed up.", "Let me see.",
+                     "La is an alias.", "A and B are participants.", "Please do repeat.",
+                     "The word bass starts with b.", "Repeat the chord a little slower.",
+                     "Play a scale.", "It is a major problem.", "Play a chord.",
+                     "A scale has seven notes.", "A chord is built from notes.",
+                     "Listen first. A chord contains several notes."]:
+            with self.subTest(text=text):
+                self.assertEqual(notes(text), set())

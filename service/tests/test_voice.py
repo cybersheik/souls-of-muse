@@ -45,6 +45,46 @@ class VoiceService(unittest.TestCase):
         self.assertEqual(self.calls, [1])
         self.assertEqual(self.integration.a.get(self.integration.path).json()["deliveries"], [])
 
+    def test_keywords_are_language_scoped_and_include_all_triad_roots(self):
+        self.integration.env["SOM_ASR_MUSIC_HINTS"] = "1"
+        self.integration.build()
+        self.client = self.integration.login("M")
+        captures = []
+        def capture(path, **kwargs):
+            captures.append(kwargs)
+            return {"text": "A deliberately uncorrected transcript."}
+        self.integration.adapter.transcribe = capture
+        for lang in ("en", "vi"):
+            response = self.client.post(self.path, json={**self.body, "language": lang, "client_event_id": "hints-" + lang})
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.json()["text"], "A deliberately uncorrected transcript.")
+        english, vietnamese = captures
+        self.assertEqual(english["language_bias"], ["English"])
+        self.assertEqual(vietnamese["language_bias"], ["Vietnamese"])
+        for form in ("A minor chord", "C major chord", "F sharp minor chord", "B flat major chord", "note E"):
+            self.assertIn(form, english["keywords"])
+        for form in ("hợp âm La thứ", "hợp âm Đô trưởng", "hợp âm Fa thăng thứ", "hợp âm Si giáng trưởng", "nốt Mi"):
+            self.assertIn(form, vietnamese["keywords"])
+        self.assertNotIn("hợp âm", english["keywords"])
+        self.assertNotIn("chord", vietnamese["keywords"])
+        for capture in captures:
+            self.assertEqual(len(capture["keywords"]), len(set(capture["keywords"])))
+            self.assertLessEqual(len(capture["keywords"]), 200)
+            self.assertTrue(all(0 < len(term) <= 100 for term in capture["keywords"]))
+        self.assertEqual(self.integration.a.get(self.integration.path).json()["deliveries"], [])
+
+    def test_experimental_chord_hints_remain_off_by_default(self):
+        captures = []
+        def capture(path, **kwargs):
+            captures.append(kwargs)
+            return {"text": "Play slowly."}
+        self.integration.adapter.transcribe = capture
+        response = self.client.post(self.path, json={**self.body, "music_hints": True})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertNotIn("A minor chord", captures[0]["keywords"])
+        self.assertIn("tempo", captures[0]["keywords"])
+        self.assertIn("hợp âm", captures[0]["keywords"])
+
     def test_scope_and_changed_replay(self):
         other = self.integration.login("other")
         self.assertEqual(other.post(self.path, json=self.body).status_code, 404)

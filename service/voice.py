@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from harness.adapters.meta import ConfigError, MetaAPIError, MetaResponseError, MetaTransportError
 from harness.budget import BudgetExceeded
+from harness.music_vocabulary import recognition_keywords
 
 class Transcription(BaseModel):
     client_event_id: str = Field(min_length=1, max_length=120)
@@ -16,10 +17,15 @@ class Transcription(BaseModel):
     wav_base64: str = Field(min_length=60, max_length=900_000)
 
 
-def install_voice(app, db, commit, authorize, get_session, err, adapter, gate, data_dir, glossary):
-    keywords = sorted({form for term in glossary for lang in ("en", "vi")
-                       for form in (term[lang] if isinstance(term[lang], list) else [term[lang]])
-                       if isinstance(form, str) and len(form) <= 100})[:200]
+def install_voice(app, db, commit, authorize, get_session, err, adapter, gate, data_dir, glossary, *, music_hints=False):
+    # Keep the earlier recognition behaviour until a broader speech evaluation
+    # establishes that music hints improve it. The fixed synthetic corpus has
+    # mixed results, so only an operator can opt into the experiment.
+    legacy = sorted({form for term in glossary for lang in ("en", "vi")
+                     for form in (term[lang] if isinstance(term[lang], list) else [term[lang]])
+                     if isinstance(form, str) and len(form) <= 100})[:200]
+    keywords = {language: recognition_keywords(glossary, language) if music_hints else legacy
+                for language in ("en", "vi")}
     c = db()
     try:
         c.execute("""CREATE TABLE IF NOT EXISTS transcriptions(
@@ -71,7 +77,7 @@ def install_voice(app, db, commit, authorize, get_session, err, adapter, gate, d
                 with tempfile.NamedTemporaryFile(suffix=".wav", dir=data_dir) as recording:
                     recording.write(audio)
                     recording.flush()
-                    result = adapter.transcribe(recording.name, keywords=keywords,
+                    result = adapter.transcribe(recording.name, keywords=keywords[body.language],
                                                 language_bias=["English" if body.language == "en" else "Vietnamese"])
                 if not isinstance(result.get("text"), str) or len(result["text"]) > 2000:
                     result = None
