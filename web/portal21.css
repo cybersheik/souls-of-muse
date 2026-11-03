@@ -135,8 +135,16 @@
   background:radial-gradient(circle at 36% 30%,color-mix(in oklch,var(--color-accent-400) 34%,var(--color-section)) 0%,var(--color-section) 46%,var(--color-bg) 100%);
   box-shadow:0 0 0 1px var(--color-gold-400),0 0 0 7px var(--color-bg),0 0 0 8px color-mix(in oklch,var(--color-gold-400) 70%,transparent),inset -10px -12px 22px rgba(0,0,0,.45)}
 .p21 .p20-hub img{width:60px}
-.p21-gring{position:absolute;border-radius:50%;pointer-events:none;border:1px solid color-mix(in oklch,var(--color-accent-300) 24%,transparent)}
-.p21-gring.dash{border:1px dashed color-mix(in oklch,var(--color-accent-300) 16%,transparent)}
+.p21 .p20-graph{touch-action:none}
+.p21-orbits{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:0}
+.p21-orbits path{fill:none;stroke:color-mix(in oklch,var(--color-accent-300) 26%,transparent);stroke-width:1}
+.p21-orbits path.dash{stroke:color-mix(in oklch,var(--color-accent-300) 16%,transparent);stroke-dasharray:4 6}
+.p21-auto{position:absolute;right:20px;bottom:24px;z-index:1200;display:flex;align-items:center;gap:7px;min-height:36px;padding:0 12px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--color-neutral-600);background:color-mix(in oklch,var(--color-bg) 70%,transparent);color:var(--color-neutral-300);font:500 12.5px Inter,system-ui,sans-serif}
+.p21-auto:hover{background:var(--color-neutral-800)}
+.p21-auto.on{border-color:var(--color-accent-500);color:var(--color-accent-200)}
+.p21-auto.on i{animation:p21-spin 6s linear infinite}
+@keyframes p21-spin{to{transform:rotate(360deg)}}
 .p21-legend{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-neutral-300);margin:4px 0 2px 10px}
 .p21-ldot{width:12px;height:12px;border-radius:50%;flex:none;background:radial-gradient(circle at 35% 30%,var(--color-neutral-100),var(--c) 50%);box-shadow:0 0 8px var(--c)}
 .p21 .p20-lside li button[aria-pressed="true"]{background:color-mix(in oklch,var(--c) 18%,transparent);color:var(--color-neutral-100);box-shadow:inset 2px 0 0 var(--c)}
@@ -183,10 +191,11 @@
   .p21-musebox.leagues .p21-bubble{max-width:none}
   .p21-musebox.leagues .p21-bt{font-size:13.5px}
   .p21-ghint{display:none}
+  .p21-auto{top:8px;bottom:auto;right:16px}
   .p21 .p20-leagues .p20-main,.p20-leagues.p21 .p20-main{padding-bottom:300px}
 }
 @media (prefers-reduced-motion:reduce){
-  .p21-spark{animation:none}
+  .p21-spark,.p21-auto.on i{animation:none}
 }
 /* League card stays clear of the list on 900-tall screens */
 @media (min-width:900px){

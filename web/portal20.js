@@ -25,9 +25,9 @@ const T = {
     hubLabel: "Convention",
     doorL: { title: "Leagues", sub: "Seven families of instruments", enter: "Enter" },
     doorS: { title: "My space", sub: "Your sessions, practice plans and League", enter: "Enter" },
-    hintTitle: "Choose a League", hint: "Drag to turn the circle, or pick from the list. Arrow keys turn it too.",
-    mHint: "Swipe to turn · tap a League",
-    graphLabel: "Seven Leagues around the Golden Lyre. Arrow keys turn the circle.",
+    hintTitle: "Choose a League", hint: "Drag in any direction to turn the circle, or pick from the list. Arrow keys turn it too.",
+    mHint: "Swipe any way to turn · tap a League",
+    graphLabel: "Seven Leagues around the Golden Lyre. Arrow keys turn the circle in any direction.",
     enterLeague: "Enter the League", prev: "Previous", next: "Next", close: "Close",
     whatTitle: "What is a League",
     what: ["A League brings together musicians who play instruments of one family.", "There are seven, by family: plucked strings, bowed strings, keys, winds, drums, electronic and vocal.", "Your instrument decides your League. Guitar is a plucked string, so a guitarist belongs to the League of the String.", "Each League chooses its own emblem."],
@@ -56,9 +56,9 @@ const T = {
     hubLabel: "Конвенция",
     doorL: { title: "Лиги", sub: "Семь семейств инструментов", enter: "Войти" },
     doorS: { title: "Моё пространство", sub: "Ваши встречи, планы практики и Лига", enter: "Войти" },
-    hintTitle: "Выберите Лигу", hint: "Потяните, чтобы повернуть круг, или выберите из списка. Стрелки тоже поворачивают.",
-    mHint: "Проведите, чтобы повернуть · нажмите на Лигу",
-    graphLabel: "Семь Лиг вокруг Золотой лиры. Стрелки поворачивают круг.",
+    hintTitle: "Выберите Лигу", hint: "Тяните в любую сторону, чтобы вращать круг, или выберите из списка. Стрелки тоже вращают.",
+    mHint: "Вращайте пальцем в любую сторону · нажмите на Лигу",
+    graphLabel: "Семь Лиг вокруг Золотой лиры. Стрелки поворачивают круг в любую сторону.",
     enterLeague: "Войти в Лигу", prev: "Предыдущая", next: "Следующая", close: "Закрыть",
     whatTitle: "Что такое Лига",
     what: ["Лига объединяет музыкантов, играющих на инструментах одного семейства.", "Их семь, по семействам: щипковые и смычковые струнные, клавишные, духовые, ударные, электроника и вокал.", "Лигу определяет ваш инструмент. Гитара — щипковый струнный, поэтому гитарист — в Лиге струны.", "Каждая Лига выбирает свою эмблему."],
@@ -82,7 +82,7 @@ Object.assign(T.en, {
   museDoorL: "Seven Leagues behind this arch. Find yours by your instrument.",
   museDoorS: "Your space: sessions, practice plan, your League.",
   museLeagues: "Each colour is a League. Turn the circle, or pick one from the list.",
-  legend: "Leagues by colour",
+  legend: "Leagues by colour", autoRotate: "Turns by itself",
   whatCircle: "In the centre is the Golden Lyre, the Convention. Each League has its own colour; glowing threads link every League to the Lyre and to its neighbours.",
 });
 Object.assign(T.ru, {
@@ -92,7 +92,7 @@ Object.assign(T.ru, {
   museDoorL: "За этой аркой семь Лиг. Найдите свою по инструменту.",
   museDoorS: "Ваше пространство: встречи, план практики, ваша Лига.",
   museLeagues: "Каждый цвет — Лига. Поверните круг или выберите из списка.",
-  legend: "Лиги по цветам",
+  legend: "Лиги по цветам", autoRotate: "Вращение само",
   whatCircle: "В центре — Золотая лира, Конвенция. У каждой Лиги свой цвет; светящиеся нити связывают каждую Лигу с лирой и с соседними Лигами.",
 });
 /* League colours (Portal 2.1 legend): Teal, Orchid, Sky, Mint, Apricot, Violet, Lime. */
@@ -346,7 +346,8 @@ function leagues() {
       ${route(1)}
       <div class="p20-lside p20-lhead"><h1>${esc(tt.leaguesTitle)}</h1><p>${esc(tt.leaguesSub)}</p></div>
       <div class="p20-graph" data-graph tabindex="0" role="group" aria-label="${esc(tt.graphLabel)}">
-        <div class="p21-gring" data-ring="1"></div><div class="p21-gring dash" data-ring="0.55"></div>
+        <svg class="p21-orbits" data-orbits aria-hidden="true"><path/><path/><path class="dash"/></svg>
+        <button class="p21-auto${st.auto ? " on" : ""}" type="button" data-auto aria-pressed="${!!st.auto}"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i><span>${esc(tt.autoRotate)}</span></button>
         ${[0, 1, 2, 3, 4, 5, 6].flatMap(i => [`<div class="p20-edge" data-edge data-a="h" data-b="${i}"></div>`, `<div class="p20-edge" data-edge data-a="${i}" data-b="${(i + 1) % 7}"></div>`]).join("")}
         <div class="p20-hub" data-hub><span><img src="assets/lyre.png" alt=""></span><em>${esc(tt.hubLabel)}</em></div>
         ${L.map((x, i) => `<button class="p20-node${sel === i ? " on" : ""}" data-node="${i}" tabindex="-1" aria-hidden="true" style="--c:${LCOL[i]}"><span class="p20-orb"><i class="ph-fill ${x.icon}" style="color:${ink(LCOL[i])}"></i></span><span class="p20-nname">${esc(x.name)}</span><span class="p20-nfam">${esc(x.family)}</span></button>`).join("")}
@@ -398,6 +399,8 @@ function bind() {
   });
   document.querySelectorAll("[data-muse]").forEach(m => on(m, "click", () => { mz.joy = performance.now() / 1000; }));
   document.querySelectorAll("[data-lsel]").forEach(b => b.onclick = () => { const v = b.dataset.lsel; select(v === "none" ? null : +v, true); });
+  document.querySelectorAll("[data-auto]").forEach(b => b.onclick = e => { e.stopPropagation(); st.auto = !st.auto; ss.set("som_p21_auto", st.auto);
+    b.setAttribute("aria-pressed", String(st.auto)); b.classList.toggle("on", st.auto); });
   document.querySelectorAll("[data-lstep]").forEach(b => b.onclick = () => select(((st.sel == null ? 0 : st.sel) + +b.dataset.lstep + 7) % 7, true));
   bindSign();
   document.documentElement.lang = lang();
@@ -457,7 +460,11 @@ function playNotes(notes, btn) {
   playT = setTimeout(stopNotes, (when - actx.currentTime) * 1000 + 150);
 }
 function keepScroll(fn) { const y = window.scrollY; fn(); window.scrollTo(0, y); }
-const g = { th: 0.5, v: 0, pend: 0, snap: false, drag: false, lx: 0, moved: 0, hover: false };
+/* Orbit state: yaw (th), pitch (ph), roll (ro), with inertia (v, vp). The circle turns
+   in any direction: drag sideways, up/down or diagonally; on its own it drifts in a
+   slow, changing pattern (yaw with a breathing pitch and a light roll). */
+const g = { th: 0.5, ph: -0.36, ro: 0, v: 0, vp: 0, pend: 0, pendP: 0, snap: false, drag: false, lx: 0, ly: 0, moved: 0, hover: false, hi: null };
+st.auto = ss.get("som_p21_auto", true);
 const mz = { lean: 0, joy: -9, px: 0, py: 0, mx: null, my: null, r: 0 };
 function select(i, snap) {
   st.sel = i; g.snap = snap && i != null;
@@ -474,8 +481,9 @@ function startLoop() {
   on(window, "pointermove", e => { mz.mx = e.clientX; mz.my = e.clientY; }, { passive: true });
   on(document, "pointerleave", () => { mz.mx = null; });
   if (graph) {
-    on(graph, "pointerdown", e => { g.drag = true; g.lx = e.clientX; g.moved = 0; g.snap = false; try { graph.setPointerCapture(e.pointerId); } catch (x) {} });
-    on(graph, "pointermove", e => { if (!g.drag) return; const dx = e.clientX - g.lx; g.lx = e.clientX; g.moved += Math.abs(dx); g.th += dx * 0.006; g.v = reduced() ? 0 : dx * 0.0036; });
+    on(graph, "pointerdown", e => { if (e.target.closest("[data-auto]")) return; g.drag = true; g.lx = e.clientX; g.ly = e.clientY; g.moved = 0; g.snap = false; try { graph.setPointerCapture(e.pointerId); } catch (x) {} });
+    on(graph, "pointermove", e => { if (!g.drag) return; const dx = e.clientX - g.lx, dy = e.clientY - g.ly; g.lx = e.clientX; g.ly = e.clientY; g.moved += Math.abs(dx) + Math.abs(dy);
+      g.th += dx * 0.006; g.ph -= dy * 0.006; g.v = reduced() ? 0 : dx * 0.0036; g.vp = reduced() ? 0 : -dy * 0.0036; });
     const up = e => { if (!g.drag) return; g.drag = false;
       if (g.moved < 6) { const n = document.elementsFromPoint(e.clientX, e.clientY).find(x => x.dataset && x.dataset.node != null); if (n) select(+n.dataset.node, true); } };
     on(graph, "pointerup", up); on(graph, "pointercancel", () => { g.drag = false; });
@@ -483,6 +491,7 @@ function startLoop() {
     on(graph, "pointerover", e => { const n = e.target.closest && e.target.closest("[data-node]"); g.hi = n ? +n.dataset.node : null; });
     on(graph, "keydown", e => {
       if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); g.snap = false; g.pend += (e.key === "ArrowRight" ? 1 : -1) * TAU / 7; }
+      if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); g.snap = false; g.pendP += (e.key === "ArrowUp" ? -1 : 1) * 0.45; }
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(frontIndex(), true); }
     });
   }
@@ -520,30 +529,54 @@ function paintSky(layers, muses, t, R) {
 }
 let lastPts = null;
 function frontIndex() { if (!lastPts) return 0; let b = 0; lastPts.forEach((p, i) => { if (p.k > lastPts[b].k) b = i; }); return b; }
+/* Seven Leagues on a sphere around the Golden Lyre: longitude by order,
+   latitude from YS, so the ring of neighbours stays readable from any side. */
+const BASE = YS.map((y, i) => { const lon = i * TAU / 7, lat = (y / 100) * 0.9; return [Math.cos(lat) * Math.sin(lon), Math.sin(lat), Math.cos(lat) * Math.cos(lon)]; });
+const wrapA = d => ((d % TAU) + TAU * 1.5) % TAU - Math.PI;
 function paintGraph(el, dt, R, t) {
   const sel = st.sel, narrow = el.clientWidth < 700;
   const W = el.clientWidth, side = narrow ? 0 : 330;
   const r = narrow ? Math.min(150, W * 0.36) : Math.max(150, Math.min(260, (W - side) / 2 - 110)), F = 900;
-  const cx = narrow ? W / 2 : (side + W) / 2, cy = el.clientHeight * 0.47, ys = narrow ? 0.7 : 1;
-  const cp = Math.cos(-0.36), sp = Math.sin(-0.36);
+  const cx = narrow ? W / 2 : (side + W) / 2, cy = el.clientHeight * 0.47;
   if (!g.drag) {
-    if (g.snap && sel != null) { const target = Math.PI - sel * TAU / 7; const d = (((target - g.th) % TAU) + TAU * 1.5) % TAU - Math.PI; g.th += R ? d : d * Math.min(1, dt * 5); g.v = 0; if (Math.abs(d) < 0.0005) g.snap = false; }
-    else {
+    if (g.snap && sel != null) {
+      /* bring the chosen League to the front, a little above the Lyre */
+      const [x, y, z] = BASE[sel], tt = Math.atan2(x, -z), tp = Math.atan2(-y, Math.hypot(x, z)) - 0.42;
+      const d1 = wrapA(tt - g.th), d2 = wrapA(tp - g.ph), d3 = wrapA(-g.ro), f = R ? 1 : Math.min(1, dt * 5);
+      g.th += d1 * f; g.ph += d2 * f; g.ro += d3 * f; g.v = g.vp = 0;
+      if (Math.abs(d1) + Math.abs(d2) + Math.abs(d3) < 0.001) g.snap = false;
+    } else {
       if (g.pend) { const s = R ? g.pend : g.pend * Math.min(1, dt * 6); g.th += s; g.pend -= s; if (Math.abs(g.pend) < 1e-4) g.pend = 0; }
-      g.th += g.v; g.v *= 0.92; if (Math.abs(g.v) < 1e-5) g.v = 0;
-      if (!R && sel == null && !g.hover) g.th += dt * TAU / 90;
+      if (g.pendP) { const s = R ? g.pendP : g.pendP * Math.min(1, dt * 6); g.ph += s; g.pendP -= s; if (Math.abs(g.pendP) < 1e-4) g.pendP = 0; }
+      g.th += g.v; g.ph += g.vp; g.v *= 0.94; g.vp *= 0.94; if (Math.abs(g.v) < 1e-5) g.v = 0; if (Math.abs(g.vp) < 1e-5) g.vp = 0;
+      if (!R && sel == null && st.auto) {
+        /* drift: steady yaw that speeds and slows, pitch that swings past the poles and back, light roll */
+        const k = g.hover ? 0.25 : 1;
+        g.th += dt * k * (0.17 + 0.09 * Math.sin(t * 0.13));
+        g.ph += dt * k * 0.11 * Math.sin(t * 0.071 + 0.7);
+        g.ro += dt * k * (0.24 * Math.sin(t * 0.05) - g.ro) * 0.5;
+      }
     }
   }
-  const c = Math.cos(g.th), s = Math.sin(g.th);
-  const P = (x, y, z) => { const x1 = x * c + z * s, z1 = -x * s + z * c, y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp, k = F / (F + z2); return { x: cx + x1 * k, y: cy + y2 * k, k, z: z2 }; };
+  const c = Math.cos(g.th), s = Math.sin(g.th), cp = Math.cos(g.ph), sp = Math.sin(g.ph), cr = Math.cos(g.ro), sr = Math.sin(g.ro);
+  const P = (x, y, z) => { const x1 = x * c + z * s, z1 = -x * s + z * c, y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp;
+    const x3 = x1 * cr - y2 * sr, y3 = x1 * sr + y2 * cr, k = F / (F + z2); return { x: cx + x3 * k, y: cy + y3 * k, k, z: z2 }; };
   /* spheres float: each bobs on its own phase */
-  const pts = YS.map((y, i) => { const a = i * TAU / 7; return P(r * Math.sin(a), (y + (R ? 0 : Math.sin(t * 0.9 + i * 1.3) * 9)) * ys, r * Math.cos(a)); });
+  const pts = BASE.map(([x, y, z], i) => { const b = R ? 0 : Math.sin(t * 0.9 + i * 1.3) * 9; return P(x * r, y * r + b, z * r); });
   lastPts = pts;
   const hub = P(0, 0, 0), kmin = F / (F + r), kmax = F / (F - r);
   const dep = p => Math.max(0, Math.min(1, (p.k - kmin) / (kmax - kmin)));
   const sc = narrow ? 0.72 : 1;
-  el.querySelectorAll("[data-ring]").forEach(rg => { const f = +rg.dataset.ring;
-    rg.style.left = (cx - r * f) + "px"; rg.style.top = (cy - r * f * 0.36 * ys) + "px"; rg.style.width = (2 * r * f) + "px"; rg.style.height = (2 * r * f * 0.36 * ys) + "px"; });
+  /* orbit lines: equator, one meridian and an inner ring, re-projected every frame */
+  const orb = el.querySelector("[data-orbits]");
+  if (orb) {
+    orb.setAttribute("viewBox", `0 0 ${W} ${el.clientHeight}`);
+    const ring = (f, fn) => { let d = ""; for (let j = 0; j <= 64; j++) { const a = j * TAU / 64, q = fn(Math.cos(a) * r * f, Math.sin(a) * r * f); d += (j ? "L" : "M") + q.x.toFixed(1) + " " + q.y.toFixed(1); } return d; };
+    const paths = orb.querySelectorAll("path");
+    paths[0].setAttribute("d", ring(1, (a, b) => P(a, 0, b)));
+    paths[1].setAttribute("d", ring(1, (a, b) => P(0, a, b)));
+    paths[2].setAttribute("d", ring(0.55, (a, b) => P(a, 0, b)));
+  }
   el.querySelectorAll("[data-node]").forEach(n => { const i = +n.dataset.node, p = pts[i], dim = sel != null && sel !== i;
     n._h = (n._h || 0) + ((g.hi === i ? 1 : 0) - (n._h || 0)) * (R ? 1 : 0.18);
     n.style.transform = `translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px) translate(-50%,-32%) scale(${(p.k * sc * (1 + 0.16 * n._h)).toFixed(3)})`;
