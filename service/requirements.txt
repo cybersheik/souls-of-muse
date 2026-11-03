@@ -7,3 +7,4 @@ cryptography==50.0.2
 jsonschema==4.26.0
 num2words==0.5.14
 livekit-api==1.2.2
+livekit==1.2.0

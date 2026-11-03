@@ -133,6 +133,24 @@ questions remain in force.
 
 ### Existing cloud resources
 
+The candidate Modal image now installs directly from `service/requirements.txt`,
+the same pinned manifest used by the isolated `cloud-runtime` Linux/Python 3.12
+CI job. This includes both `livekit-api` (room control) and `livekit` (native RTC
+audio); the former alone cannot run `service.media_transport`.
+`requirements-media.txt` remains a compatibility entry point to that manifest.
+Installing the SDK does not enable media, provision an SFU or change capacity.
+MMS/Torch/model assets remain excluded from the cloud image and TTS remains off.
+
+Run `python scripts/verify_cloud_runtime.py` in a fresh environment containing
+only these requirements. The check uses a new isolated fixture directory,
+synthetic accounts/key, a zero-spend $0.05 ledger and outbound-HTTP rejection.
+It checks primary-Origin CORS, role-bound login, shared worksheet, private notes,
+signed original heart journal and preserved cookies/data in a second Python
+process. It also sends a silent PCM frame through the actual native RTC FFI
+without connecting to any room or microphone. This is not a Modal image build,
+Modal cold-start test, hosted SFU test or provider-quality acceptance. Fixture
+directories are retained for inspection; operator ledgers/configs are not read.
+
 One-time operator provisioning (exact commands; operator supplies all
 secret values interactively — no values in source, no automatic secret
 creation by this code, nothing uploaded by this change):

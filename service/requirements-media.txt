@@ -1,2 +1,1 @@
 -r requirements.txt
-livekit==1.2.0

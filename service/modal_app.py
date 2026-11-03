@@ -33,7 +33,7 @@ volume = modal.Volume.from_name("som-data", create_if_missing=False, version=2)
 writer_queue = modal.Queue.from_name("som-writer-permit", create_if_missing=False)
 image = (
     modal.Image.debian_slim(python_version="3.12")
-    .pip_install("fastapi==0.115.6", "uvicorn==0.34.0", "httpx==0.28.1", "PyYAML==6.0.2", "pydantic==2.10.4", "cryptography==50.0.2", "jsonschema==4.26.0", "num2words==0.5.14", "livekit-api==1.2.2")
+    .pip_install_from_requirements("service/requirements.txt")
     .add_local_dir("service", "/app/service")
     .add_local_dir("harness-bench", "/app/harness-bench")
     .add_local_dir("runtime", "/app/runtime")
