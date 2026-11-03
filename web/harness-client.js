@@ -3,7 +3,7 @@
 window.CabinetHarness = (() => {
   const state = { user: null, meeting: null, lesson: null, sessions: [], heart: null, busy: false, status: "", pending: null, recording: false, asr: false, tts: false, media: false };
   let capture = null, captureAbort = null, composeText = "", focusCompose = false;
-  let materialPending = null;
+  let materialPending = null, planningPending = null, planningRetry = null;
   let speechAudio = null, speechURL = null, speechAbort = null, speechMessage = null;
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const ru = () => window.P01?.state.lang === "ru";
@@ -105,6 +105,38 @@ window.CabinetHarness = (() => {
         throw error;
       }
       if (state.user === user && state.meeting?.id === meetingId) await refresh();
+    });
+  }
+  function requestLessonPlan(brief, retry = false) {
+    if (state.user?.role !== 'maestro' || !state.meeting || !state.lesson || state.busy) return;
+    const user=state.user, meetingId=state.meeting.id;
+    const context=JSON.stringify([user.id,meetingId,state.lesson.revision,brief,retry]);
+    const previous=state.meeting.lesson_planner?.revision===state.lesson.revision ? state.meeting.lesson_planner.proposal : null;
+    if(!planningPending || planningPending.context!==context || (previous?.id && previous.id!==planningPending.baseId)) {
+      planningPending={context,baseId:previous?.id,body:{revision:state.lesson.revision,brief,retry,client_event_id:crypto.randomUUID()}};
+    }
+    const pending=planningPending;
+    return action(async()=>{
+      try { await call(`sessions/${meetingId}/lesson/proposals`,pending.body); if(planningPending===pending)planningPending=null; planningRetry=null; }
+      catch(error){
+        if(error.message==='explicit_planning_retry_required' && state.user===user && state.meeting?.id===meetingId) {
+          planningRetry={user,meetingId,revision:pending.body.revision,brief};
+          throw new Error(word('An earlier attempt for this goal failed. Choose “Retry this goal” to request a new draft.','Предыдущая попытка для этой цели не удалась. Нажмите «Повторить для этой цели», чтобы запросить новый черновик.'));
+        }
+        throw error;
+      }
+      finally { if(state.user===user && state.meeting?.id===meetingId)await refresh(); }
+    });
+  }
+  function planningRetryAllowed(brief){
+    return !!planningRetry && state.user===planningRetry.user && state.meeting?.id===planningRetry.meetingId && state.lesson?.revision===planningRetry.revision && brief===planningRetry.brief;
+  }
+  function applyLessonPlan(id) {
+    if(state.user?.role!=='maestro' || !state.meeting || state.busy)return;
+    const user=state.user,meetingId=state.meeting.id;
+    return action(async()=>{
+      try { await call(`sessions/${meetingId}/lesson/proposals/${encodeURIComponent(id)}/apply`,{confirm:true}); }
+      finally { if(state.user===user && state.meeting?.id===meetingId)await refresh(); }
     });
   }
   function approveLessonTranslation(id) {
@@ -321,11 +353,11 @@ window.CabinetHarness = (() => {
   setInterval(async () => {
     if (!state.user || !state.meeting || state.busy || document.visibilityState !== "visible" || !location.hash.startsWith("#/session/")) return;
     if (document.activeElement?.matches("input,textarea")) return;
-    const before = JSON.stringify({ state: state.meeting.state, heart: state.heart, lesson: state.lesson?.revision, materials: state.meeting.lesson_translations });
+    const before = JSON.stringify({ state: state.meeting.state, heart: state.heart, lesson: state.lesson?.revision, materials: state.meeting.lesson_translations, planner: state.meeting.lesson_planner });
     const messagesBefore = JSON.stringify(state.meeting.deliveries);
     try {
       if (!await refresh()) return;
-      if (before !== JSON.stringify({ state: state.meeting.state, heart: state.heart, lesson: state.lesson?.revision, materials: state.meeting.lesson_translations })) redraw();
+      if (before !== JSON.stringify({ state: state.meeting.state, heart: state.heart, lesson: state.lesson?.revision, materials: state.meeting.lesson_translations, planner: state.meeting.lesson_planner })) redraw();
       else if (messagesBefore !== JSON.stringify(state.meeting.deliveries)) {
         const chat = document.querySelector(".cab-chat");
         if (chat) { chat.innerHTML = messages(); bindApprovals(); }
@@ -370,5 +402,5 @@ window.CabinetHarness = (() => {
   }
   window.addEventListener("som-media-changed", redraw);
   window.addEventListener("hashchange", () => { cancelCapture(); stopSpeech(); window.SomMedia?.disconnect(true).catch(() => {}); });
-  return { state, panel, messages, send, bind, record, updateLesson, translateLessonStep, approveLessonTranslation };
+  return { state, panel, messages, send, bind, record, updateLesson, translateLessonStep, approveLessonTranslation, requestLessonPlan, applyLessonPlan, planningRetryAllowed };
 })();

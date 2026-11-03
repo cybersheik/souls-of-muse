@@ -300,6 +300,58 @@ remaining $0.007539 cannot cover the next conservative interpreter reservation
 (about $0.01054). Stop further paid tests until explicit allocation approval
 and reconciliation of the actual histories; do not replace either ledger.
 
+## Maestro-led planning proposals
+
+The lesson's **Plan with Muse** form sends a Maestro brief and the existing plan
+to `muse-wonder-1.0` through stateless `POST /responses`. It stays outside the
+ASR/interpretation/delivery path, as required by the Harness v0.1 architecture.
+Only the meeting's Maestro can request, inspect or adopt a proposal. The model
+receives the source language, meeting kind/League, brief and plan; participant
+identifiers, chat, private notes and Notebook content are not sent.
+
+The strict JSON response is validated as 1–32 bounded lesson steps and checked
+against the complete workspace size, preserving the current Notebook. The
+request includes the remaining plan byte allowance. A malformed, truncated,
+refused or oversized reply cannot become an adoptable draft. The default
+orchestrator output bound is 4096 tokens, including reasoning. This can truncate
+a large proposed plan; it is rejected rather than silently shortened.
+
+The private draft changes the shared plan only after **Use this plan** and an
+explicit Maestro confirmation. Adoption compares the original workspace
+revision, preserves Notebook content and writes the new plan plus adoption
+record atomically. Any intervening workspace edit or meeting closure blocks it.
+Replaying an adopted request never increments the revision again. The model
+does not execute tools, match participants, close meetings or deliver messages.
+
+`GET/POST /sessions/{id}/lesson/proposals` and
+`POST /sessions/{id}/lesson/proposals/{proposal}/apply` use the existing
+server-side membership, role and Origin checks. Only Maestro's meeting
+projection contains the planner draft. Request IDs and cache aliases are
+committed before inference; duplicate requests do not call the model again.
+Returning to a cached brief selects that draft. After a failed attempt, a new
+request requires explicit retry; the UI offers **Retry this goal**, with no
+automatic retry. Interrupted generation becomes failed on startup, preserving
+budget holds. Changed snapshots discard pending results.
+
+The [official create reference](https://dev.meta.ai/docs/api-reference/responses/create-response),
+[schemas](https://dev.meta.ai/docs/api-reference/responses/schemas),
+[structured-output recipe](https://dev.meta.ai/docs/cookbook/structured-output)
+and [Wonder example](https://dev.meta.ai/docs/overview) were checked on
+3 November 2026. The adapter maps `max_tokens` to `max_output_tokens`, reasoning
+to `reasoning.effort`, and strict schema to `text.format`. It sends
+`store=false`, `stream=false`, `background=false`, with no tools or history.
+Responses accounting is validated and normalized into the same existing
+BudgetGuard: reserve/persist before HTTP, settle trusted input/output usage,
+count reasoning once within output, retain HOLD for ambiguous failures.
+
+Local acceptance uses a real site, API, SQLite, MetaAdapter and BudgetGuard
+with `httpx.MockTransport`, two isolated Chrome contexts and a fresh server
+process. It verifies privacy, explicit adoption, Notebook preservation,
+idempotent replay, EN/RU labels and both roles at 1440/390/320 widths.
+This made **zero provider calls** and changed no real allocation. See
+`docs/qa-lesson-planner-20261103.json`. Actual Wonder admission, planning quality,
+latency, matching and cloud readiness remain unaccepted.
+
 ## Optional microphone input
 
 `SOM_ENABLE_ASR=1` enables Muse Voice Transcribe on the same existing model key and budget ledger. The browser records only after a click, stops after ten seconds or a second click, converts to mono 16-bit PCM WAV at 16 kHz, and closes microphone tracks. The participant reviews the recognized text before submitting it for interpretation. Navigation and logout cancel capture.

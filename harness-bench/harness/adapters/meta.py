@@ -1,7 +1,8 @@
 """Meta Model API adapter with budget holds before any paid HTTP call.
 
-Only /chat/completions is supported. /responses raises ConfigError before
-HTTP rather than inventing a payload/schema. ASR is explicitly opt-in and follows the verified file-transcription
+Chat Completions and stateless, text-only Responses share the same budget.
+Responses does not enable tools, background work or retained history.
+ASR is explicitly opt-in and follows the verified file-transcription
 contract. WAV files are inspected locally before any paid request.
 SAM and TTS remain unimplemented with no local/system fallback.
 Constructor performs no network I/O. No retries are performed.
@@ -174,6 +175,8 @@ class MetaAdapter(Adapter):
 
     def complete(self, role, system, user, fault="none"):
         rc = self._role(role)
+        if rc.get("endpoint") == "/responses":
+            return self._complete_responses(rc, system, user)
         model, max_tokens, temp, reasoning_effort = self._validate_chat_role(rc)
         if not isinstance(system, str) or not isinstance(user, str):
             raise ConfigError("system and user prompts must be strings")
@@ -234,6 +237,87 @@ class MetaAdapter(Adapter):
         if not isinstance(text, str):
             raise MetaResponseError("malformed response text; usage was settled from trusted usage")
         return {"text": text, "usage": usage, "latency_s": round(latency, 3), "reservation_id": reservation_id, "cost_usd": cost}
+
+    def _complete_responses(self, rc, system, user):
+        # Official contract: /docs/api-reference/responses/create-response,
+        # /docs/api-reference/responses/schemas and /docs/reasoning (03 Nov).
+        model, maximum, temp, effort = self._validate_chat_role({**rc, "endpoint": "/chat/completions"})
+        if maximum < 16 or not isinstance(system, str) or not isinstance(user, str):
+            raise ConfigError("Responses requires string prompts and max_tokens >= 16")
+        payload = {"model": model, "instructions": system, "input": user,
+                   "max_output_tokens": maximum, "temperature": temp,
+                   "store": False, "stream": False, "background": False}
+        if effort is not None:
+            payload["reasoning"] = {"effort": effort}
+        fmt = _response_format(rc)
+        if fmt is not None:
+            payload["text"] = {"format": {"type": "json_schema", **fmt["json_schema"]}}
+        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        if len(body) > MAX_REQUEST_BYTES:
+            raise ConfigError("serialized Responses request exceeds explicit UTF-8 byte bound")
+        reservation_id = self.budget.reserve_chat(model, len(body) + FRAMING_TOKENS, maximum)
+        started = time.perf_counter()
+        try:
+            response = self.http.post("/responses", content=body, headers={"Content-Type": "application/json"})
+        except httpx.TimeoutException:
+            raise MetaTransportError("network timeout; full budget reservation remains on HOLD") from None
+        except httpx.TransportError:
+            raise MetaTransportError("network transport error; full budget reservation remains on HOLD") from None
+        latency = time.perf_counter() - started
+        if response.status_code != 200:
+            raise MetaAPIError(f"Meta API returned HTTP {response.status_code}; full budget reservation remains on HOLD")
+        try:
+            data = response.json()
+            if not isinstance(data, dict) or data.get("object") != "response" or data.get("model") != model:
+                raise ValueError()
+            usage = data["usage"]
+            expected = {"input_tokens", "output_tokens", "total_tokens", "input_tokens_details", "output_tokens_details"}
+            if not isinstance(usage, dict) or set(usage) != expected:
+                raise ValueError()
+            if (not isinstance(usage["input_tokens_details"], dict)
+                    or set(usage["input_tokens_details"]) != {"cached_tokens"}
+                    or not isinstance(usage["output_tokens_details"], dict)
+                    or set(usage["output_tokens_details"]) != {"reasoning_tokens"}):
+                raise ValueError()
+            normalized = {"prompt_tokens": usage["input_tokens"], "completion_tokens": usage["output_tokens"],
+                          "total_tokens": usage["total_tokens"], "prompt_tokens_details": usage["input_tokens_details"],
+                          "completion_tokens_details": usage["output_tokens_details"]}
+        except Exception:
+            raise MetaResponseError("malformed Responses accounting; full budget reservation remains on HOLD") from None
+        try:
+            cost = self.budget.settle(reservation_id, model, normalized)
+        except UsageValidationError:
+            raise MetaResponseError("invalid Responses usage; full budget reservation remains on HOLD") from None
+        # Even a truncated/refused response has a cost. Settle trusted usage
+        # first, but never turn partial output, reasoning or tools into a plan.
+        try:
+            if data.get("status") != "completed" or data.get("error") or data.get("incomplete_details"):
+                raise ValueError()
+            output = data["output"]
+            if not isinstance(output, list):
+                raise ValueError()
+            messages = []
+            for item in output:
+                if not isinstance(item, dict):
+                    raise ValueError()
+                if item.get("type") == "reasoning":
+                    continue
+                if (item.get("type") != "message" or item.get("role") != "assistant"
+                        or item.get("status", "completed") != "completed"
+                        or item.get("phase") not in (None, "final_answer")):
+                    raise ValueError()
+                parts = item["content"]
+                if not isinstance(parts, list) or not parts:
+                    raise ValueError()
+                if any(not isinstance(p, dict) or p.get("type") != "output_text" or not isinstance(p.get("text"), str) for p in parts):
+                    raise ValueError()
+                messages.append("".join(p["text"] for p in parts))
+            if len(messages) != 1 or not messages[0].strip():
+                raise ValueError()
+        except Exception:
+            raise MetaResponseError("unusable or incomplete Responses output; trusted usage was settled") from None
+        return {"text": messages[0], "usage": usage, "latency_s": round(latency, 3),
+                "reservation_id": reservation_id, "cost_usd": cost}
 
     def transcribe(self, wav_path, keywords=None, language_bias=None):
         rc = self._role("asr")

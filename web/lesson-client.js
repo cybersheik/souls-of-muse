@@ -2,11 +2,11 @@
 window.SomLesson = (() => {
   const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const word = (en,ru) => window.P01?.state.lang === 'ru' ? ru : en;
-  let key='', editing=null;
+  let key='', editing=null, planningBrief='';
   const state = () => window.CabinetHarness.state;
   function context() {
     const next=(state().user?.id||'')+':'+(state().meeting?.id||'');
-    if(key!==next){key=next;editing=null;}
+    if(key!==next){key=next;editing=null;planningBrief='';}
     return state().lesson;
   }
   const editable = () => state().user?.role === 'maestro' && ['created','active'].includes(state().meeting?.state) && !state().busy;
@@ -47,7 +47,20 @@ window.SomLesson = (() => {
         ${teacher?`<button type="button" class="cab-step-btn" data-lesson-step="${i}" aria-pressed="${i===selected}">${esc(p.title)}<span class="d">${esc(p.duration)}</span></button>`:`<h3 class="cab-step-btn">${esc(p.title)} <small>${esc(p.duration)}</small>${i===selected?` · ${word('Now','Сейчас')}`:''}</h3>`}
         ${state().user?.role==='artist'?`<small>${esc(materialLabel(i))}</small>`:''}
         ${i===selected?`<p class="cab-step-goal">${esc(p.goal)}</p>${p.tips.map(t=>`<span class="cab-tip">${esc(t)}</span>`).join('')}${translationPanel(i)}`:''}</section>`).join(''):`<p>${word('The Maestro has not added a plan yet.','Маэстро ещё не добавил план.')}</p>`}</div>
-      ${teacher?`<button class="cab-btn" data-lesson-edit-plan>${word('Edit plan','Изменить план')}</button>`:''}`;
+      ${teacher?`<button class="cab-btn" data-lesson-edit-plan>${word('Edit plan','Изменить план')}</button>`:''}${plannerHTML()}`;
+  }
+  function plannerHTML(){
+    if(state().user?.role!=='maestro')return '';
+    const doc=context(),projection=state().meeting?.lesson_planner;
+    const job=projection?.revision===doc?.revision?projection.proposal:null,can=editable()&&!editing;
+    return `<section class="cab-material-translation"><b>${word('Plan with Muse','План с Muse')}</b>
+      <p>${word('Describe the lesson goal. Muse prepares a private draft; review every step before sharing it.','Опишите цель урока. Muse подготовит личный черновик; проверьте каждый этап перед публикацией.')}</p>
+      <form data-lesson-planner-form><fieldset class="cab-lesson-edit-fields"${!can?' disabled':''}><label>${word('Lesson goal','Цель урока')}<textarea data-lesson-planning-brief maxlength="2000" required>${esc(planningBrief)}</textarea></label><button class="cab-btn" data-lesson-plan-submit${job?.state==='processing'?' disabled':''}>${planningButton(job)}</button></fieldset></form>
+      ${job?`<p role="status">${esc(job.state==='processing'?word('Muse is preparing the plan…','Muse готовит план…'):job.state==='draft'?word('Private draft · not yet shared','Личный черновик · ещё не опубликован'):word('Draft unavailable. You can request another attempt.','Черновик недоступен. Можно запросить ещё одну попытку.'))}</p><p>${esc(job.brief)}</p>${job.state==='draft'&&job.plan?job.plan.map((s,i)=>`<div class="cab-step"><h3>${i+1}. ${esc(s.title)} · ${esc(s.duration)}</h3><p>${esc(s.goal)}</p>${s.tips.map(t=>`<span class="cab-tip">${esc(t)}</span>`).join('')}</div>`).join(''):''}${can&&job.state==='draft'?`<button class="cab-btn" data-lesson-apply-plan="${esc(job.id)}">${word('Use this plan','Использовать этот план')}</button>`:''}`:''}</section>`;
+  }
+  function planningButton(job){
+    return window.CabinetHarness.planningRetryAllowed?.(planningBrief)||job?.state==='failed'&&job.brief===planningBrief
+      ?word('Retry this goal','Повторить для этой цели'):word(job?.id?'Prepare another draft':'Prepare a draft',job?.id?'Подготовить ещё черновик':'Подготовить черновик');
   }
   function field(label,name,value,max,area=false){return `<label>${label}${area?`<textarea data-lesson-field="${name}" maxlength="${max}">${esc(value)}</textarea>`:`<input data-lesson-field="${name}" value="${esc(value)}" maxlength="${max}"${name==='title'?' required':''}>`}</label>`;}
   function planEditor(){return `<form class="cab-lesson-editor" data-lesson-plan-form><fieldset class="cab-lesson-edit-fields"${state().busy?' disabled':''}><b>${word('Session plan','План встречи')}</b>${editing.doc.plan.map((p,i)=>`<fieldset data-lesson-row="${i}"><legend>${word('Step','Этап')} ${i+1}</legend>${field(word('Title','Название'),'title',p.title,160)}${field(word('Duration','Длительность'),'duration',p.duration,40)}${field(word('Goal','Цель'),'goal',p.goal,1000,true)}${field(word('Tips · one per line','Подсказки · по одной на строку'),'tips',p.tips.join('\n'),4010,true)}<button type="button" class="cab-btn" data-lesson-remove-step="${i}">${word('Remove step','Убрать этап')}</button></fieldset>`).join('')}<div class="cab-lesson-actions"><button type="button" class="cab-btn" data-lesson-add-step${editing.doc.plan.length>=32?' disabled':''}>${word('Add step','Добавить этап')}</button><button class="cab-btn"${state().busy?' disabled':''}>${word('Save plan','Сохранить план')}</button><button type="button" class="cab-btn" data-lesson-cancel>${word('Cancel','Отмена')}</button></div></fieldset></form>`;}
@@ -68,6 +81,9 @@ window.SomLesson = (() => {
     context();
     const on=(selector,event,fn)=>document.querySelectorAll(selector).forEach(el=>el.addEventListener(event,fn));
     on('[data-lesson-edit-plan]','click',()=>{if(!editable()||editing)return;editing={kind:'plan',doc:clone(context())};redraw();});
+    on('[data-lesson-planning-brief]','input',event=>{planningBrief=event.currentTarget.value;const doc=context(),p=state().meeting?.lesson_planner,job=p?.revision===doc.revision?p.proposal:null,button=document.querySelector('[data-lesson-plan-submit]');if(button)button.textContent=planningButton(job);});
+    on('[data-lesson-planner-form]','submit',event=>{event.preventDefault();if(!editable()||editing)return;const doc=context(),p=state().meeting?.lesson_planner,job=p?.revision===doc.revision?p.proposal:null;window.CabinetHarness.requestLessonPlan(planningBrief,!!job?.id&&job.brief===planningBrief||!!window.CabinetHarness.planningRetryAllowed?.(planningBrief));});
+    on('[data-lesson-apply-plan]','click',event=>{if(editable()&&!editing&&window.confirm(word('Use this draft as the shared plan? You have reviewed every step.','Использовать этот черновик как общий план? Вы проверили каждый этап.')))window.CabinetHarness.applyLessonPlan(event.currentTarget.dataset.lessonApplyPlan);});
     on('[data-lesson-edit-book]','click',()=>{if(!editable()||editing)return;editing={kind:'book',doc:clone(context())};redraw();});
     on('[data-lesson-cancel]','click',()=>{editing=null;redraw();});
     on('[data-lesson-add-step]','click',()=>{editing.doc.plan.push({title:'',duration:'',goal:'',tips:[]});if(editing.doc.step===null)editing.doc.step=0;redraw();});
@@ -81,5 +97,5 @@ window.SomLesson = (() => {
     const frame=document.querySelector('[data-lesson-score]');
     if(frame)frame.addEventListener('load',()=>frame.contentWindow.postMessage({type:'som-score',abc:context()?.notebook.notation||'',lang:window.P01?.state.lang},'*'));
   }
-  return {planHTML,drawerHTML,bind,reset:()=>{editing=null;key='';}};
+  return {planHTML,drawerHTML,bind,reset:()=>{editing=null;key='';planningBrief='';}};
 })();

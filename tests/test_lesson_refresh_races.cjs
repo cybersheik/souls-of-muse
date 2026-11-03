@@ -24,3 +24,18 @@ test('a material approval change alone redraws the live plan',async()=>{
  const c=client(async url=>{if(url.endsWith('/sessions'))return response({sessions:[]});if(url.endsWith('/lesson'))return response({revision:1});if(url.endsWith('/heart'))return response({});return response({id:'one',state:'active',deliveries:[],lesson_translations:{revision:1,steps:[{id:'approved',state:'approved'}]}});});let redraws=0;c.render=()=>redraws++;
  Object.assign(c.CabinetHarness.state,{user:{id:'M'},meeting:{id:'one',state:'active',deliveries:[],lesson_translations:{revision:1,steps:[{state:'untranslated'}]}},lesson:{revision:1},heart:{}});await c.poll();assert.equal(redraws,1);
 });
+test('ambiguous planning response retains nonce and deliberate known-result retry gets a new one',async()=>{
+ const posts=[],doc={revision:1},meeting=()=>({id:'one',state:'active',deliveries:[],lesson_planner:{revision:1,proposal:posts.length>=2?{id:'known',state:'draft'}:null}});
+ const c=client(async(url,options)=>{if(options?.method==='POST'){posts.push(JSON.parse(options.body));if(posts.length===1)throw Error('ambiguous');return response({id:'known',state:'draft'},201);}if(url.endsWith('/sessions'))return response({sessions:[]});if(url.endsWith('/lesson'))return response(doc);if(url.endsWith('/heart'))return response({});return response(meeting());});
+ Object.assign(c.CabinetHarness.state,{user:{id:'M',role:'maestro'},meeting:meeting(),lesson:doc,heart:{}});await c.CabinetHarness.requestLessonPlan('goal',false);await c.CabinetHarness.requestLessonPlan('goal',false);await c.CabinetHarness.requestLessonPlan('goal',true);
+ assert.equal(posts[0].client_event_id,posts[1].client_event_id);assert.notEqual(posts[1].client_event_id,posts[2].client_event_id);assert.equal(posts[2].retry,true);
+});
+test('a completed proposal alone redraws the live plan without changing lesson revision',async()=>{
+ const c=client(async url=>{if(url.endsWith('/sessions'))return response({sessions:[]});if(url.endsWith('/lesson'))return response({revision:1});if(url.endsWith('/heart'))return response({});return response({id:'one',state:'active',deliveries:[],lesson_planner:{revision:1,proposal:{id:'known',state:'draft'}}});});let redraws=0;c.render=()=>redraws++;
+ Object.assign(c.CabinetHarness.state,{user:{id:'M'},meeting:{id:'one',state:'active',deliveries:[],lesson_planner:{revision:1,proposal:{id:'known',state:'processing'}}},lesson:{revision:1},heart:{}});await c.poll();assert.equal(redraws,1);
+});
+test('a previously failed brief gets an explicit retry affordance without automatic model retry',async()=>{
+ const posts=[],c=client(async(url,options)=>{if(options?.method==='POST'){posts.push(JSON.parse(options.body));return posts.length===1?response({detail:'explicit_planning_retry_required'},409):response({id:'retry-job'},201);}if(url.endsWith('/sessions'))return response({sessions:[]});if(url.endsWith('/lesson'))return response({revision:1});if(url.endsWith('/heart'))return response({});return response({id:'one',state:'active',deliveries:[],lesson_planner:{revision:1,proposal:{id:'other-goal',brief:'D',state:'draft'}}});});
+ const api=c.CabinetHarness;Object.assign(api.state,{user:{id:'M',role:'maestro'},meeting:{id:'one',state:'active'},lesson:{revision:1}});await api.requestLessonPlan('C',false);assert.equal(posts.length,1);assert.equal(api.planningRetryAllowed('C'),true);assert.equal(api.planningRetryAllowed('D'),false);
+ await api.requestLessonPlan('C',true);assert.equal(posts.length,2);assert.equal(posts[1].retry,true);assert.notEqual(posts[0].client_event_id,posts[1].client_event_id);assert.equal(api.planningRetryAllowed('C'),false);
+});

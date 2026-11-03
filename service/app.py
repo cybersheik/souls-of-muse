@@ -2,7 +2,8 @@
 
 Text EN<->VI interpretation and optional push-to-talk ASR use the
 harness-bench MetaAdapter. Optional local MMS speech is a separate
-evaluation. No /responses, SAM, media, watches, registration or votes.
+evaluation. Stateless Responses planning stays outside the interpretation path.
+Full performance media, SAM, watches, registration and votes remain open.
 Fail-closed: no auto-created budget ledger, no default pilot token,
 roles and meeting membership are resolved server-side.
 Initial service: Meta Muse Wonder. Identity, heart and voice integration: CX1.
@@ -244,6 +245,9 @@ def _build_real_adapter(data_dir, environ, on_write=None, transport=None):
         cfg["roles"]["lesson_interpreter"].update(max_tokens=8192, response_format=deepcopy(STEP_FORMAT))
         cfg["roles"]["lesson_reviewer"] = deepcopy(models["roles"]["reviewer"])
         cfg["roles"]["lesson_reviewer"].update(max_tokens=2048, response_format=deepcopy(REVIEW_FORMAT))
+        from .lesson_planner import PLAN_FORMAT
+        cfg["roles"]["orchestrator"] = deepcopy(models["roles"]["orchestrator"])
+        cfg["roles"]["orchestrator"]["response_format"] = deepcopy(PLAN_FORMAT)
         cfg["roles"]["asr"] = {"model": "muse-voice-transcribe-1.0", "endpoint_file": "/asr/transcribe", "enabled": environ.get("SOM_ENABLE_ASR") == "1"}
         wrapped = PersistentBudgetGuard(guard, on_write)
         return MetaAdapter(cfg, wrapped, transport=transport, environ=environ), True
@@ -353,6 +357,8 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
       CREATE TABLE IF NOT EXISTS lesson_workspaces(session_id TEXT PRIMARY KEY, revision INTEGER NOT NULL, content TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS lesson_translations(id TEXT PRIMARY KEY, session_id TEXT NOT NULL, source_hash TEXT NOT NULL, source_json TEXT NOT NULL, source_lang TEXT NOT NULL, target_lang TEXT NOT NULL, state TEXT NOT NULL, target_json TEXT, issues_json TEXT NOT NULL DEFAULT '[]', review_json TEXT);
       CREATE TABLE IF NOT EXISTS lesson_translation_requests(session_id TEXT NOT NULL, client_event_id TEXT NOT NULL, request_hash TEXT NOT NULL, translation_id TEXT NOT NULL, PRIMARY KEY(session_id,client_event_id));
+      CREATE TABLE IF NOT EXISTS lesson_plan_proposals(id TEXT PRIMARY KEY,session_id TEXT NOT NULL,revision INTEGER NOT NULL,context_hash TEXT NOT NULL,source_hash TEXT NOT NULL,brief TEXT NOT NULL,state TEXT NOT NULL,plan_json TEXT,applied_revision INTEGER);
+      CREATE TABLE IF NOT EXISTS lesson_plan_requests(session_id TEXT NOT NULL,client_event_id TEXT NOT NULL,request_hash TEXT NOT NULL,proposal_id TEXT NOT NULL,PRIMARY KEY(session_id,client_event_id));
     """)
     cols = {r[1] for r in conn_init.execute("PRAGMA table_info(messages)").fetchall()}
     if "request_hash" not in cols:
@@ -366,6 +372,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
     conn_init.execute("UPDATE messages SET state='failed' WHERE state='processing'")
     conn_init.execute("UPDATE message_reviews SET state='failed' WHERE state='processing'")
     conn_init.execute("UPDATE lesson_translations SET state='failed',review_json=? WHERE state='processing'", (json.dumps({"state": "failed"}),))
+    conn_init.execute("UPDATE lesson_plan_proposals SET state='failed' WHERE state='processing'")
     conn_init.commit(); conn_init.close()
     persist()  # startup fails closed if durable commit cannot be verified
 
@@ -452,6 +459,9 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         return row
     from .lesson import register_routes as register_lesson_routes
     load_lesson = register_lesson_routes(app, db, _commit, actor_from_auth, get_session, audit, err)
+    from .lesson_planner import register_routes as register_lesson_planner
+    lesson_planner = register_lesson_planner(app, db, _commit, actor_from_auth, get_session, audit, err,
+                                           load_lesson, adapter, model_ready, inference_gate, PersistenceError)
     from .lesson_translations import register_routes as register_lesson_translations
     lesson_translations = register_lesson_translations(
         app, db, _commit, actor_from_auth, get_session, audit, err, load_lesson, adapter,
@@ -498,13 +508,14 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         auth_ready = bool(tokens_valid or identity.accounts)
         durable = not durability_failed.is_set()
         pilot_ready = bool(auth_ready and model_ready and glossary and durable)
+        planning_ready = bool(pilot_ready and getattr(adapter, "cfg", {}).get("roles", {}).get("orchestrator", {}).get("endpoint") == "/responses")
         return {"status": "ok" if durable else "degraded", "durability_ready": durable, "version": VERSION, "model_ready": bool(model_ready),
                 "auth_ready": auth_ready, "role_ready": auth_ready,
                 "roles_ready": auth_ready, "pilot_ready": pilot_ready,
                 "production_ready": False, "full_participant_identity": False,
                 "capabilities": {"text_interpretation_en_vi": bool(pilot_ready), "sessions": bool(auth_ready), "maestro_approval": bool(auth_ready), "hash_linked_audit": True, "participant_login": bool(identity.accounts), "scoped_session_membership": True, "heart_journal_integration": bridge.key is not None, "heart_outbox": True,
-                                 "responses": False, "asr": bool(getattr(adapter, "asr_enabled", False)), "sam": False, "tts": speech is not None, "private_media_transport": media is not None, "media_rooms": False, "watches": False, "registration": False, "votes": False},
-                "not_implemented": ["lessons_media", "group_media_streams", "league_interactions_beyond_text_sessions", "responses", "sam", "watches", "full_participant_identity", "production_readiness"] + ([] if getattr(adapter, "asr_enabled", False) else ["asr"]) + ([] if speech is not None else ["tts"])}
+                                 "responses": planning_ready, "lesson_planning_proposals": planning_ready, "asr": bool(getattr(adapter, "asr_enabled", False)), "sam": False, "tts": speech is not None, "private_media_transport": media is not None, "media_rooms": False, "watches": False, "registration": False, "votes": False},
+                "not_implemented": ["lessons_media", "group_media_streams", "league_interactions_beyond_text_sessions", "orchestrator_matching", "sam", "watches", "full_participant_identity", "production_readiness"] + ([] if getattr(adapter, "asr_enabled", False) else ["asr"]) + ([] if speech is not None else ["tts"])}
 
     @app.get("/pilot")
     def pilot():
@@ -787,9 +798,10 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
             deliveries = [msg_dict(r, include_draft=include_draft) for r in rows if r["state"] == "approved" or include_draft]
             try:
                 materials = lesson_translations(c, s, actor)
+                planning = {"lesson_planner": lesson_planner(c, s)} if include_draft else {}
             except (ValueError, TypeError):
                 return err(503, "lesson_unavailable")
-            return {"id": sid, "state": s["state"], "kind": s["kind"], "league": s["league"], "maestro_alias": s["maestro_alias"], "artist_alias": s["artist_alias"], "deliveries": deliveries, "lesson_translations": materials}
+            return {"id": sid, "state": s["state"], "kind": s["kind"], "league": s["league"], "maestro_alias": s["maestro_alias"], "artist_alias": s["artist_alias"], "deliveries": deliveries, "lesson_translations": materials, **planning}
         finally: c.close()
 
     @app.get("/sessions/{sid}/events")

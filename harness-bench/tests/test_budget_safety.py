@@ -146,14 +146,14 @@ class BudgetSafetyTests(unittest.TestCase):
             adapter2.complete("interpreter", "sys", "hello")
         self.assertGreater(guard.status()["held_usd"], 0)
 
-    def test_unknown_model_and_responses_before_http(self):
+    def test_unknown_model_and_unsupported_endpoint_before_http(self):
         adapter, calls = self.make_adapter(ok_handler, cfg=models_cfg(model="muse-spark-1.3-contributor"))
         with self.assertRaises(ConfigError):
             adapter.complete("interpreter", "sys", "hello")
         self.assertEqual(calls, [])
-        adapter2, calls2 = self.make_adapter(ok_handler)
+        adapter2, calls2 = self.make_adapter(ok_handler, cfg=models_cfg(endpoint="/unknown"))
         with self.assertRaises(ConfigError):
-            adapter2.complete("orchestrator", "sys", "hello")
+            adapter2.complete("interpreter", "sys", "hello")
         self.assertEqual(calls2, [])
 
     def test_excess_usage_blocks_and_disables_new_calls(self):
