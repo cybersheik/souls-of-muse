@@ -20,16 +20,25 @@ window.CabinetHarness = (() => {
     const requestedUser = state.user;
     const response = await fetch("/api/harness/" + path, {
       method: body === undefined ? "GET" : "POST", credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(requestedUser?{'X-SOM-Participant':encodeURIComponent(requestedUser.id)}:{}) },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const data = await response.json();
-    if (response.status === 401 && state.user === requestedUser) {
+    const carriesPrivateNotes=data.private_notes||/^notes(?:\?|$)|^sessions\/[^/]+\/notes$/.test(path);
+    let contextMismatch=data.detail==='participant_context_changed';
+    if(response.ok&&requestedUser&&carriesPrivateNotes){
+      try{contextMismatch=decodeURIComponent(response.headers?.get('X-SOM-Participant')||'')!==requestedUser.id;}
+      catch(_){contextMismatch=true;}
+    }
+    if ((response.status === 401||contextMismatch) && state.user === requestedUser) {
       cancelCapture(); stopSpeech();
       window.SomMedia?.disconnect(true).catch(() => {});
       Object.assign(state, { user: null, meeting: null, lesson: null, sessions: [], heart: null });
       window.SomLesson?.reset();
+      window.SomPrivateNotes?.reset();
+      redraw();
     }
+    if(contextMismatch)throw new Error(word('The account changed in another tab. Sign in again to open the correct private workspace.','Аккаунт изменён в другой вкладке. Войдите снова, чтобы открыть нужное личное пространство.'));
     if (!response.ok) throw new Error(data.detail || "request_failed");
     return data;
   }
@@ -46,6 +55,10 @@ window.CabinetHarness = (() => {
     if (state.user !== user || state.meeting?.id !== meetingId) return false;
     state.sessions = sessions;
     if (meetingId) {
+      // A poll may have read the old document before our acknowledged save.
+      // Revisions are monotonic within this exact account/meeting context.
+      const acknowledgedNotes=state.meeting?.private_notes;
+      if(meeting.private_notes&&acknowledgedNotes&&meeting.private_notes.revision<acknowledgedNotes.revision)meeting.private_notes=acknowledgedNotes;
       sessionStorage.setItem("som_meeting", meetingId);
       Object.assign(state, { meeting, heart, lesson });
     }
@@ -83,6 +96,28 @@ window.CabinetHarness = (() => {
       }
       saved?.();
     });
+  }
+  function savePrivateNotes(doc,saved){
+    if(!state.user||!state.meeting||state.busy)return;
+    const user=state.user,meetingId=state.meeting.id;
+    return action(async()=>{
+      try{
+        const notes=await call(`sessions/${meetingId}/notes`,doc);
+        if(state.user!==user||state.meeting?.id!==meetingId)return;
+        state.meeting.private_notes=notes;saved?.();
+      }catch(error){
+        if(error.message==='private_notes_revision_conflict'){
+          if(state.user===user&&state.meeting?.id===meetingId)await refresh();
+          throw new Error(word('Your notes changed in another tab. Your draft is retained. Copy it if needed, cancel editing, then review the saved version before editing again.','Заметки изменены в другой вкладке. Ваш черновик сохранён в форме. При необходимости скопируйте его, отмените правки и просмотрите сохранённую версию перед новым редактированием.'));
+        }
+        throw error;
+      }
+    });
+  }
+  async function privateNotesPage(cursor){
+    const user=state.user;
+    const page=await call('notes'+(cursor?'?cursor='+encodeURIComponent(cursor):''));
+    return state.user===user?page:null;
   }
   function translateLessonStep(index, retry = false) {
     if (state.user?.role !== "maestro" || !state.meeting || !state.lesson || state.busy) return;
@@ -231,7 +266,7 @@ window.CabinetHarness = (() => {
       action(async () => {
         const user = await call("auth/login", { username, password });
         Object.assign(state, { user, meeting: null, lesson: null, heart: null, sessions: [], pending: null });
-        sessionStorage.removeItem("som_meeting"); window.SomLesson?.reset();
+        sessionStorage.removeItem("som_meeting"); window.SomLesson?.reset(); window.SomPrivateNotes?.reset();
         await capabilities(); await refresh(); location.hash = "#/space/" + state.user.role;
       });
     });
@@ -245,7 +280,7 @@ window.CabinetHarness = (() => {
       });
     });
     on("[data-harness-open]", "click", event => action(async () => {
-      state.lesson = null; window.SomLesson?.reset();
+      state.lesson = null; window.SomLesson?.reset(); window.SomPrivateNotes?.reset();
       state.meeting = await call("sessions/" + event.currentTarget.dataset.harnessOpen);
       if (window.Cabinet) Cabinet.state.drawer[state.user.role] = false;
       await refresh(); location.hash = "#/session/" + state.user.role + "/one-to-one";
@@ -255,7 +290,7 @@ window.CabinetHarness = (() => {
       cancelCapture(); stopSpeech();
       await window.SomMedia?.disconnect(true).catch(() => {});
       try { await call("auth/logout", {}); }
-      finally { sessionStorage.removeItem("som_meeting"); Object.assign(state, { user: null, meeting: null, lesson: null, sessions: [], heart: null, pending: null }); window.SomLesson?.reset(); }
+      finally { sessionStorage.removeItem("som_meeting"); Object.assign(state, { user: null, meeting: null, lesson: null, sessions: [], heart: null, pending: null }); window.SomLesson?.reset(); window.SomPrivateNotes?.reset(); }
     }));
     on("[data-harness-media]", "click", () => action(async () => {
       if (SomMedia.connected(state.meeting.id)) await SomMedia.disconnect(true);
@@ -353,11 +388,11 @@ window.CabinetHarness = (() => {
   setInterval(async () => {
     if (!state.user || !state.meeting || state.busy || document.visibilityState !== "visible" || !location.hash.startsWith("#/session/")) return;
     if (document.activeElement?.matches("input,textarea")) return;
-    const before = JSON.stringify({ state: state.meeting.state, heart: state.heart, lesson: state.lesson?.revision, materials: state.meeting.lesson_translations, planner: state.meeting.lesson_planner });
+    const before = JSON.stringify({ state: state.meeting.state, heart: state.heart, lesson: state.lesson?.revision, materials: state.meeting.lesson_translations, planner: state.meeting.lesson_planner, notes: state.meeting.private_notes });
     const messagesBefore = JSON.stringify(state.meeting.deliveries);
     try {
       if (!await refresh()) return;
-      if (before !== JSON.stringify({ state: state.meeting.state, heart: state.heart, lesson: state.lesson?.revision, materials: state.meeting.lesson_translations, planner: state.meeting.lesson_planner })) redraw();
+      if (before !== JSON.stringify({ state: state.meeting.state, heart: state.heart, lesson: state.lesson?.revision, materials: state.meeting.lesson_translations, planner: state.meeting.lesson_planner, notes: state.meeting.private_notes })) redraw();
       else if (messagesBefore !== JSON.stringify(state.meeting.deliveries)) {
         const chat = document.querySelector(".cab-chat");
         if (chat) { chat.innerHTML = messages(); bindApprovals(); }
@@ -402,5 +437,5 @@ window.CabinetHarness = (() => {
   }
   window.addEventListener("som-media-changed", redraw);
   window.addEventListener("hashchange", () => { cancelCapture(); stopSpeech(); window.SomMedia?.disconnect(true).catch(() => {}); });
-  return { state, panel, messages, send, bind, record, updateLesson, translateLessonStep, approveLessonTranslation, requestLessonPlan, applyLessonPlan, planningRetryAllowed };
+  return { state, panel, messages, send, bind, record, updateLesson, translateLessonStep, approveLessonTranslation, requestLessonPlan, applyLessonPlan, planningRetryAllowed, savePrivateNotes, privateNotesPage };
 })();

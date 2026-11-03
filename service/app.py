@@ -13,6 +13,7 @@ import asyncio, hashlib, hmac, json, os, sqlite3, sys, threading, time, uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -359,6 +360,8 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
       CREATE TABLE IF NOT EXISTS lesson_translation_requests(session_id TEXT NOT NULL, client_event_id TEXT NOT NULL, request_hash TEXT NOT NULL, translation_id TEXT NOT NULL, PRIMARY KEY(session_id,client_event_id));
       CREATE TABLE IF NOT EXISTS lesson_plan_proposals(id TEXT PRIMARY KEY,session_id TEXT NOT NULL,revision INTEGER NOT NULL,context_hash TEXT NOT NULL,source_hash TEXT NOT NULL,brief TEXT NOT NULL,state TEXT NOT NULL,plan_json TEXT,applied_revision INTEGER);
       CREATE TABLE IF NOT EXISTS lesson_plan_requests(session_id TEXT NOT NULL,client_event_id TEXT NOT NULL,request_hash TEXT NOT NULL,proposal_id TEXT NOT NULL,PRIMARY KEY(session_id,client_event_id));
+      CREATE TABLE IF NOT EXISTS participant_notes(session_id TEXT NOT NULL,participant_id TEXT NOT NULL,revision INTEGER NOT NULL,text TEXT NOT NULL,updated_at TEXT NOT NULL,PRIMARY KEY(session_id,participant_id));
+      CREATE INDEX IF NOT EXISTS participant_notes_owner ON participant_notes(participant_id,updated_at DESC,session_id DESC);
     """)
     cols = {r[1] for r in conn_init.execute("PRAGMA table_info(messages)").fetchall()}
     if "request_hash" not in cols:
@@ -390,7 +393,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         return JSONResponse({"detail": code}, status_code=status)
 
     app = FastAPI(title="Souls of Muse Harness", version=VERSION)
-    app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type"])
+    app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type", "X-SOM-Participant"], expose_headers=["X-SOM-Participant"])
     app.add_middleware(BodyLimitMiddleware)
     from .identity import Identity
     from .heart_bridge import HeartBridge
@@ -430,6 +433,8 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         if not is_health and not await asyncio.to_thread(durability_ready):
             return JSONResponse({"detail": "persistence_failed"}, status_code=503, headers={"Cache-Control": "no-store"})
         response.headers["Cache-Control"] = "no-store"
+        participant=getattr(request.state,"participant",None)
+        if participant:response.headers['X-SOM-Participant']=quote(participant,safe='')
         return response
 
     def actor_from_auth(authorization, request):
@@ -437,6 +442,8 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         user = identity.user(request)
         request.state.participant = user
         if user:
+            if not identity.matches_context(request,user):
+                return None,err(401,'participant_context_changed')
             if request.method == "POST" and not identity.same_origin(request):
                 return None, err(403, "origin_not_allowed")
             return identity.accounts[user]["role"], None
@@ -459,6 +466,8 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         return row
     from .lesson import register_routes as register_lesson_routes
     load_lesson = register_lesson_routes(app, db, _commit, actor_from_auth, get_session, audit, err)
+    from .private_notes import register_routes as register_private_notes
+    load_private_notes = register_private_notes(app, db, _commit, actor_from_auth, get_session, err)
     from .lesson_planner import register_routes as register_lesson_planner
     lesson_planner = register_lesson_planner(app, db, _commit, actor_from_auth, get_session, audit, err,
                                            load_lesson, adapter, model_ready, inference_gate, PersistenceError)
@@ -799,9 +808,11 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
             try:
                 materials = lesson_translations(c, s, actor)
                 planning = {"lesson_planner": lesson_planner(c, s)} if include_draft else {}
+                participant = getattr(request.state, "participant", None)
+                own_notes = {"private_notes": load_private_notes(c, sid, participant)} if participant else {}
             except (ValueError, TypeError):
                 return err(503, "lesson_unavailable")
-            return {"id": sid, "state": s["state"], "kind": s["kind"], "league": s["league"], "maestro_alias": s["maestro_alias"], "artist_alias": s["artist_alias"], "deliveries": deliveries, "lesson_translations": materials, **planning}
+            return {"id": sid, "state": s["state"], "kind": s["kind"], "league": s["league"], "maestro_alias": s["maestro_alias"], "artist_alias": s["artist_alias"], "deliveries": deliveries, "lesson_translations": materials, **planning, **own_notes}
         finally: c.close()
 
     @app.get("/sessions/{sid}/events")

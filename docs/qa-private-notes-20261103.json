@@ -1,0 +1,113 @@
+{
+  "result": "PRIVATE_NOTES_REAL_HTTP_UI_PASS",
+  "scope": "actual local site/API/storage; all model requests explicitly forbidden",
+  "bilateral_owner_isolation": true,
+  "plain_text_escaped": true,
+  "stale_tab_draft_retained": true,
+  "stale_save_no_overwrite": true,
+  "provider_calls": 0,
+  "page_errors": [],
+  "new_server_process_restart": true,
+  "completed_notes_editable": true,
+  "index_opens_own_meeting": true,
+  "logout_clears_private_ui": true,
+  "layouts": [
+    {
+      "role": "maestro",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "role": "maestro",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "role": "maestro",
+      "width": 320,
+      "overflow": false
+    },
+    {
+      "role": "artist",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "role": "artist",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "role": "artist",
+      "width": 320,
+      "overflow": false
+    }
+  ],
+  "date": "2026-11-03",
+  "base_commit": "e8e307956b7aae80d4ed9f96a395bf95e9a5c6df",
+  "service_checks": 178,
+  "harness_checks": 65,
+  "root_checks": 37,
+  "original_heart_checks": 5,
+  "node_checks": 84,
+  "total_offline_checks": 369,
+  "cloud_deployed": false,
+  "production_merged": false,
+  "real_budget_changed": false,
+  "behavior": {
+    "owner_from_cookie_not_role_or_request": true,
+    "server_membership_origin_checks": true,
+    "legacy_role_bearer_rejected": true,
+    "no_shared_audit_heart_or_model_payload": true,
+    "index_owner_and_membership_filtered": true,
+    "cursor_pagination_tested": true,
+    "exact_replay_no_revision_increment": true,
+    "delayed_poll_cannot_roll_back_acknowledged_note": true,
+    "late_save_cannot_change_new_context": true,
+    "current_401_clears_rendered_private_state": true,
+    "cross_account_index_response_discarded": true,
+    "unicode_character_and_utf8_bounds_no_truncation": true,
+    "corrupt_own_document_unavailable": true,
+    "durability_failure_closes_reads": true,
+    "request_account_precondition_matches_cookie_before_data_access": true,
+    "private_writes_require_account_precondition": true,
+    "wrong_owner_response_marker_rejected": true,
+    "unicode_account_header_round_trip": true
+  },
+  "verified_real_local_ledger": {
+    "settled_calls": 24,
+    "settled_usd": 0.03605,
+    "unsettled": 0
+  },
+  "real_allocation_usd": 0.05,
+  "real_stop_usd": 0.0475,
+  "cloud_ledger_refreshed": false,
+  "shared_cookie_switch_rejects_old_tab_write": true,
+  "owner_mismatch_clears_private_editor": true,
+  "independent_review": "PASS after reproduced shared-cookie account-switch fix",
+  "independent_review_checks": {
+    "backend_cas_pagination_durability": true,
+    "actual_cookie_switch_http_reproduction_and_fix": true,
+    "combined_hclient_editor_input_submit_handlers": true,
+    "targeted_node_checks": 28
+  },
+  "final_visual_check": {
+    "result": "PASS",
+    "checks": [
+      {
+        "role": "maestro",
+        "width": 390,
+        "private_note_visible": true,
+        "overflow": false
+      },
+      {
+        "role": "artist",
+        "width": 390,
+        "private_note_visible": true,
+        "overflow": false
+      }
+    ],
+    "provider_calls": 0
+  },
+  "own_test_servers_stopped": true
+}

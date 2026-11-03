@@ -91,7 +91,7 @@ function home(role) {
       <nav class="cab-sidenav" aria-label="${cabEsc(C.brand)}">
         <a href="#/convention"><i class="ph ph-signature"></i>${cabEsc(C.myConvention)}</a>
         <a href="#/space/${role}" data-cab-soon="${cabEsc(C.history)}"><i class="ph ph-clock-counter-clockwise"></i>${cabEsc(C.history)}</a>
-        <a href="#/space/${role}" data-cab-soon="${cabEsc(C.myNotes)}"><i class="ph ph-note-pencil"></i>${cabEsc(C.myNotes)}</a>
+        <a href="#/space/${role}" data-private-notes-index><i class="ph ph-note-pencil"></i>${cabEsc(C.myNotes)}</a>
       </nav>
       <p class="cab-status" role="status" data-cab-soon-out>${cabEsc(cabState.soon)}</p>
       <p class="cab-side-note">${cabEsc(C.notesPrivate)}</p>
@@ -99,6 +99,7 @@ function home(role) {
     <main id="main" tabindex="-1" class="cab-main">
       <div><h1>${cabEsc(C.playToday)}</h1><p class="cab-sub">${cabEsc(isA ? C.subArtist : isM ? C.subMaestro : C.subAdmirer)}</p></div>
       ${window.CabinetHarness ? CabinetHarness.panel() : ""}
+      ${window.SomPrivateNotes ? SomPrivateNotes.indexHTML() : ""}
       <div class="cab-tiles">
         <section class="cab-tile-session" aria-label="${cabEsc(C.session)}">
           <div class="cab-tile-head"><span class="cab-tile-num"><span class="num-gold">01</span> · ${cabEsc(C.session)}</span><span style="flex:1"></span>
@@ -294,14 +295,16 @@ function session(role, mode) {
         <span class="cab-tag cab-tag-neutral"><i class="ph ph-translate"></i>${live ? (isM ? "EN → VI" : "VI → EN") : isM && F === "all" ? "PT → 4" : "PT → RU"}</span></div>
       ${live ? "" : `<span class="cab-dictating"><i class="ph ph-waveform"></i>${cabEsc(isM ? C.dictatingM : C.dictatingA)}</span>`}
       <span class="cab-label">${cabEsc(chatLabel)}</span>
+      ${live?`<button type="button" class="cab-btn cab-btn-ghost" data-cab-rec ${!CabinetHarness.state.asr||CabinetHarness.state.busy||live.state!=='active'?'disabled':''} aria-pressed="${CabinetHarness.state.recording}"><i class="ph ph-microphone"></i>${cabEsc(CabinetHarness.state.recording?C.done:(cabLang()==='ru'?'Надиктовать сообщение':'Dictate a message'))}</button>`:''}
       <div class="cab-chat">${chatHTML(role, mode, C)}</div>
       ${isAd ? "" : `<form class="cab-chat-form" data-cab-chat-form><input data-cab-chat-input autocomplete="off" placeholder="${cabEsc(live ? C.writeTo(focusName) : isM ? (F === "all" ? C.writeAll : C.writeTo(focusName)) : C.writeMaestro)}"><button type="submit" class="cab-btn cab-btn-primary cab-icon-btn" aria-label="→"><i class="ph ph-paper-plane-right"></i></button></form>`}
       <div class="cab-notes">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span class="cab-label" style="flex:1">${cabEsc(isA ? C.notesQuestions : C.myNotes)}</span>
         ${isA ? `<button type="button" class="cab-btn cab-btn-ghost" data-cab-hand ${window.CabinetHarness?.state.meeting ? "disabled" : ""} aria-pressed="${cabState.hand}" style="font-size:12px"><i class="ph ${cabState.hand ? "ph-fill ph-hand-waving" : "ph-hand-waving"}"></i>${cabEsc(cabState.hand ? C.handRaised : C.raiseHand)}</button>` : ""}
-        <button type="button" class="cab-btn cab-btn-ghost" data-cab-rec ${live && (!CabinetHarness.state.asr || CabinetHarness.state.busy || live.state !== "active") ? "disabled" : ""} aria-pressed="${live ? CabinetHarness.state.recording : cabState.rec}" style="font-size:12px"><i class="ph ph-microphone"></i>${cabEsc((live ? CabinetHarness.state.recording : cabState.rec) ? C.done : C.dictate)}</button></div>
+        ${!live?`<button type="button" class="cab-btn cab-btn-ghost" data-cab-rec aria-pressed="${cabState.rec}" style="font-size:12px"><i class="ph ph-microphone"></i>${cabEsc(cabState.rec?C.done:C.dictate)}</button>`:''}</div>
         ${cabState.rec ? `<span class="cab-dictating"><i class="ph ph-waveform"></i>${cabEsc(C.museListening)}</span>` : ""}
         ${notesFor(role, mode, C).map(n => `<span class="cab-note"><i class="ph ph-note-pencil"></i><span>${cabEsc(n)}</span></span>`).join("")}
+        ${live&&window.SomPrivateNotes?SomPrivateNotes.HTML():''}
       </div>`;
   return `<div class="cab" data-cab-screen="session-${role}-${mode}">${cabHead(role, live ? (cabLang() === "ru" ? "Музыкальная встреча" : "Music meeting") : C.session3, sub)}
   <div class="cab-session">
@@ -385,6 +388,7 @@ function cabRerender() { if (typeof render === "function") render(); }
 function bind() {
   if (window.CabinetHarness) CabinetHarness.bind();
   if (window.SomLesson) SomLesson.bind();
+  if (window.SomPrivateNotes) SomPrivateNotes.bind();
   document.querySelectorAll("[data-cab-lang]").forEach(b => b.onclick = () => {
     if (window.P01) { P01.state.lang = b.dataset.cabLang; try { localStorage.setItem("som_p01_lang", P01.state.lang); } catch (e) {} }
     cabRerender();

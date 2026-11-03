@@ -5,6 +5,7 @@ import json
 import secrets
 import time
 from contextlib import closing
+from urllib.parse import unquote
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -66,6 +67,9 @@ class Identity:
         @app.get("/auth/me")
         def me(request: Request):
             user = self.user(request)
+            request.state.participant = user
+            if user and not self.matches_context(request,user):
+                return JSONResponse({"detail":"participant_context_changed"},status_code=401)
             return JSONResponse(self.public(user) if user else {"detail": "unauthorized"},
                                 status_code=200 if user else 401, headers={"Cache-Control": "no-store"})
 
@@ -75,6 +79,9 @@ class Identity:
                 return JSONResponse({"detail": "origin_not_allowed"}, status_code=403)
             cleanup_pending = False
             user = self.user(request)
+            request.state.participant = user
+            if user and not self.matches_context(request,user):
+                return JSONResponse({"detail":"participant_context_changed"},status_code=401)
             if user and self.on_logout:
                 try:
                     await self.on_logout(user)
@@ -90,6 +97,15 @@ class Identity:
     @staticmethod
     def digest(token):
         return hashlib.sha256(token.encode()).hexdigest()
+
+    @staticmethod
+    def matches_context(request,user):
+        # A precondition only: the cookie still determines the account. This
+        # detects same-profile tabs that retain an old account after a login.
+        expected=request.headers.get('X-SOM-Participant')
+        if expected is None:return True
+        try:return unquote(expected,errors='strict')==user
+        except (ValueError,UnicodeError):return False
 
     def same_origin(self, request):
         origin = request.headers.get("origin")

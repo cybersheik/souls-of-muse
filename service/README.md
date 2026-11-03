@@ -169,7 +169,59 @@ Only one editor can be open, and its controls are disabled during a save;
 changing the step is unavailable while editing. No private document drafts
 are put in localStorage. Maestro sees authored plan fields; Artist sees a
 labelled original until the matching reviewed translation is approved.
-Private participant notes and full group fanout remain unfinished.
+Private account-owned notes are separate from this shared material (see below).
+Full group fanout remains unfinished.
+
+## Private participant notes
+
+Each signed-in member has an independent plain-text document per meeting.
+`GET/POST /sessions/{sid}/notes` resolves ownership from the HttpOnly participant
+cookie and meeting membership; a shared legacy role bearer cannot identify a
+person and is rejected. The request cannot specify another owner. The normal
+Origin checks and durable commit barrier apply.
+
+Authenticated browser requests carry a percent-encoded `X-SOM-Participant`
+account precondition. It never selects the owner: the server compares it with
+the actual cookie account before reading or writing. This rejects an old tab
+after another tab changes their shared login cookie. Private-note writes
+require the precondition; responses carry the actual account marker, forwarded
+by the gateway and checked before the client accepts private data. A mismatch
+clears the private editor/index and visible page. `auth/me` and logout use the
+same check, so a stale tab cannot log out the newly signed-in account. Unicode
+account IDs are encoded in headers. An auth preflight alone would not close the
+race and is not used as a substitute for this per-request check.
+
+Notes use revision-based compare-and-swap and exact-content replay: a lost save
+response does not add a revision, and another tab's different stale text gets
+409. The editor retains the unsaved draft on failure/conflict and clears it on
+account or meeting change. A late old-account save cannot replace current state;
+a delayed poll cannot roll back an acknowledged higher note revision. Current
+account expiry immediately clears private state and redraws the visible page.
+No drafts are stored in localStorage. Text is escaped, bounded to 8000 characters
+and 24000 UTF-8 bytes, and never silently truncated.
+
+Personal notes remain editable after the meeting, so a participant can write
+their own reflection. They do not change the shared plan/Notebook, enter a
+shared audit/heart event, or get appended to interpreter/planning prompts.
+Saving notes never calls a model. The existing microphone control is explicitly
+labelled **Dictate a message** in the Muse chat; it does not dictate into private
+notes or send their text for ASR.
+
+The cabinet's **My notes** link opens only the current account's saved note
+previews, with cursor pagination through `GET /notes`; **Open meeting** returns
+to the full note. The server always filters by account and membership regardless
+of cursor contents. Clearing the text removes its preview from the index while
+preserving the document revision. Other participants receive neither the text
+nor the note's existence through this index or the shared audit. An interrupted
+index request cannot reveal a previous account's previews.
+
+Local acceptance uses the actual site, API, SQLite, three isolated Chrome
+contexts (two accounts plus a second Maestro tab) and a fresh server process.
+Owner isolation, escaped text, stale-tab conflict/draft retention, completed
+meeting edits, the personal index and logout were verified; both roles at
+1440/390/320 had no overflow. All inference was explicitly forbidden in this
+test. See `docs/qa-private-notes-20261103.json`. This verifies local behavior,
+not cloud deployment or full product acceptance.
 
 The Notation tab renders actual ABC through vendored **abcjs 6.7.2 / MIT**,
 with pinned npm SHA512 and file SHA256 in `web/vendor/abcjs-6.7.2.json`.
