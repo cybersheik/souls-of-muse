@@ -9,6 +9,7 @@ Constructor performs no network I/O. No retries are performed.
 import json
 import math
 import os
+import re
 import time
 import wave
 from pathlib import Path
@@ -37,12 +38,43 @@ class MetaResponseError(RuntimeError):
     pass
 
 
+def _response_format(role):
+    value = role.get("response_format")
+    if value is None:
+        return None
+    try:
+        from jsonschema import Draft202012Validator
+        if not isinstance(value, dict) or set(value) != {"type", "json_schema"} or value["type"] != "json_schema":
+            raise ValueError()
+        spec = value["json_schema"]
+        if (not isinstance(spec, dict) or set(spec) != {"name", "strict", "schema"}
+                or spec["strict"] is not True or not isinstance(spec["name"], str)
+                or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", spec["name"]) or not isinstance(spec["schema"], dict)):
+            raise ValueError()
+        def check_refs(node, depth=0):
+            if depth > 16:
+                raise ValueError()
+            if isinstance(node, dict):
+                if any(key in node for key in ("$ref", "$dynamicRef", "$recursiveRef")):
+                    raise ValueError()
+                for child in node.values():
+                    check_refs(child, depth + 1)
+            elif isinstance(node, list):
+                for child in node:
+                    check_refs(child, depth + 1)
+        check_refs(spec["schema"])
+        Draft202012Validator.check_schema(spec["schema"])
+        return value
+    except Exception:
+        raise ConfigError("unsupported or invalid structured response format") from None
+
+
 MAX_REQUEST_BYTES = 32768
 FRAMING_TOKENS = 2048
 MAX_OUTPUT_TOKENS = 8192
 # Documented Chat Completions reasoning_effort values (dev.meta.ai/docs/reasoning).
 # "none" is not supported (upstream returns 400) and is rejected here first.
-SUPPORTED_REASONING_EFFORTS = frozenset({"low", "medium", "high"})
+SUPPORTED_REASONING_EFFORTS = frozenset({"minimal", "low", "medium", "high"})
 ASR_DISABLED_REASON = "ASR paid route disabled until explicitly enabled by the operator; no reservation or POST is made"
 
 
@@ -137,7 +169,7 @@ class MetaAdapter(Adapter):
         if "reasoning_effort" in rc:
             reasoning_effort = rc.get("reasoning_effort")
             if not isinstance(reasoning_effort, str) or reasoning_effort not in SUPPORTED_REASONING_EFFORTS:
-                raise ConfigError("reasoning_effort must be one of 'low', 'medium', 'high'; 'none' and other values are unsupported")
+                raise ConfigError("reasoning_effort must be 'minimal', 'low', 'medium' or 'high'; 'none' and other values are unsupported")
         return model, max_tokens, float(temp), reasoning_effort
 
     def complete(self, role, system, user, fault="none"):
@@ -148,6 +180,9 @@ class MetaAdapter(Adapter):
         payload = {"model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}], "temperature": temp, "max_tokens": max_tokens}
         if reasoning_effort is not None:
             payload["reasoning_effort"] = reasoning_effort
+        response_format = _response_format(rc)
+        if response_format is not None:
+            payload["response_format"] = response_format
         try:
             body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         except Exception as exc:

@@ -4,6 +4,7 @@ import unicodedata
 from pathlib import Path
 
 from harness.validator import compare, load_glossary, notes, signature
+from harness.music_vocabulary import field_pitches
 
 
 class MusicalPitchValidation(unittest.TestCase):
@@ -78,6 +79,22 @@ class MusicalPitchValidation(unittest.TestCase):
             with self.subTest(source=source):
                 self.assertEqual(compare(signature(source, "en", self.glossary),
                                          signature(translated, "vi", self.glossary)), [])
+
+    def test_typed_note_fields_keep_all_pitches_order_repetition_and_octaves(self):
+        for value, expected in [("C4", ("C4",)), ("Mi4", ("E4",)),
+                ("F sharp and G sharp", ("F#", "G#")),
+                ("Fa thăng và La thăng", ("F#", "A#")),
+                ("F#4, A♭3, F#4", ("F#4", "Ab3", "F#4")),
+                ("Si giáng4", ("Bb4",)),
+                ("A minor and E major", ("A:minor", "E:major")),
+                ("La trưởng và Mi thứ", ("A:major", "E:minor"))]:
+            with self.subTest(value=value):
+                self.assertEqual(field_pitches(value), (expected, True))
+
+    def test_unsupported_note_field_forms_are_not_silent_empty_matches(self):
+        for value in ("Am7", "C-1", "C diminished", "the chord", "C4foo", "minor C"):
+            with self.subTest(value=value):
+                self.assertFalse(field_pitches(value)[1])
 
     def test_unqualified_letters_or_solfege_in_prose_do_not_invent_notes(self):
         for text in ["Play a little slower.", "Do not speed up.", "Let me see.",

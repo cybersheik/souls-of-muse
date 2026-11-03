@@ -1,0 +1,241 @@
+{
+  "date": "2026-11-03",
+  "result": "PARTIAL",
+  "base_commit": "ea133a85329e659c0bfa439150835322bd0649e3",
+  "scope": "Structured lesson-note implementation; frozen synthetic written-text model probes; offline browser fixtures. No human audio, cloud or full-service acceptance.",
+  "implementation": {
+    "strict_typed_response": true,
+    "whole_translation_plus_quoted_slots": [
+      "heard",
+      "where.measure",
+      "where.note",
+      "change",
+      "try"
+    ],
+    "invalid_or_truncated_output": "fail closed; no plain-text fallback or automatic retry",
+    "quote_evidence": "NFC source substring + canonical translation substring; whole sentences for observation/actions",
+    "meaning_gate": "Any observation/action/repetition grouping requires full-context reviewer and explicit Maestro confirmation; quotations alone do not establish entailment",
+    "pitch_field": "ordered identities, octave, accidental and per-pitch quality; unsupported forms require review",
+    "artist_projection": "approved canonical translation and target quotes only; no source evidence or private review",
+    "durability": "Participant responses wait for pending commits; failed commit latches process closed until fresh successful startup; health remains degraded/readable",
+    "not_claimed": [
+      "extraction completeness",
+      "general semantic equivalence",
+      "acoustic truth",
+      "distributed transactions",
+      "plan or Notebook persistence"
+    ]
+  },
+  "initial_low_reasoning": {
+    "result": "FAILED_TRUNCATED",
+    "reasoning_effort": "low",
+    "max_tokens": 1024,
+    "cases": [
+      {
+        "source_lang": "en",
+        "target_lang": "vi",
+        "text": "In bar 3, the A minor chord was late. Change on the beat. Try it 4 times.",
+        "status": 502,
+        "elapsed_s": 10.689,
+        "response": {
+          "detail": "upstream_failed"
+        }
+      },
+      {
+        "source_lang": "vi",
+        "target_lang": "en",
+        "text": "Ở ô nhịp 4, em chưa vào đúng phách. Em sẽ thử lại 2 lần.",
+        "status": 502,
+        "elapsed_s": 9.774,
+        "response": {
+          "detail": "upstream_failed"
+        }
+      }
+    ],
+    "provider": [
+      {
+        "format": "music_interpretation",
+        "status": 200,
+        "elapsed_s": 10.673,
+        "finish_reason": "length",
+        "usage": {
+          "completion_tokens": 1024,
+          "prompt_tokens": 573,
+          "total_tokens": 1597,
+          "completion_tokens_details": {
+            "reasoning_tokens": 964
+          },
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        }
+      },
+      {
+        "format": "music_interpretation",
+        "status": 200,
+        "elapsed_s": 9.763,
+        "finish_reason": "length",
+        "usage": {
+          "completion_tokens": 1024,
+          "prompt_tokens": 571,
+          "total_tokens": 1595,
+          "completion_tokens_details": {
+            "reasoning_tokens": 1022
+          },
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        }
+      }
+    ],
+    "actual_cost_usd": 0.010135,
+    "delivered": false,
+    "reviewer_calls": 0,
+    "automatic_retry": false,
+    "raw_runner_marker": "READY_FOR_MANUAL_TEXT_REVIEW was generic; the canonical result is FAILED_TRUNCATED"
+  },
+  "minimal_heldout": {
+    "result": "PARTIAL",
+    "reasoning_effort": "minimal",
+    "new_input_not_failed_replay": true,
+    "source": "In bar 5, the E minor chord was early. Enter on the beat. Try it 3 times.",
+    "source_lang": "en",
+    "target_lang": "vi",
+    "canonical_translation": "Ở ô nhịp 5, hợp âm Mi thứ đã vào sớm. Hãy vào đúng phách. Hãy thử 3 lần.",
+    "lesson_note": {
+      "heard": "Ở ô nhịp 5, hợp âm Mi thứ đã vào sớm.",
+      "where": {
+        "measure": "ô nhịp 5",
+        "note": null
+      },
+      "change": "Hãy vào đúng phách.",
+      "try": "Hãy thử 3 lần."
+    },
+    "review": {
+      "state": "complete",
+      "verdict": "faithful",
+      "reason": "Translation preserves pitch (E minor), measure (bar 5), timing observation, and count (3 times). Lesson_note groupings are correct: heard is reported observation, change is instruction, try and where match source."
+    },
+    "service_elapsed_s": 15.858,
+    "provider": [
+      {
+        "format": "music_interpretation",
+        "status": 200,
+        "elapsed_s": 11.081,
+        "finish_reason": "stop",
+        "usage": {
+          "completion_tokens": 894,
+          "prompt_tokens": 573,
+          "total_tokens": 1467,
+          "completion_tokens_details": {
+            "reasoning_tokens": 583
+          },
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        }
+      },
+      {
+        "format": "translation_review",
+        "status": 200,
+        "elapsed_s": 4.754,
+        "finish_reason": "stop",
+        "usage": {
+          "completion_tokens": 339,
+          "prompt_tokens": 459,
+          "total_tokens": 798,
+          "completion_tokens_details": {
+            "reasoning_tokens": 275
+          },
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        }
+      }
+    ],
+    "actual_cost_usd": 0.006531,
+    "acceptance": {
+      "result": "PARTIAL",
+      "scope": "one actual EN→VI written-text structured translation, real Spark reviewer, explicit CX1 test-Maestro approval; no audio or cloud acceptance",
+      "approved": true,
+      "reviewer": "faithful",
+      "approval_actor": "CX1 controlled test Maestro",
+      "artist_received_canonical_translation_and_note": true,
+      "source_evidence_and_review_hidden_from_artist": true,
+      "heart_increment_both": 1,
+      "provider_requests_unchanged": true,
+      "note_slot_null_despite_named_chord": true,
+      "full_structured_extraction_accepted": false,
+      "full_EN_VI_voice_accepted": false,
+      "latency_target_accepted": false,
+      "new_process_restart": {
+        "state_completed": true,
+        "note_preserved": true,
+        "heart_counters_preserved": true,
+        "signature_chain_valid": true,
+        "no_model_calls": true,
+        "ledger_settled_calls": 24,
+        "ledger_spent_usd": 0.03605
+      }
+    },
+    "limitations": [
+      "where.note null despite named E-minor chord",
+      "one synthetic written EN→VI sample",
+      "15.858 seconds exceeds 5-second target; not a P95 measurement",
+      "VI→EN and human voice not accepted"
+    ]
+  },
+  "browser": {
+    "result": "PASS",
+    "scope": "actual site, explicit offline typed interpretation/reviewer fixtures",
+    "layouts": [
+      {
+        "width": 1440,
+        "overflow": false
+      },
+      {
+        "width": 390,
+        "overflow": false
+      },
+      {
+        "width": 320,
+        "overflow": false
+      }
+    ],
+    "card_hidden_before_approval": true,
+    "approved_card_received_by_artist": true,
+    "source_evidence_not_exposed_to_artist": true,
+    "speaker_attribution": true,
+    "EN_RU": true,
+    "page_errors": []
+  },
+  "offline_checks": {
+    "service": 126,
+    "harness": 58,
+    "root": 37,
+    "original_heart": 5,
+    "node": 43,
+    "total": 269,
+    "result": "PASS"
+  },
+  "budget": {
+    "paid_calls_this_experiment": 4,
+    "actual_added_usd": 0.016666,
+    "local_settled_calls": 24,
+    "local_settled_usd": 0.03605,
+    "unsettled": 0,
+    "allocation_usd": 0.05,
+    "stop_usd": 0.0475,
+    "known_cloud_only_usd": 0.003911,
+    "last_known_aggregate_usd": 0.039961,
+    "known_remaining_to_stop_usd": 0.007539,
+    "next_interpreter_conservative_reservation_usd": 0.01054,
+    "cloud_ledger_refreshed": false,
+    "further_paid_calls": "STOP_PENDING_OWNER_ALLOCATION_AND_LEDGER_RECONCILIATION"
+  },
+  "release": {
+    "production_merged": false,
+    "cloud_deployed": false,
+    "full_product_accepted": false
+  }
+}

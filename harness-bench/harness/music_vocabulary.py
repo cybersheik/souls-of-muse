@@ -18,6 +18,35 @@ _AFTER = re.compile(rf"(?<!\w){_PITCH}\s+(?:major|minor|chord|scale|trưởng|th
 _BEFORE = re.compile(rf"\b(?:note|chord|key(?:\s+of)?|scale(?:\s+of)?|nốt(?:\s+nhạc)?|hợp\s+âm|gam|giọng)\s+{_PITCH}", re.I)
 _PITCH_END = re.compile(rf"(?<!\w){_PITCH}\s*$", re.I)
 _ORDINAL_THU = re.compile(r"\bthứ(?=\s+(?:nhất|một|hai|ba|tư|bốn|năm|sáu|bảy|tám|chín|mười|\d+)\b)", re.I)
+_FIELD_PITCH = re.compile(rf"(?<!\w)(?P<root>{_ROOT})(?:[\s\-‐‑]*(?P<acc>{_ACC}))?(?P<octave>[0-9])?(?:\s+(?P<quality>major|minor|trưởng|thứ))?(?![\w#♯♭\-‐‑])", re.I)
+_FIELD_WORDS = re.compile(r"\b(?:and|or|then|the|note|notes|chord|chords|key|keys|scale|scales|of|in|nốt|nhạc|hợp|âm|gam|giọng|và|rồi|từ|đến)\b", re.I)
+
+
+def field_pitches(text):
+    """Ordered pitch identities in an explicitly typed note field.
+
+    Unlike prose matching, this binds every bare pitch, octave and major/minor
+    quality to its position. Unknown
+    notation is reported as unsupported, never silently treated as equality.
+    """
+    text = unicodedata.normalize("NFC", text)
+    pitches = []
+    def consume(match):
+        root = match["root"].lower()
+        accidental = (match["acc"] or "").lower()
+        if accidental in ("sharp", "thăng", "♯"):
+            accidental = "#"
+        elif accidental in ("flat", "giáng", "♭"):
+            accidental = "b"
+        quality = (match["quality"] or "").lower()
+        quality = {"trưởng": "major", "thứ": "minor"}.get(quality, quality)
+        pitches.append(VI_PITCHES.get(root, root.upper()) + accidental + (match["octave"] or "")
+                       + (":" + quality if quality else ""))
+        return " "
+    leftover = _FIELD_PITCH.sub(consume, text)
+    leftover = _FIELD_WORDS.sub(" ", leftover)
+    leftover = re.sub(r"[\s,.;:/()\[\]–—\-]+", "", leftover)
+    return tuple(pitches), bool(pitches) and not leftover
 
 
 def ordinal_thu_spans(text):

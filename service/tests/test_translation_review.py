@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from service.tests import test_participants as participants
+from service.tests.interpretation_fixtures import interpretation_text
 
 SOURCE = "Play note F-sharp and note G sharp."
 WRONG = "Chơi nốt nhạc Fa và nốt nhạc Sol thăng."
@@ -25,7 +26,7 @@ class ReviewAdapter:
     def complete(self, role, system, user):
         self.roles.append(role)
         if role == "interpreter":
-            return {"text": self.draft}
+            return {"text": interpretation_text(self.draft)}
         if role != "reviewer":
             raise AssertionError("Unexpected model role")
         with sqlite3.connect(self.directory + "/service.sqlite3") as c:
@@ -87,7 +88,7 @@ class TranslationReview(unittest.TestCase):
     def test_artist_replaying_own_approved_message_cannot_read_private_review(self):
         def model(role, system, user):
             self.adapter.roles.append(role)
-            return {"text": "Play note F and note G sharp." if role == "interpreter" else json.dumps(VERDICT)}
+            return {"text": interpretation_text("Play note F and note G sharp.") if role == "interpreter" else json.dumps(VERDICT)}
         self.adapter.complete = model
         body = {**self.body, "speaker": "artist", "text": "Chơi nốt nhạc Fa thăng và nốt nhạc Sol thăng.",
                 "source_lang": "vi", "target_lang": "en"}
@@ -238,10 +239,12 @@ class TranslationReview(unittest.TestCase):
             calls.append(payload)
             self.assertEqual(guard.status()["holds"], 1)
             if len(calls) == 1:
-                return httpx.Response(200, json={"choices": [{"message": {"content": WRONG}, "finish_reason": "stop"}],
+                self.assertEqual(payload["response_format"]["json_schema"]["name"], "music_interpretation")
+                return httpx.Response(200, json={"choices": [{"message": {"content": interpretation_text(WRONG)}, "finish_reason": "stop"}],
                     "usage": {"prompt_tokens": 20, "completion_tokens": 10}})
             self.assertEqual(payload["model"], "muse-spark-1.3")
             self.assertEqual(payload["max_tokens"], 512)
+            self.assertEqual(payload["response_format"]["json_schema"]["name"], "translation_review")
             with sqlite3.connect(directory / "service.sqlite3") as c:
                 self.assertEqual(c.execute("SELECT state FROM message_reviews").fetchone()[0], "processing")
             return httpx.Response(503, text="private upstream failure")

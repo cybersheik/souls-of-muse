@@ -169,6 +169,7 @@
 .cab-msg.muse .cab-msg-text{background:transparent;border-color:var(--color-accent-800);color:var(--color-accent-200)}
 .cab-msg-orig{max-width:92%;font-size:11px;line-height:1.4;color:var(--color-neutral-500)}
 .cab-msg-check{font-size:11px;line-height:1.4;overflow-wrap:anywhere}
+.cab-lesson-note{max-width:100%;padding:9px;border:1px solid var(--color-neutral-800);border-radius:8px;font-size:12px;line-height:1.45;overflow-wrap:anywhere}.cab-lesson-note small{display:block;color:var(--color-neutral-500)}.cab-lesson-note dl{margin:7px 0 0}.cab-lesson-note dt{font-weight:600;color:var(--color-accent-200);margin-top:5px}.cab-lesson-note dd{margin:0}
 .cab-chat-form{display:flex;gap:8px}
 .cab-chat-form input{flex:1;min-width:0;min-height:36px;padding:6px 10px;font:inherit;font-size:14px;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-md)}
 .cab-notes{border-top:1px solid var(--color-divider);padding-top:12px;display:flex;flex-direction:column;gap:8px}

@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "harness-bench"))
 from fastapi.testclient import TestClient
 from service.app import create_app, _build_real_adapter, PersistentBudgetGuard, PersistenceError
+from service.tests.interpretation_fixtures import interpretation_text
 
 MAESTRO = "maestro-token-123456"
 ARTIST = "artist-token-1234567"
@@ -21,14 +22,14 @@ class FakeAdapter:
         if self.fail: raise RuntimeError("upstream secret key=ABC123 exploded")
         if role == "reviewer":
             return {"text": json.dumps({"verdict": "uncertain", "reason": "Explicit offline review fixture."})}
-        return {"text": self.text, "usage": {"prompt_tokens": 10, "completion_tokens": 5}, "cost_usd": 0.001, "reservation_id": "fake-res"}
+        return {"text": interpretation_text(self.text), "usage": {"prompt_tokens": 10, "completion_tokens": 5}, "cost_usd": 0.001, "reservation_id": "fake-res"}
 
 class BlockingAdapter:
     def __init__(self):
         self.calls = 0; self.entered = threading.Event(); self.release = threading.Event()
     def complete(self, role, system, user, fault="none"):
         self.calls += 1; self.entered.set(); self.release.wait(timeout=10)
-        return {"text": "Xin chào.", "usage": {"prompt_tokens": 10, "completion_tokens": 5}, "cost_usd": 0.001, "reservation_id": "fake-res"}
+        return {"text": interpretation_text("Xin chào."), "usage": {"prompt_tokens": 10, "completion_tokens": 5}, "cost_usd": 0.001, "reservation_id": "fake-res"}
 
 def make_client(adapter=None, maestro_token=MAESTRO, artist_token=ARTIST, data_dir=None, on_write=None, environ=None):
     d = data_dir or tempfile.mkdtemp()
@@ -504,7 +505,7 @@ class TestProvisionAndBuild(unittest.TestCase):
         self.assertFalse(ready); self.assertIsNone(ad)
 
 class TestRealBuilderReasoning(unittest.TestCase):
-    def test_build_real_adapter_sends_low_1024(self):
+    def test_build_real_adapter_sends_minimal_1024(self):
         import httpx, json as _json
         from pathlib import Path
         from harness.budget import BudgetGuard
@@ -521,7 +522,7 @@ class TestRealBuilderReasoning(unittest.TestCase):
         result = ad.complete("interpreter", "sys", "user")
         self.assertEqual(result["text"], "ok")
         payload = _json.loads(captured["body"])
-        self.assertEqual(payload["reasoning_effort"], "low"); self.assertEqual(payload["max_tokens"], 1024)
+        self.assertEqual(payload["reasoning_effort"], "minimal"); self.assertEqual(payload["max_tokens"], 1024)
 
 class TestStaticSurfaces(unittest.TestCase):
     def test_pilot_html_no_innerhtml_per_message_approve(self):
@@ -556,7 +557,7 @@ class TestRealAdapterOffline(unittest.TestCase):
         ledger = Path(d) / "budget_ledger.sqlite3"
         guard = BudgetGuard.initialize_ledger(str(cfgp), str(ledger))
         def handler(request):
-            return httpx.Response(200, json={"choices":[{"message":{"content":"Hãy chơi chậm hơn."}}], "usage":{"prompt_tokens":20,"completion_tokens":6,"total_tokens":26}})
+            return httpx.Response(200, json={"choices":[{"message":{"content":interpretation_text("Hãy chơi chậm hơn.")}}], "usage":{"prompt_tokens":20,"completion_tokens":6,"total_tokens":26}})
         transport = httpx.MockTransport(handler)
         cfg = {"base_url":"https://api.meta.ai/v1","api_key_env":"MODEL_API_KEY","roles":{"interpreter":{"model":"muse-spark-1.3","endpoint":"/chat/completions","temperature":0.1,"max_tokens":300}}}
         ad = MetaAdapter(cfg, guard, transport=transport, environ={"MODEL_API_KEY":"offline-fake"})

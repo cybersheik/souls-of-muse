@@ -104,7 +104,13 @@ returned). A crash fails closed and needs operator reconciliation
 (inspect, then re-seed exactly one permit). Volume commits run after
 every state/budget mutation via `on_write`; a failed commit is a
 hard `503 persistence_failed`, and a failed budget reserve commit
-raises **before** any paid HTTP call. `/health` reports
+raises **before** any paid HTTP call. Participant responses wait for
+pending durable commits; a failed commit latches the process closed,
+including reads and replays, until a fresh successful startup. `/health`
+remains readable and reports `degraded`/`durability_ready=false`.
+This prevents a concurrent reader from observing a local SQLite approval
+whose Volume commit later fails. It does not establish distributed
+transaction guarantees. `/health` reports
 `auth_ready`/`role_ready` honestly (invalid tokens do not look
 fully usable); pilot role tokens are not full participant identity
 and this is not production readiness. `/pilot` is public HTML but
@@ -137,11 +143,68 @@ Offline verification uses injected adapters, never paid models. Run `python -m u
 
 ## Flagged translation review
 
-The required reviewer stage now runs after a deterministic flag, using `muse-spark-1.3`, low reasoning, temperature 0 and a 512-token output bound under the same budget guard. Source transcript, canonical draft and flags are sent as quoted JSON data. A strict two-field reply (`verdict`, `reason`) is checked locally; unknown fields, duplicate keys, invalid verdicts or empty/oversized reasons fail closed. This is a second opinion about the supplied transcript, not acoustic recognition or proof that a performance occurred. It never edits the translation, clears a deterministic flag or approves delivery.
+The required reviewer stage runs after a deterministic flag, using `muse-spark-1.3`, minimal reasoning, temperature 0 and a 512-token output bound under the same budget guard. Source transcript, canonical draft, flags and any lesson-note grouping are sent as quoted JSON data. A strict two-field reply (`verdict`, `reason`) is requested with JSON Schema and checked locally; unknown fields, duplicate keys, invalid verdicts or empty/oversized reasons fail closed. This is a second opinion about the supplied transcript, not acoustic recognition or proof that a performance occurred. It never edits the translation, clears a deterministic flag or approves delivery.
 
 Review state is committed before paid inference. A successful verdict remains visible only to Maestro, including on replay; an Artist sees only approved text. Maestro must explicitly confirm a flagged translation even when the reviewer calls it faithful. Unavailable/malformed review blocks approval even with that confirmation. Replays and restarts do not repeat paid work; interrupted messages/reviews become failed, and budget holds remain untouched. Legacy flagged messages without a completed review stay blocked. Approval revalidates earlier drafts with the current validator, makes no paid call and stops if validation is unavailable. A missing glossary also prevents new interpretation calls and makes pilot readiness false.
 
-Actual Spark testing on two fixed synthetic text pairs was **partial**: it correctly identified a changed tempo of 60→80, but review of a faithful ordinal phrase failed closed. No retry or automatic delivery occurred; the cause of that second failure was not established. A related false `KEY_MINOR` flag for Vietnamese ordinal `thứ hai` was fixed independently and checked through HTTP without another model call; `La thứ ba lần` still means A minor repeated three times. The two reviewer requests cost $0.004853 in the existing ledger. Their measured HTTP times were 13.424 and 6.213 seconds; these are not full voice latency or a P95 result. Interpreter structured lesson output, broader reviewer reliability and the ≤5-second voice target remain open. See `docs/qa-translation-review-20261103.json`.
+Earlier Spark testing on two fixed synthetic text pairs was **partial**: it correctly identified a changed tempo of 60→80, but review of a faithful ordinal phrase failed closed. No retry or automatic delivery occurred; the cause of that second failure was not established. A related false `KEY_MINOR` flag for Vietnamese ordinal `thứ hai` was fixed independently and checked through HTTP without another model call; `La thứ ba lần` still means A minor repeated three times. The two reviewer requests cost $0.004853 in the existing ledger. Their measured HTTP times were 13.424 and 6.213 seconds; these are not full voice latency or a P95 result. See `docs/qa-translation-review-20261103.json`; the newer structured-output experiment below is separate.
+
+## Structured lesson notes
+
+The interpreter now requests a strict JSON Schema response containing the whole
+`translation` and `lesson_note`: `heard`, `where.measure`, `where.note`, `change`
+and `try`. Every slot is null or a source/translation quote pair. The parser
+rejects duplicate or extra fields, truncated/plain-text responses, ungrounded
+quotes and oversized content; it never falls back to an unstructured draft.
+Source quotes must occur in the source, and target quotes in the canonical
+translation, after NFC normalization. Action/observation quotes must preserve
+whole sentences or the whole utterance. Raw responses are bounded to 16,000
+characters, whole translations to 4,000, source quotes to 400 and target quotes
+to 800.
+
+Literal quotation alone does not prove meaning. A prior sentence can govern an
+otherwise intact quote (for example, "Do not do the following"). Any non-null
+observation/action/repetition slot therefore requires full-context review and
+explicit Maestro confirmation. Typed note locations additionally compare every
+named pitch in order, with per-pitch octave, accidental and major/minor quality.
+Unsupported or ambiguous notation requires review. These checks do not establish
+general semantic equivalence, completeness or acoustic truth.
+
+The original evidence is stored atomically with the draft. After approval,
+Artist receives only the canonical translation and its target-language quote
+card. Source evidence and private review remain Maestro-only, including replay.
+The card says whose words it quotes and labels observations as reported speech.
+Legacy messages without structured evidence remain text history; no note is
+invented for them. This card does not replace the lesson plan or Notebook.
+
+Interpreter/reviewer settings come from `harness-bench/config/models.yaml`.
+Both use documented `minimal` reasoning at their existing 1024/512 output caps;
+`none` is rejected locally. Schema bytes are validated and included in the
+request-size and budget reservation bounds before paid HTTP. See the primary
+[structured-output](https://dev.meta.ai/docs/cookbook/structured-output) and
+[reasoning](https://dev.meta.ai/docs/reasoning) documentation. Reasoning tokens
+consume the output allowance; a strict schema does not guarantee a complete
+response at that allowance.
+
+Real acceptance remains **PARTIAL**. Two initial low-reasoning EN/VI text calls
+exhausted 1024 tokens, returned incomplete/no content and failed closed without
+delivery. A new held-out EN→VI input using minimal reasoning completed both
+translation and review in 15.858 seconds. After CX1's explicit controlled-test
+Maestro approval, Artist received the canonical text/card; completion awarded
+one original-heart increment per participant, and a new-process restart
+preserved state, card and verified Ed25519 chain without model calls. However,
+`where.note` was null despite an explicitly named E-minor chord. Complete slot
+extraction, VI→EN, human voice, cloud restart and the ≤5-second/P95 target are
+not accepted. Browser layout/privacy checks used explicit offline model fixtures
+at 1440/390/320 px. See `docs/qa-structured-lesson-20261103.json`.
+
+Those four paid requests added $0.016666 to the existing local ledger:
+24 SETTLED/$0.036050, no unsettled holds. Allocation $0.05 and stop $0.0475
+were unchanged. Adding the previously confirmed cloud-only $0.003911 gives a
+last-known aggregate $0.039961; the cloud ledger has not been refreshed. Its
+remaining $0.007539 cannot cover the next conservative interpreter reservation
+(about $0.01054). Stop further paid tests until explicit allocation approval
+and reconciliation of the actual histories; do not replace either ledger.
 
 ## Optional microphone input
 

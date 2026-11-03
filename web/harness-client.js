@@ -92,9 +92,20 @@ window.CabinetHarness = (() => {
     }
     return `<span class="cab-msg-check">${esc(text)}</span>`;
   }
+  function lessonNote(message) {
+    const note = message.lesson_note;
+    if (!note) return "";
+    const rows = [[word("Reported observation", "Наблюдение из реплики"), note.heard],
+      [word("Measure", "Такт"), note.where?.measure], [word("Note", "Нота"), note.where?.note],
+      [word("Change", "Что изменить"), note.change], [word("Try", "Как попробовать"), note.try]].filter(([, value]) => value);
+    if (!rows.length) return "";
+    const attribution = message.speaker === "maestro" ? word("From Maestro's words", "Из слов Маэстро") : word("From Artist's words", "Из слов Артиста");
+    return `<section class="cab-lesson-note"><b>${word("Lesson note", "Замечание к уроку")}</b><small>${esc(attribution)}</small><dl>${rows.map(([label, value]) => `<dt>${esc(label)}</dt><dd>${esc(value)}</dd>`).join("")}</dl></section>`;
+  }
   function messages() {
     return (state.meeting?.deliveries || []).map(message => `<div class="cab-msg muse"><span class="cab-msg-who">Muse · ${esc(message.speaker)} · ${esc(message.state)}</span>
       ${message.source_text ? `<span class="cab-msg-orig">${esc(message.source_text)}</span>` : ""}<span class="cab-msg-text">${esc(message.text)}</span>
+      ${lessonNote(message)}
       ${message.validation_issues?.length ? `<strong>${esc(message.validation_issues.join(", "))}</strong>` : ""}
       ${reviewNote(message)}
       ${state.user?.role === "maestro" && ["draft", "flagged"].includes(message.state) ? `<button class="cab-btn" data-harness-approve="${esc(message.id)}" data-flagged="${message.state === "flagged"}"${state.busy || message.approval_allowed === false || (message.state === "flagged" && message.review?.state !== "complete") ? " disabled" : ""}>${word("Approve translation", "Одобрить перевод")}</button>` : ""}
