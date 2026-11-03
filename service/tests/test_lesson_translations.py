@@ -27,7 +27,7 @@ class LessonTranslations(unittest.TestCase):
     def view(self,client=None):return (client or self.p.m).get(self.route).json()
     def approve(self,job,client=None,confirm=True):return (client or self.p.m).post(self.route+'/'+job['id']+'/approve',json={'confirm_flagged':confirm})
     def test_fields_stay_private_until_required_review_and_maestro_confirmation(self):
-        r=self.create();self.assertEqual(r.status_code,201,r.text);job=r.json();self.assertEqual(job['state'],'flagged');self.assertEqual(job['target'],TARGET);self.assertEqual(job['review']['state'],'complete')
+        r=self.create();self.assertEqual(r.status_code,201,r.text);job=r.json();self.assertEqual(job['state'],'flagged');self.assertEqual(job['target'],TARGET);self.assertEqual(job['review']['state'],'complete');self.assertFalse(any('NOTE' in issue for issue in job['issues']))
         self.assertNotIn('Đổi hợp âm',json.dumps(self.view(self.p.a),ensure_ascii=False));self.assertNotIn('review',json.dumps(self.view(self.p.a)))
         self.assertEqual(self.approve(job,confirm=False).status_code,409);self.assertEqual(self.approve(job,self.p.a).status_code,403)
         self.assertEqual(self.approve(job).status_code,200);self.assertEqual(self.view(self.p.a)['steps'][0]['target'],TARGET)

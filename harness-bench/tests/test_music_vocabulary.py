@@ -105,3 +105,10 @@ class MusicalPitchValidation(unittest.TestCase):
                      "Listen first. A chord contains several notes."]:
             with self.subTest(text=text):
                 self.assertEqual(notes(text), set())
+
+    def test_short_vietnamese_note_label_preserves_note_concept_and_accidental(self):
+        for source,target in [('Play note F-sharp on beat 1.','Chơi nốt Fa thăng ở phách 1.'),('Play note C.','Chơi nốt đô.'),('Play note B-flat.','Chơi nốt Si giáng.'),('Play note F.','Chơi nốt F.')]:
+            with self.subTest(target=target):self.assertEqual(compare(signature(source,'en',self.glossary),signature(target,'vi',self.glossary)),[])
+    def test_colloquial_not_is_not_a_musical_note_reference(self):
+        for text in ['Làm nốt phần còn lại.','Làm nốt phần còn lại. Chơi hợp âm Fa.','nốt factor','nốt a little slower.']:
+            with self.subTest(text=text):self.assertNotIn('NOTE',signature(text,'vi',self.glossary)['terms'])

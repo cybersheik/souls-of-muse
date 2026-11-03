@@ -197,6 +197,8 @@ misaligned tip counts and oversized output. Each field passes the existing
 music/number/negation validator. Full-context field alignment always requires
 the reviewer and explicit Maestro confirmation. A faithful verdict never
 automatically publishes material or clears deterministic flags.
+The observed short Vietnamese `nốt` before a recognized named pitch now retains
+the NOTE concept; colloquial `nốt` and English article controls do not create it.
 
 Immutable source/language hashes bind each result to its actual content.
 Changing a source field invalidates its translated view; changing the selected

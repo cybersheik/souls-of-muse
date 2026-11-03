@@ -5,7 +5,7 @@ term_id — из справочника (стабильный идентифик
 import json, re, unicodedata
 from pathlib import Path
 from .spoken_numbers import numeric_text
-from .music_vocabulary import contextual_pitches, ordinal_thu_spans
+from .music_vocabulary import contextual_pitches, ordinal_thu_spans, has_vi_note_reference
 
 NUM_RE = re.compile(r"\d+(?:[.,]\d+)?")
 NEG_EN = re.compile(r"\b(?:not|no|never|n't|don'?t|do not)\b", re.I)
@@ -59,6 +59,8 @@ def term_ids(text, glossary):
     if any(term["term_id"] == "BPM" for term in glossary):
         forms += [(form, "BPM") for form in ("beats per minute", "beat per minute",
                   "nhịp mỗi phút", "nhịp một phút", "nhịp trên phút", "nhịp/phút")]
+    if any(term["term_id"] == "NOTE" for term in glossary) and has_vi_note_reference(text):
+        forms.append(("nốt", "NOTE"))
     ids = set()
     for f, tid in sorted(forms, key=lambda x: -len(x[0])):
         pat = re.compile(rf"(?<![\w]){re.escape(f)}(?![\w])")

@@ -31,12 +31,7 @@
   "base_commit": "39f02e8b1c119c4185795e2c2f99ae48f94986ea",
   "service_checks": 153,
   "node_checks": 65,
-  "total_offline_checks": 318,
-  "additional_unchanged_suites": {
-    "harness": 58,
-    "root": 37,
-    "original_heart": 5
-  },
+  "total_offline_checks": 320,
   "independent_review": "PASS after reproduced explicit-retry gap fix",
   "factory_budget": {
     "transport": "httpx.MockTransport only",
@@ -79,5 +74,29 @@
     "unsettled": 0
   },
   "known_cloud_only_usd": 0.003911,
-  "cloud_ledger_refreshed": false
+  "cloud_ledger_refreshed": false,
+  "additional_suites": {
+    "harness": 60,
+    "root": 37,
+    "original_heart": 5
+  },
+  "note_alias_fix": {
+    "observed": "Valid short Vietnamese nốt + pitch falsely lost NOTE while the pitch itself matched",
+    "scope": "Contextual note label only; same article-a filter as pitch recognition",
+    "correct_pairs": 4,
+    "nonmusical_controls": 4,
+    "independent_valid_pair_matrix": 84,
+    "result": "PASS",
+    "review_and_maestro_gate_preserved": true
+  },
+  "supplemental_note_alias_ui": {
+    "result": "PASS",
+    "role": "maestro",
+    "width": 390,
+    "overflow": false,
+    "false_NOTE_absent": true,
+    "review_and_explicit_approval_preserved": true,
+    "additional_offline_fixture_calls": 2,
+    "provider_calls": 0
+  }
 }

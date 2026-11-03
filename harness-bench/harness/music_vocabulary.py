@@ -66,23 +66,33 @@ def ordinal_thu_spans(text):
     return out
 
 
+def _contextual_match(text, match, pattern):
+    # "a" may be an article; share this distinction with NOTE terminology.
+    prefix = text[:match.start("root")].strip()
+    article_position = not prefix or re.search(r"[.!?:]$", prefix)
+    if match["root"].lower() == "a" and not match["acc"] and (match["root"] == "a" or article_position):
+        tail = text[match.end("root"):]
+        qualified = re.match(r"\s+(?:major|minor)(?=\s+(?:chord|scale|key)\b|\s*[,.;:!?]|\s*$)", tail, re.I)
+        terminal = pattern is _BEFORE and re.match(r"\s*(?:[,.;:!?]|$)", tail)
+        return bool(qualified or terminal)
+    return True
+
+
+def has_vi_note_reference(text):
+    """Short nốt is a NOTE only when it introduces a contextual named pitch."""
+    text = unicodedata.normalize("NFC", text)
+    return any(match.group(0).lower().startswith("nốt") and _contextual_match(text, match, _BEFORE)
+               for match in _BEFORE.finditer(text))
+
+
 def contextual_pitches(text):
     """Recognize named pitches only next to musical context, not bare a/do/la."""
     text = unicodedata.normalize("NFC", text)
     out = set()
     for pattern in (_AFTER, _BEFORE):
         for match in pattern.finditer(text):
-            # "a" (also sentence-initial "A") is an English article. Accept an explicitly
-            # qualified "a minor chord" or a terminal prefix such as "note a."
-            # but never turn "a scale" / "chord a little slower" into a pitch.
-            prefix = text[:match.start("root")].strip()
-            article_position = not prefix or re.search(r"[.!?:]$", prefix)
-            if match["root"].lower() == "a" and not match["acc"] and (match["root"] == "a" or article_position):
-                tail = text[match.end("root"):]
-                qualified = re.match(r"\s+(?:major|minor)(?=\s+(?:chord|scale|key)\b|\s*[,.;:!?]|\s*$)", tail, re.I)
-                terminal = pattern is _BEFORE and re.match(r"\s*(?:[,.;:!?]|$)", tail)
-                if not qualified and not terminal:
-                    continue
+            if not _contextual_match(text, match, pattern):
+                continue
             root = match["root"].lower()
             letter = VI_PITCHES.get(root, root.upper())
             accidental = (match["acc"] or "").lower()
