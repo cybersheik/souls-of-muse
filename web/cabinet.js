@@ -290,7 +290,7 @@ function session(role, mode) {
       <div class="cab-notes">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span class="cab-label" style="flex:1">${cabEsc(isA ? C.notesQuestions : C.myNotes)}</span>
         ${isA ? `<button type="button" class="cab-btn cab-btn-ghost" data-cab-hand ${window.CabinetHarness?.state.meeting ? "disabled" : ""} aria-pressed="${cabState.hand}" style="font-size:12px"><i class="ph ${cabState.hand ? "ph-fill ph-hand-waving" : "ph-hand-waving"}"></i>${cabEsc(cabState.hand ? C.handRaised : C.raiseHand)}</button>` : ""}
-        <button type="button" class="cab-btn cab-btn-ghost" data-cab-rec ${window.CabinetHarness?.state.meeting ? "disabled" : ""} aria-pressed="${cabState.rec}" style="font-size:12px"><i class="ph ph-microphone"></i>${cabEsc(cabState.rec ? C.done : C.dictate)}</button></div>
+        <button type="button" class="cab-btn cab-btn-ghost" data-cab-rec ${live && (!CabinetHarness.state.asr || CabinetHarness.state.busy || live.state !== "active") ? "disabled" : ""} aria-pressed="${live ? CabinetHarness.state.recording : cabState.rec}" style="font-size:12px"><i class="ph ph-microphone"></i>${cabEsc((live ? CabinetHarness.state.recording : cabState.rec) ? C.done : C.dictate)}</button></div>
         ${cabState.rec ? `<span class="cab-dictating"><i class="ph ph-waveform"></i>${cabEsc(C.museListening)}</span>` : ""}
         ${notesFor(role, mode, C).map(n => `<span class="cab-note"><i class="ph ph-note-pencil"></i><span>${cabEsc(n)}</span></span>`).join("")}
       </div>`;
@@ -403,6 +403,7 @@ function bind() {
   if (hand) hand.onclick = () => { cabState.hand = !cabState.hand; cabRerender(); };
   const rec = document.querySelector("[data-cab-rec]");
   if (rec) rec.onclick = () => {
+    if (window.CabinetHarness?.state.meeting) { CabinetHarness.record(); return; }
     if (cabState.rec) {
       cabState.rec = false;
       const pool = cabT().notesArtist;

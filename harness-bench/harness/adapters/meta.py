@@ -1,8 +1,8 @@
 """Meta Model API adapter with budget holds before any paid HTTP call.
 
 Only /chat/completions is supported. /responses raises ConfigError before
-HTTP rather than inventing a payload/schema. ASR paid route is disabled until
-its usage contract is verified; WAV files are still inspected locally first.
+HTTP rather than inventing a payload/schema. ASR is explicitly opt-in and follows the verified file-transcription
+contract. WAV files are inspected locally before any paid request.
 SAM and TTS remain unimplemented with no local/system fallback.
 Constructor performs no network I/O. No retries are performed.
 """
@@ -43,7 +43,7 @@ MAX_OUTPUT_TOKENS = 8192
 # Documented Chat Completions reasoning_effort values (dev.meta.ai/docs/reasoning).
 # "none" is not supported (upstream returns 400) and is rejected here first.
 SUPPORTED_REASONING_EFFORTS = frozenset({"low", "medium", "high"})
-ASR_DISABLED_REASON = "ASR paid route disabled: Meta ASR usage/billing contract is unverified, so no reservation or POST is made"
+ASR_DISABLED_REASON = "ASR paid route disabled until explicitly enabled by the operator; no reservation or POST is made"
 
 
 def _is_int(value):
@@ -107,7 +107,7 @@ class MetaAdapter(Adapter):
                 raise ConfigError("injected http_client headers must not redirect key; failing closed")
             self.http = http_client
         else:
-            self.http = httpx.Client(base_url=self.base, timeout=60, transport=transport, headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+            self.http = httpx.Client(base_url=self.base, timeout=60, transport=transport, headers={"Authorization": f"Bearer {key}"})
 
     def _role(self, role):
         roles = self.cfg.get("roles") or {}
@@ -203,10 +203,51 @@ class MetaAdapter(Adapter):
     def transcribe(self, wav_path, keywords=None, language_bias=None):
         rc = self._role("asr")
         model = rc.get("model")
-        # Inspect locally before any reservation/POST, even though route is disabled.
         info = inspect_wav(wav_path)
-        _ = (model, info, keywords, language_bias)
-        raise ConfigError(ASR_DISABLED_REASON)
+        if not self.asr_enabled:
+            raise ConfigError(ASR_DISABLED_REASON)
+        if model != "muse-voice-transcribe-1.0" or rc.get("endpoint_file") != "/asr/transcribe":
+            raise ConfigError("unsupported ASR configuration")
+        mode = rc.get("mode", "PUSH_TO_TALK")
+        if mode not in ("PUSH_TO_TALK", "ENDPOINTING", "DIARIZATION"):
+            raise ConfigError("unsupported ASR mode")
+        keywords = keywords or []
+        language_bias = language_bias or []
+        if not isinstance(keywords, list) or len(keywords) > 200 or any(not isinstance(k, str) or len(k) > 100 for k in keywords):
+            raise ConfigError("invalid ASR keywords")
+        if not isinstance(language_bias, list) or any(k not in ("English", "Vietnamese") for k in language_bias):
+            raise ConfigError("unsupported ASR language bias")
+        if self.http.headers.get("Content-Type"):
+            raise ConfigError("ASR multipart client must not override Content-Type")
+        settings = {"model": model, "audioEncoding": "WAV", "mode": mode,
+                    "keywords": keywords, "languageBias": language_bias}
+        reservation = self.budget.reserve_asr_seconds(model, info["duration_seconds"])
+        started = time.perf_counter()
+        try:
+            with Path(wav_path).open("rb") as audio:
+                response = self.http.post("/asr/transcribe", headers={"Accept": "application/json"}, files={
+                    "request": (None, json.dumps(settings), "application/json"),
+                    "audio": ("recording.wav", audio, "audio/wav"),
+                })
+        except httpx.TransportError:
+            raise MetaTransportError("ASR transport failed; reservation remains on HOLD") from None
+        if response.status_code != 200:
+            raise MetaAPIError(f"ASR returned HTTP {response.status_code}; reservation remains on HOLD")
+        try:
+            data = response.json()
+            duration = data["audioDurationMs"]
+            text = data["transcript"]
+            if not _is_int(duration) or duration <= 0 or not isinstance(text, str) or not isinstance(data["sessionId"], str) or not isinstance(data["turns"], list):
+                raise ValueError("invalid ASR response")
+        except (ValueError, TypeError, KeyError):
+            raise MetaResponseError("ASR response invalid; reservation remains on HOLD") from None
+        cost = self.budget.settle_asr_seconds(reservation, model, duration / 1000)
+        return {"text": text, "seconds": duration / 1000, "latency_s": time.perf_counter() - started,
+                "cost_usd": cost, "reservation_id": reservation}
+
+    @property
+    def asr_enabled(self):
+        return (self.cfg.get("roles") or {}).get("asr", {}).get("enabled") is True
 
     def segment(self, image_path, prompt):
         raise ConfigError("SAM segmentation is unimplemented in this adapter; no paid call or local fallback is attempted")

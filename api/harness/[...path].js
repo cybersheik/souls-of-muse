@@ -7,7 +7,7 @@ module.exports = async function handler(req, res) {
   if (!base) return res.status(503).json({ detail: "harness_not_configured" });
   const parts = req.query.path;
   const path = Array.isArray(parts) ? parts.join("/") : String(parts || "");
-  if (!/^(health|auth\/(login|logout|me)|sessions(?:\/[a-zA-Z0-9_-]+(?:\/(?:start|complete|join|heart|events|audit\/verify|messages(?:\/[a-zA-Z0-9_-]+\/approve)?))?)?)$/.test(path)) {
+  if (!/^(health|auth\/(login|logout|me)|sessions(?:\/[a-zA-Z0-9_-]+(?:\/(?:start|complete|join|heart|events|transcriptions|audit\/verify|messages(?:\/[a-zA-Z0-9_-]+\/approve)?))?)?)$/.test(path)) {
     return res.status(404).json({ detail: "route_not_found" });
   }
   if (!["GET", "POST"].includes(req.method)) {

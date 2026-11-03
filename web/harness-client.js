@@ -1,7 +1,8 @@
 "use strict";
 
 window.CabinetHarness = (() => {
-  const state = { user: null, meeting: null, sessions: [], heart: null, busy: false, status: "", pending: null };
+  const state = { user: null, meeting: null, sessions: [], heart: null, busy: false, status: "", pending: null, recording: false, asr: false };
+  let capture = null, captureAbort = null, composeText = "", focusCompose = false;
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const ru = () => window.P01?.state.lang === "ru";
   const word = (en, local) => ru() ? local : en;
@@ -10,6 +11,8 @@ window.CabinetHarness = (() => {
     const x = scrollX, y = scrollY;
     render();
     window.scrollTo(x, y);
+    const input = document.querySelector("[data-cab-chat-input]");
+    if (input) { input.value = composeText; if (focusCompose) { input.focus(); focusCompose = false; } }
   };
   async function call(path, body) {
     const response = await fetch("/api/harness/" + path, {
@@ -85,7 +88,7 @@ window.CabinetHarness = (() => {
         client_event_id: state.pending.id, text, speaker: state.user.role,
         source_lang: role === "maestro" ? "en" : "vi", target_lang: role === "maestro" ? "vi" : "en",
       });
-      state.pending = null;
+      state.pending = null; composeText = "";
       await refresh();
     });
   }
@@ -96,7 +99,7 @@ window.CabinetHarness = (() => {
       const data = new FormData(event.currentTarget);
       const username = data.get("username"), password = data.get("password");
       event.currentTarget.reset();
-      action(async () => { state.user = await call("auth/login", { username, password }); await refresh(); location.hash = "#/space/" + state.user.role; });
+      action(async () => { state.user = await call("auth/login", { username, password }); state.asr = !!(await call("health")).capabilities.asr; await refresh(); location.hash = "#/space/" + state.user.role; });
     });
     on("[data-harness-create]", "submit", event => {
       event.preventDefault();
@@ -113,7 +116,7 @@ window.CabinetHarness = (() => {
       await refresh(); location.hash = "#/session/" + state.user.role + "/one-to-one";
     }));
     on("[data-harness-refresh]", "click", () => action(refresh));
-    on("[data-harness-logout]", "click", () => action(async () => { await call("auth/logout", {}); sessionStorage.removeItem("som_meeting"); Object.assign(state, { user: null, meeting: null, sessions: [], heart: null, pending: null }); }));
+    on("[data-harness-logout]", "click", () => action(async () => { cancelCapture(); await call("auth/logout", {}); sessionStorage.removeItem("som_meeting"); Object.assign(state, { user: null, meeting: null, sessions: [], heart: null, pending: null }); }));
     for (const verb of ["start", "join", "complete"]) on(`[data-harness-${verb}]`, "click", () => action(async () => {
       await call(`sessions/${state.meeting.id}/${verb}`, {});
       if (verb === "start") await call(`sessions/${state.meeting.id}/join`, {});
@@ -126,6 +129,8 @@ window.CabinetHarness = (() => {
         await refresh(); location.hash = "#/space/" + state.user.role;
       });
     });
+    const input = document.querySelector("[data-cab-chat-input]");
+    if (input) input.addEventListener("input", () => { composeText = input.value; });
     bindApprovals();
   }
   function bindApprovals() {
@@ -138,6 +143,7 @@ window.CabinetHarness = (() => {
   }
   call("auth/me").then(async user => {
     state.user = user;
+    state.asr = !!(await call("health")).capabilities.asr;
     const saved = sessionStorage.getItem("som_meeting");
     if (saved) {
       try { state.meeting = await call("sessions/" + encodeURIComponent(saved)); if (window.Cabinet) Cabinet.state.drawer[user.role] = false; }
@@ -159,5 +165,40 @@ window.CabinetHarness = (() => {
       }
     } catch (_) { /* The explicit refresh action displays errors. */ }
   }, 5000);
-  return { state, panel, messages, send, bind };
+  function cancelCapture() {
+    if (captureAbort) captureAbort.abort();
+    capture = null; captureAbort = null; composeText = ""; focusCompose = false; state.recording = false;
+  }
+  async function record() {
+    if (capture) { capture.stop(); return; }
+    if (!state.asr || state.busy || state.recording || !state.meeting || state.meeting.state !== "active") return;
+    const controller = new AbortController();
+    captureAbort = controller;
+    state.recording = true; state.status = word("Recording · up to 10 seconds", "Запись · до 10 секунд"); redraw();
+    try {
+      capture = await SomAudio.start(controller.signal);
+      const audio = await capture.result;
+      const meeting = state.meeting.id;
+      state.recording = false; capture = null;
+      await action(async () => {
+        const transcript = await call(`sessions/${meeting}/transcriptions`, {
+          client_event_id: crypto.randomUUID(), language: state.user.role === "maestro" ? "en" : "vi", wav_base64: audio,
+        });
+        if (controller.signal.aborted) return;
+        composeText = transcript.text; focusCompose = true;
+        state.status = "";
+        // The participant reviews the recognized words before sending them.
+        redraw();
+        const input = document.querySelector("[data-cab-chat-input]");
+        if (input) { input.value = transcript.text; input.focus(); }
+      });
+    } catch (error) {
+      if (!controller.signal.aborted) state.status = word("Recording could not be transcribed", "Запись не удалось распознать") + " · " + error.message;
+    } finally {
+      if (captureAbort === controller) { captureAbort = null; capture = null; state.recording = false; }
+      redraw();
+    }
+  }
+  window.addEventListener("hashchange", cancelCapture);
+  return { state, panel, messages, send, bind, record };
 })();

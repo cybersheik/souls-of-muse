@@ -1,11 +1,12 @@
 """Souls of Muse — minimal real Harness backend (vertical slice).
 
-Only text EN<->VI interpretation via harness-bench MetaAdapter
-(/chat/completions, muse-spark-1.3) is implemented. No /responses, ASR,
+Text EN<->VI interpretation and optional push-to-talk ASR use the
+harness-bench MetaAdapter. No /responses,
 SAM, TTS, media, watches, registration or votes.
 Fail-closed: no auto-created budget ledger, no default pilot token,
-role credentials are derived from the Authorization token only.
-Author: Meta Muse Wonder.
+roles and meeting membership are resolved server-side.
+Initial service: Meta Muse Wonder. Identity, heart and voice integration: CX1.
+Signed heart journal: Kimi.
 """
 import hashlib, hmac, json, os, sqlite3, sys, threading, time, uuid
 from datetime import datetime, timezone
@@ -88,6 +89,20 @@ class PersistentBudgetGuard:
                 cb()
             except Exception as exc:
                 raise PersistenceError("durable commit failed") from exc
+    def reserve_asr_seconds(self, model, seconds):
+        try:
+            result = self._guard.reserve_asr_seconds(model, seconds)
+        finally:
+            self._persist()
+        return result
+
+    def settle_asr_seconds(self, reservation_id, model, seconds):
+        try:
+            result = self._guard.settle_asr_seconds(reservation_id, model, seconds)
+        finally:
+            self._persist()
+        return result
+
     def reserve_chat(self, model, max_input_tokens, max_output_tokens):
         try:
             rid = object.__getattribute__(self, "_guard").reserve_chat(model, max_input_tokens, max_output_tokens)
@@ -124,13 +139,14 @@ class BodyLimitMiddleware:
     async def __call__(self, scope, receive, send):
         if scope.get("type") != "http" or scope.get("method") not in ("POST", "PUT", "PATCH"):
             await self.app(scope, receive, send); return
+        limit = 1_000_000 if scope.get("path", "").endswith("/transcriptions") else self.max_body
         chunks = []; total = 0
         while True:
             msg = await receive()
             if msg.get("type") == "http.request":
                 body = msg.get("body", b"") or b""
                 total += len(body)
-                if total > self.max_body:
+                if total > limit:
                     await send({"type": "http.response.start", "status": 413, "headers": [(b"content-type", b"application/json")]})
                     await send({"type": "http.response.body", "body": b'{"detail":"request_too_large"}'})
                     return
@@ -203,6 +219,7 @@ def _build_real_adapter(data_dir, environ, on_write=None, transport=None):
             return None, False
         models = yaml.safe_load((_BENCH / "config" / "models.yaml").read_text(encoding="utf-8")) or {}
         cfg = dict(models); cfg["roles"] = {"interpreter": {"model": "muse-spark-1.3", "endpoint": "/chat/completions", "reasoning_effort": "low", "temperature": 0.1, "max_tokens": 1024}}
+        cfg["roles"]["asr"] = {"model": "muse-voice-transcribe-1.0", "endpoint_file": "/asr/transcribe", "enabled": environ.get("SOM_ENABLE_ASR") == "1"}
         wrapped = PersistentBudgetGuard(guard, on_write)
         return MetaAdapter(cfg, wrapped, transport=transport, environ=environ), True
     except Exception:
@@ -360,8 +377,8 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
                 "roles_ready": auth_ready, "pilot_ready": pilot_ready,
                 "production_ready": False, "full_participant_identity": False,
                 "capabilities": {"text_interpretation_en_vi": bool(pilot_ready), "sessions": bool(auth_ready), "maestro_approval": bool(auth_ready), "hash_linked_audit": True, "participant_login": bool(identity.accounts), "scoped_session_membership": True, "heart_journal_integration": bridge.key is not None, "heart_outbox": True,
-                                 "responses": False, "asr": False, "sam": False, "tts": False, "media_rooms": False, "watches": False, "registration": False, "votes": False},
-                "not_implemented": ["lessons_media", "group_media_streams", "league_interactions_beyond_text_sessions", "responses", "asr", "sam", "tts", "watches", "full_participant_identity", "production_readiness"]}
+                                 "responses": False, "asr": bool(getattr(adapter, "asr_enabled", False)), "sam": False, "tts": False, "media_rooms": False, "watches": False, "registration": False, "votes": False},
+                "not_implemented": ["lessons_media", "group_media_streams", "league_interactions_beyond_text_sessions", "responses", "sam", "tts", "watches", "full_participant_identity", "production_readiness"] + ([] if getattr(adapter, "asr_enabled", False) else ["asr"])}
 
     @app.get("/pilot")
     def pilot():
@@ -426,7 +443,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
                 bridge.drain()
                 return {"id": sid, "state": "completed"}
             if s["state"] != "active": return err(409, "invalid_transition")
-            busy = c.execute("SELECT COUNT(*) FROM messages WHERE session_id=? AND state='processing'", (sid,)).fetchone()[0]
+            busy = c.execute("SELECT (SELECT COUNT(*) FROM messages WHERE session_id=? AND state='processing') + (SELECT COUNT(*) FROM transcriptions WHERE session_id=? AND state='processing')", (sid, sid)).fetchone()[0]
             if busy: return err(409, "session_has_processing_messages")
             cur = c.execute("UPDATE sessions SET state='completed' WHERE id=? AND state='active'", (sid,))
             if cur.rowcount != 1: return err(409, "invalid_transition")
@@ -635,6 +652,8 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         finally:
             c.close()
 
+    from .voice import install_voice
+    install_voice(app, db, _commit, actor_from_auth, get_session, err, adapter, inference_gate, data_dir, glossary)
     return app
 
 app = None  # No import-time app: provisioning must be explicit. Use create_app.

@@ -388,6 +388,20 @@ class BudgetGuard:
             conn.close()
 
     def settle(self, reservation_id, model, usage):
+        return self._settle(reservation_id, model, "chat", lambda: self.actual_chat_cost_micro(model, usage))
+
+    def settle_asr_seconds(self, reservation_id, model, seconds):
+        # Meta meters processed audio rounded down to whole seconds. Reservations
+        # intentionally retain the existing conservative whole-minute bound.
+        if isinstance(seconds, bool) or not isinstance(seconds, (int, float)) or not math.isfinite(seconds) or seconds <= 0:
+            raise UsageValidationError("ASR duration must be positive")
+        rate = KNOWN_ASR_PRICES_USD_PER_1000MIN.get(model)
+        if rate is None:
+            raise UnknownModelError("unknown ASR model")
+        actual = int((Decimal(math.floor(seconds)) * rate * Decimal("1000") / Decimal("60")).to_integral_value(rounding="ROUND_CEILING"))
+        return self._settle(reservation_id, model, "asr", lambda: actual)
+
+    def _settle(self, reservation_id, model, kind, actual_cost):
         conn = self._connect()
         try:
             conn.execute("BEGIN IMMEDIATE")
@@ -396,6 +410,9 @@ class BudgetGuard:
             if row is None:
                 conn.execute("ROLLBACK")
                 raise BudgetLedgerError("unknown reservation id; failing closed")
+            if row["model"] != model or row["kind"] != kind:
+                conn.execute("ROLLBACK")
+                raise UsageValidationError("settlement model or kind does not match reservation")
             if row["state"] == "SETTLED":
                 settled = int(row["settled_micro"])
                 conn.execute("COMMIT")
@@ -403,11 +420,8 @@ class BudgetGuard:
             if row["state"] == "BLOCKED":
                 conn.execute("ROLLBACK")
                 raise BudgetExceeded("reservation is BLOCKED and requires operator review")
-            if row["model"] != model:
-                conn.execute("ROLLBACK")
-                raise UsageValidationError("settlement model does not match reservation; reservation remains on HOLD")
             try:
-                actual = self.actual_chat_cost_micro(model, usage)
+                actual = actual_cost()
             except (UsageValidationError, UnknownModelError):
                 conn.execute("ROLLBACK")
                 raise

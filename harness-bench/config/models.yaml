@@ -24,6 +24,7 @@ roles:
     temperature: 0.0
     max_tokens: 512
   asr:
+    enabled: false
     model: muse-voice-transcribe-1.0
     endpoint_ws: /asr/realtime
     endpoint_file: /asr/transcribe
@@ -40,5 +41,5 @@ fallbacks:
   asr: []
 notes: >
   Product runtime uses Meta models only. SAM/TTS are unimplemented in the
-  budget-safe adapter. ASR paid route is disabled until its usage contract is
-  verified. No local machine fallback or system TTS is claimed here.
+  budget-safe adapter. ASR file transcription is available when explicitly enabled with budget
+  reservation before HTTP and settlement from processed duration. No local machine fallback or system TTS is claimed here.
