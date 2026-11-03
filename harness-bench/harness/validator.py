@@ -4,6 +4,7 @@ term_id — из справочника (стабильный идентифик
 """
 import json, re, unicodedata
 from pathlib import Path
+from .spoken_numbers import numeric_text
 
 NUM_RE = re.compile(r"\d+(?:[.,]\d+)?")
 NEG_EN = re.compile(r"\b(?:not|no|never|n't|don'?t|do not)\b", re.I)
@@ -30,16 +31,17 @@ def _norm(s):
     return unicodedata.normalize("NFC", s.lower())
 
 
-def numbers(text):
+def numbers(text, lang=None):
     t = _norm(text)
+    t = re.sub(r"\bnhịp\s+một\s+phút\b", "nhịp mỗi phút", t)
     for w, d in ORDINALS.items():
         t = re.sub(rf"\b{w}\b", d, t)
-    return set(NUM_RE.findall(t))
+    return set(NUM_RE.findall(numeric_text(t, lang)))
 
 
 def negation_count(text, lang):
     rx = NEG_VI if lang == "vi" else NEG_EN
-    return len(rx.findall(_norm(text)))
+    return len(rx.findall(numeric_text(_norm(text), lang)))
 
 
 def notes(text):
@@ -60,6 +62,9 @@ def term_ids(text, glossary):
         for lang in ("en", "vi"):
             fs = term[lang] if isinstance(term[lang], list) else [term[lang]]
             forms += [(_norm(f), term["term_id"]) for f in fs]
+    if any(term["term_id"] == "BPM" for term in glossary):
+        forms += [(form, "BPM") for form in ("beats per minute", "beat per minute",
+                  "nhịp mỗi phút", "nhịp một phút", "nhịp trên phút", "nhịp/phút")]
     ids = set()
     for f, tid in sorted(forms, key=lambda x: -len(x[0])):
         pat = re.compile(rf"(?<![\w]){re.escape(f)}(?![\w])")
@@ -75,7 +80,7 @@ def term_ids(text, glossary):
 
 def signature(text, lang, glossary):
     return {
-        "numbers": numbers(text),
+        "numbers": numbers(text, lang),
         "neg": negation_count(text, lang),
         "notes": notes(text),
         "terms": term_ids(text, glossary),
@@ -83,7 +88,7 @@ def signature(text, lang, glossary):
 
 
 def compare(src_sig, out_sig):
-    """Возвращает список искажений; пустой список = смысл сохранён полностью."""
+    """Проверяемые искажения; пустой список не доказывает полную эквивалентность."""
     issues = []
     lost = src_sig["numbers"] - out_sig["numbers"]
     extra = out_sig["numbers"] - src_sig["numbers"]

@@ -143,6 +143,10 @@ The authenticated `/sessions/{id}/transcriptions` endpoint checks meeting member
 
 The wire contract and metering were checked against Meta's [file-transcription reference](https://dev.meta.ai/docs/api-reference/voice/transcribe), [response schemas](https://dev.meta.ai/docs/api-reference/voice/schemas), and [pricing](https://dev.meta.ai/docs/pricing-rate-limits) on 3 November 2026. This is speech recognition. Synthesized replies and live streaming voice remain separate acceptance work.
 
+A local real-model run on 3 November used two MMS-synthesized microphone samples through actual Chrome/RTC and made two Meta ASR plus two Spark calls. VI→EN was reviewed and delivered with actual MMS/RTC, heart completion and persistence after a local process restart. EN ASR changed “A minor chord” and appended contradictory words; that draft was rejected and stayed hidden from Artist. This is **partial acceptance**, not human speech quality or full EN↔VI acceptance. See `docs/qa-real-voice-20261103.json`. No automatic retry was made. The existing local ledger records the four new settled calls; its real rows must be reconciled with the cloud ledger before the next deployment, preserving the two earlier cloud-only charges.
+
+The deterministic validator now recognizes EN/VI spelled cardinals, decimal spellings and full BPM unit names. Numeric Vietnamese `không` is distinguished from negation in the same normalization path, and the denominator in `nhịp một phút` is a unit rather than a new count. A clear validator result is not proof of complete semantic equivalence or correct ASR; source review and Maestro approval remain required.
+
 ## Optional MMS speech evaluation
 
 The existing Cabinet can play approved translations through Meta's [English](https://huggingface.co/facebook/mms-tts-eng) and [Vietnamese](https://huggingface.co/facebook/mms-tts-vie) MMS-TTS checkpoints. This candidate is disabled by default. The weights are **CC-BY-NC 4.0**; public/commercial deployment remains a separate unresolved release decision. No fine-tuning or voice cloning is included.
