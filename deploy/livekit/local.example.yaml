@@ -1,0 +1,16 @@
+# Local verification only. Supply a private key through LIVEKIT_KEYS (key: secret).
+# Keep public SFU/TLS/TURN provisioning separate; never publish real credentials.
+port: 54410
+bind_addresses: [127.0.0.1]
+rtc:
+  tcp_port: 54411
+  udp_port: 54412
+  node_ip: 127.0.0.1
+  use_external_ip: false
+  enable_loopback_candidate: true
+room:
+  auto_create: false
+  empty_timeout: 600
+  departure_timeout: 5
+logging:
+  level: warn

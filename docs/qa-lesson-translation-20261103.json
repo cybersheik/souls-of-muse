@@ -1,0 +1,102 @@
+{
+  "result": "OFFLINE_CONTRACT_PASS_REAL_QUALITY_UNTESTED",
+  "scope": "actual site/API/storage with explicitly fixed interpreter/reviewer responses; no provider calls",
+  "approved_fields_visible_to_artist": true,
+  "unapproved_target_and_private_review_hidden": true,
+  "notebook_edit_preserves_translation": true,
+  "roles": [
+    "lesson_interpreter",
+    "lesson_reviewer"
+  ],
+  "layouts": [
+    {
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "width": 320,
+      "overflow": false
+    }
+  ],
+  "EN_RU_labels": true,
+  "page_errors": [],
+  "new_server_process_restart": true,
+  "source_edit_invalidates_old_target": true,
+  "stale_approval_rejected": true,
+  "date": "2026-11-03",
+  "base_commit": "39f02e8b1c119c4185795e2c2f99ae48f94986ea",
+  "service_checks": 153,
+  "node_checks": 65,
+  "total_offline_checks": 320,
+  "independent_review": "PASS after reproduced explicit-retry gap fix",
+  "factory_budget": {
+    "transport": "httpx.MockTransport only",
+    "separate_test_ledgers": true,
+    "schema_in_request": true,
+    "output_bounds": [
+      8192,
+      2048
+    ],
+    "conversation_bounds_unchanged": [
+      1024,
+      512
+    ],
+    "hold_before_http": true,
+    "settlement_same_guard": true,
+    "exhausted_allocation_no_http": true,
+    "failed_commit_no_http_hold_retained": true
+  },
+  "behavior": {
+    "immutable_source_language_hash": true,
+    "field_local_validation_and_required_full_context_review": true,
+    "artist_approved_fields_only": true,
+    "revision_bound_client_projection": true,
+    "new_event_id_after_failure_requires_explicit_retry": true,
+    "review_retry_reuses_canonical_translation": true,
+    "old_pending_cannot_override_new_approved": true,
+    "restart_processing_failed_no_replay": true,
+    "meeting_closure_discards_pending": true
+  },
+  "real_model_tested": false,
+  "real_translation_quality_accepted": false,
+  "latency_accepted": false,
+  "provider_calls": 0,
+  "real_budget_changed": false,
+  "cloud_deployed": false,
+  "production_merged": false,
+  "verified_real_local_ledger": {
+    "settled_calls": 24,
+    "settled_usd": 0.03605,
+    "unsettled": 0
+  },
+  "known_cloud_only_usd": 0.003911,
+  "cloud_ledger_refreshed": false,
+  "additional_suites": {
+    "harness": 60,
+    "root": 37,
+    "original_heart": 5
+  },
+  "note_alias_fix": {
+    "observed": "Valid short Vietnamese nốt + pitch falsely lost NOTE while the pitch itself matched",
+    "scope": "Contextual note label only; same article-a filter as pitch recognition",
+    "correct_pairs": 4,
+    "nonmusical_controls": 4,
+    "independent_valid_pair_matrix": 84,
+    "result": "PASS",
+    "review_and_maestro_gate_preserved": true
+  },
+  "supplemental_note_alias_ui": {
+    "result": "PASS",
+    "role": "maestro",
+    "width": 390,
+    "overflow": false,
+    "false_NOTE_absent": true,
+    "review_and_explicit_approval_preserved": true,
+    "additional_offline_fixture_calls": 2,
+    "provider_calls": 0
+  }
+}

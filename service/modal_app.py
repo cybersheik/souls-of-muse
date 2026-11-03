@@ -33,9 +33,10 @@ volume = modal.Volume.from_name("som-data", create_if_missing=False, version=2)
 writer_queue = modal.Queue.from_name("som-writer-permit", create_if_missing=False)
 image = (
     modal.Image.debian_slim(python_version="3.12")
-    .pip_install("fastapi==0.115.6", "uvicorn==0.34.0", "httpx==0.28.1", "PyYAML==6.0.2", "pydantic==2.10.4")
+    .pip_install_from_requirements("service/requirements.txt")
     .add_local_dir("service", "/app/service")
     .add_local_dir("harness-bench", "/app/harness-bench")
+    .add_local_dir("runtime", "/app/runtime")
 )
 
 
@@ -108,7 +109,10 @@ def build_writer_app(queue, volume, app_factory):
 @app.function(
     image=image, cpu=1, memory=512, min_containers=0, max_containers=1, buffer_containers=0,
     scaledown_window=60, volumes={"/data/som": volume},
-    secrets=[modal.Secret.from_name("som-pilot")],  # existing operator secret: SOM_MAESTRO_TOKEN, SOM_ARTIST_TOKEN, MODEL_API_KEY; never hardcoded
+    secrets=[
+        modal.Secret.from_name("som-pilot"),  # existing model and private pilot credentials
+        modal.Secret.from_name("som-participants"),  # participant password hashes, allowed preview Origin, heart signing key
+    ],
 )
 @modal.asgi_app()
 def web():

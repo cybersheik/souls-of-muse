@@ -1,0 +1,51 @@
+{
+  "result": "PASS",
+  "source_base": "6e7c6680218b2380788ae1543eb71f3c632d6938",
+  "trigger_before_fix": {
+    "rooms_after_browser_close": 4,
+    "member_clients_in_rooms": 0,
+    "server_clients_per_room": 1,
+    "admission": "ACTIVE",
+    "next_join_http": 429
+  },
+  "native_default_test": {
+    "result": "PASS",
+    "real_localhost_sfu": true,
+    "client_leave_request_blocked": true,
+    "browser_closed_cleanup_seconds": 75.157,
+    "next_lesson_admission_succeeded": true,
+    "abandoned_join_cleanup_seconds": 61.019,
+    "logical_meetings_still_active": true,
+    "heart_awarded": false,
+    "fixture_grace_seconds": {
+      "connect": 60,
+      "disconnect": 20
+    },
+    "production_grace_seconds": {
+      "connect": 60,
+      "disconnect": 20
+    },
+    "provider_calls": 0
+  },
+  "cleanup_verification": {
+    "sfu_rooms": 0,
+    "all_test_admission_rows": "COMPLETED",
+    "logical_meetings": "active",
+    "heart_awarded": false
+  },
+  "timer_semantics": "disconnect grace starts after SFU confirms client disappearance; observed75.157s from browser close includes SFU reconnect timeout plus20s grace",
+  "regressions": [
+    "abandoned join timeout",
+    "client reconnect before grace",
+    "one of two channels missing",
+    "failed deletion retains capacity",
+    "recheck presence after lifecycle lock",
+    "fresh clock after lock wait",
+    "retry clock after failed cleanup returns",
+    "shutdown drains active watcher cleanup",
+    "cancelled disconnect retains native handle",
+    "native server participant is not a member presence"
+  ],
+  "models_called_for_lease_test": 0,
+  "cloud_deployed": false
+}

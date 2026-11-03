@@ -1,0 +1,92 @@
+{
+  "result": "LOCAL_WORKSPACE_PASS_FULL_SERVICE_INCOMPLETE",
+  "scope": "actual website and real workspace API/storage; model calls forbidden",
+  "automatic_artist_step_sync": true,
+  "notation_svg_rendered": true,
+  "sandbox_hostile_title_isolated": true,
+  "stale_edit_preserved": true,
+  "artist_read_only": true,
+  "layouts": [
+    {
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "width": 320,
+      "overflow": false
+    }
+  ],
+  "page_errors": [],
+  "new_server_process_restart": true,
+  "date": "2026-11-03",
+  "base_commit": "55019227dc9d72f893abf65ce37a6a380bf726a9",
+  "server_regressions": {
+    "count": 7,
+    "covered": [
+      "new meeting empty",
+      "teacher-only scoped membership and Origin",
+      "atomic plan/step/chords/ABC/tabs across restart",
+      "revision conflict and idempotent replay",
+      "shape/field bounds",
+      "concurrent tabs one winner and read-only completion",
+      "failed durable write closes participant reads"
+    ]
+  },
+  "client_races": {
+    "count": 5,
+    "result": "PASS",
+    "covered": [
+      "late old-meeting poll",
+      "account switch during poll",
+      "late401 after new login",
+      "initial lookup arriving after explicit login",
+      "startup saved-meeting fetch arriving after new selection"
+    ]
+  },
+  "editor_regressions": {
+    "result": "PASS",
+    "covered": [
+      "whole form disabled during save",
+      "one editor at a time; unsaved form retained",
+      "step mutations unavailable while editing",
+      "local Maestro metronome preserved"
+    ]
+  },
+  "independent_review": "PASS after reproduced draft-loss and stale-context fixes",
+  "offline_checks": {
+    "service": 133,
+    "harness": 58,
+    "root": 37,
+    "original_heart": 5,
+    "node": 57,
+    "total": 290
+  },
+  "renderer": {
+    "package": "abcjs",
+    "version": "6.7.2",
+    "license": "MIT",
+    "source": "https://registry.npmjs.org/abcjs/-/abcjs-6.7.2.tgz",
+    "npm_integrity": "sha512-cHCyf8j0hAcxTuwZ9l2QznaSlLK1TD2s5oVw6Ig8Kfss6VfJKoNJ1kAzMBwa6DDWeyNl2JH7mN/U+MJ8MYbC5g==",
+    "sha256": "3290ef44c918d5e882029d3a47ad3dd63c16c8819da5abe921f3d1e642b4f4f0",
+    "use": "visual ABC renderer only in opaque sandbox; no audio or runtime network"
+  },
+  "paid_calls": 0,
+  "budget_changed": false,
+  "production_merged": false,
+  "cloud_deployed": false,
+  "remaining": [
+    "cloud/coldrestart",
+    "translation of shared materials",
+    "human EN↔VI voice/ASR/latency",
+    "full group fanout and streams",
+    "private participant notes",
+    "performance/VAD/SAM",
+    "Watch6 Classic/tactile metronome",
+    "participant identity/signing and League workflows",
+    "design/production acceptance"
+  ]
+}

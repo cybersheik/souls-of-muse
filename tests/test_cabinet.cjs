@@ -108,7 +108,7 @@ assert.match(css, /main\[tabindex="-1"\][^{]*\{outline:none\}/, "no ring on prog
 assert.match(css, /\.cab :focus-visible\{outline:2px/, "keyboard :focus-visible kept");
 
 // --- GAP 2: #/leagues rebuilt per frame 9 (cabinet style, EN/RU) ---
-assert.match(app, /Cabinet\.leagues\(\)/, "app routes #/leagues to Cabinet.leagues");
+assert.match(app, /Portal20\.leagues\(\)/, "app routes #/leagues to Portal 2.0 (Cabinet.leagues stays as the after-Welcome component)");
 assert.ok(!/\bvLeagues\b|\bbindLeagues\b|leagueGrid/.test(app), "old portal leagues view removed");
 window.P01.state.lang = "en";
 const lgEn = Cabinet.leagues();
