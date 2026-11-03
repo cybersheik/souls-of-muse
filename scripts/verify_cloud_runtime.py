@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "harness-bench"))
 PREFIX = "/api/harness"
 ORIGIN = "https://soulsofmuse.app"
+FIXTURE_VERSION = "som-cloud-runtime-fixture-v1"
 
 
 def require(condition, description):
@@ -41,6 +42,18 @@ async def native_audio():
 
 
 def phase(directory, restart):
+    # Internal phase arguments are still a public CLI: never reuse an operator
+    # directory or infer that arbitrary JSON/SQLite files belong to this check.
+    require(not directory.is_symlink() and directory.is_dir(), "invalid fixture directory")
+    state = directory / "fixture.json"
+    if restart:
+        require(not state.is_symlink() and state.is_file(), "recognized runtime fixture required")
+        fixture = json.loads(state.read_text())
+        require(isinstance(fixture, dict) and fixture.get("fixture_version") == FIXTURE_VERSION,
+                "recognized runtime fixture required")
+    else:
+        require(not any(directory.iterdir()), "prepare requires an empty fixture directory")
+
     import httpx
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
     from cryptography.hazmat.primitives import serialization
@@ -51,17 +64,15 @@ def phase(directory, restart):
     from service.app import create_app
     from service.identity import password_hash
 
-    state = directory / "fixture.json"
-    if restart:
-        fixture = json.loads(state.read_text())
-    else:
-        fixture = {"accounts": {user: {"role": role,
+    if not restart:
+        fixture = {"fixture_version": FIXTURE_VERSION,
+                   "accounts": {user: {"role": role,
                     "password_hash": password_hash("runtime-fixture-password")}
                     for user, role in (("M", "maestro"), ("A", "artist"))}}
-        (directory / "budget.yaml").write_text(
-            "total_usd: 0.05\nwarn_pct: 0.80\nhard_stop_pct: 0.95\n"
-            "ledger: budget_ledger.sqlite3\nprices_usd_per_mtok:\n"
-            "  muse-spark-1.3: {input: 1.25, output: 4.25, cached_input: 0.15}\n")
+        with (directory / "budget.yaml").open("x") as stream:
+            stream.write("total_usd: 0.05\nwarn_pct: 0.80\nhard_stop_pct: 0.95\n"
+                "ledger: budget_ledger.sqlite3\nprices_usd_per_mtok:\n"
+                "  muse-spark-1.3: {input: 1.25, output: 4.25, cached_input: 0.15}\n")
         BudgetGuard.initialize_ledger(str(directory / "budget.yaml"),
                                       str(directory / "budget_ledger.sqlite3"))
 
