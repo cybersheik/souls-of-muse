@@ -1,6 +1,7 @@
 """Room capabilities and durable admission; external room calls are explicit fakes."""
 import json
 import sqlite3
+import sys
 import tempfile
 import unittest
 
@@ -29,7 +30,7 @@ class RoomAPI:
 
 class MediatedMedia(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        self.directory = tempfile.TemporaryDirectory(prefix="cx1-media-", dir="/private/tmp")
+        self.directory = tempfile.TemporaryDirectory(prefix="cx1-media-", dir="/private/tmp" if sys.platform == "darwin" else None)
         self.addCleanup(self.directory.cleanup)
         self.admission = initialize_database(self.directory.name + "/admission.sqlite3", capacity=1)
         self.authority = MediaAuthority("ws://127.0.0.1:54410", "local-key", "s" * 48)
