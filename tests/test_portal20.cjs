@@ -30,7 +30,7 @@ for (const lang of ["en", "ru"]) {
   assert.ok(home.includes('class="p20-shutter') && home.includes(T.howTitle), `notes shutter ${lang}`);
   assert.ok(home.includes(CONV[lang].title) && home.includes(CONV[lang].first), `Convention card uses the approved CONV text ${lang}`);
   assert.equal(goldCount(home), 1, `home ${lang}: exactly one filled gold button`);
-  assert.ok(home.includes('id="entSign"') && home.includes(T.launch), `sign button + launch note ${lang}`);
+  assert.ok(home.includes('id="p20Sign"') && home.includes(T.cta), `sign button ${lang}`);
   assert.ok(home.includes("data-sigline") && home.includes(T.exampleData), `example signature marked as example data ${lang}`);
   assert.ok(!home.includes("entName"), `no typed-name preview before signing ${lang}`);
   const lg = P.leagues();

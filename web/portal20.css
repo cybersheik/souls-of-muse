@@ -95,6 +95,21 @@
 .p20-sign .ph-signature{font-size:20px}
 .p20-social{display:flex;gap:3px;font-size:18px}
 .p20 .p20-sign:focus-visible{outline-color:var(--p01-ink)}
+.p20-link{border:0;background:transparent;padding:4px 0;min-height:32px;color:#7A5A12;font:500 14px Inter,system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.p20-signform{display:flex;flex-direction:column;gap:12px;padding-top:12px;border-top:1px solid var(--p01-line)}
+.p20-field{display:flex;flex-direction:column;gap:6px;font-size:13.5px;color:var(--p01-muted);font-weight:500}
+.p20-field[hidden]{display:none}
+.p20-field input{min-height:48px;padding:0 14px;border-radius:10px;border:1.5px solid #D9C69A;background:#FFFDF8;color:var(--p01-ink);font:500 18px 'Cormorant Garamond','Noto Sans KR','Noto Sans JP',Georgia,serif}
+.p20-field input:focus-visible{outline:2px solid #B8903A;outline-offset:1px;border-color:#B8903A}
+.p20-signmsg{margin:0;min-height:0;font-size:13px;line-height:1.45;color:#8a2b1f}
+.p20-signmsg:empty{display:none}
+.p20-signed{display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px solid var(--p01-line)}
+.p20-signedhead{display:flex;align-items:center;gap:10px;color:#7A5A12}
+.p20-signedhead i{font-size:26px}
+.p20-thanks{font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;font-weight:600;color:var(--p01-ink)}
+.p20-sublabel{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#7A5A12;font-weight:500}
+.p20-score{overflow-x:auto;margin:0 -6px}
+.p20-score svg{display:block;max-width:100%;height:auto}
 .p20-signnote{margin:0;display:flex;align-items:center;gap:6px;font-size:13px;line-height:1.4;color:var(--p01-muted)}
 .p20-example{padding-top:12px;border-top:1px solid var(--p01-line)}
 .p20-exlabel{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--p01-muted)}

@@ -34,6 +34,9 @@ const T = {
     whatRead: "How to read the circle",
     whatCircle: "In the centre is the Golden Lyre, the Convention. Gold threads link every League to it and to its neighbours.",
     about: "Souls of Muse is a free association of musicians keeping live music alive.",
+    nameLabel: "Your name", namePh: "Type your name", cancel: "Cancel",
+    thanks: "Signed.", sub: "Your musical signature", savedHere: "Saved on this device.", signAgain: "Sign with another name",
+    noNotes: "Type your name in letters — it will be written as music.",
   },
   ru: {
     promise: "Подпишите Конвенцию своим именем, записанным нотами.",
@@ -62,6 +65,9 @@ const T = {
     whatRead: "Как читать круг",
     whatCircle: "В центре — Золотая лира, Конвенция. Золотые нити связывают с ней каждую Лигу и соседние Лиги между собой.",
     about: "Souls of Muse — свободное объединение музыкантов, хранящих живую музыку.",
+    nameLabel: "Ваше имя", namePh: "Введите имя", cancel: "Отмена",
+    thanks: "Подписано.", sub: "Ваша музыкальная подпись", savedHere: "Сохранено на этом устройстве.", signAgain: "Подписать другим именем",
+    noNotes: "Введите имя буквами — оно будет записано нотами.",
   },
 };
 const LANGS = [["en", "English"], ["es", "Español"], ["fr", "Français"], ["de", "Deutsch"], ["pt", "Português"], ["it", "Italiano"], ["ja", "日本語"], ["ko", "한국어"], ["zh", "中文"], ["hi", "हिन्दी"], ["vi", "Tiếng Việt"], ["kk", "Қазақша"], ["ru", "Русский"], ["tr", "Türkçe"], ["ar", "العربية"], ["id", "Bahasa Indonesia"]];
@@ -79,7 +85,8 @@ const ss = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
 };
-const st = { menu: false, how: {}, sel: null, shut: ss.get("som_p20_shut", {}) };
+const st = { menu: false, how: {}, sel: null, shut: ss.get("som_p20_shut", {}), signing: false, signMsg: "", draft: "", draftReading: "" };
+const signedRec = () => { const r = ss.get("som_signed", null); return r && r.name && Array.isArray(r.notes) && r.notes.length ? r : null; };
 let raf = null, offs = [];
 const lang = () => (window.P01 && window.P01.state.lang === "ru") ? "ru" : "en";
 const t = () => T[lang()];
@@ -137,12 +144,8 @@ function convCard() {
     <p class="p01-ent-first">${esc(cv.first)}</p>
     ${open ? cv.rest.map(p => `<p class="p01-ent-rest">${esc(p)}</p>`).join("") : ""}
     <button class="p01-ent-toggle" data-conv aria-expanded="${open}"><i class="ph ${open ? "ph-caret-up" : "ph-caret-down"}"></i>${esc(open ? cv.collapse : cv.readAll)}</button>
-    <div class="p20-signrow">
-      <button class="p20-sign" id="entSign" type="button" aria-describedby="p20SignNote"><i class="ph ph-signature" aria-hidden="true"></i><span>${esc(tt.cta)}</span><span class="p20-social" aria-hidden="true"><i class="ph ph-facebook-logo"></i><i class="ph ph-instagram-logo"></i></span></button>
-      <p id="p20SignNote" class="p20-signnote"><i class="ph ph-clock" aria-hidden="true"></i>${esc(tt.launch)}</p>
-      <p id="entSignState" class="p20-sr" role="status"></p>
-    </div>
-    <div class="p01-ent-sig p20-example">
+    ${signBlock()}
+    ${signedRec() ? "" : `<div class="p01-ent-sig p20-example">
       <div class="p20-exlabel"><span>${esc(tt.example)}</span><span class="p20-exdata">${esc(tt.exampleData)}</span></div>
       <div class="p01-ent-sigline" data-sigline>
         ${SIGS.map(([k, f]) => `<div class="p01-ent-sigimg" data-k="${k}"><img src="${f}" alt=""></div>`).join("")}
@@ -154,8 +157,38 @@ function convCard() {
         <button class="p01-ent-iconbtn" data-sig-pause aria-label="${esc(tt.pauseLabel)}"><i class="ph ${P.state.sigPaused ? "ph-play-circle" : "ph-pause"}"></i></button>
         <button class="p01-play p01-ent-play" data-p01-play="entcur" aria-label="${esc(tt.listen)}" aria-pressed="false"><i class="ph-fill ph-play"></i></button>
       </div>
-    </div>
+    </div>`}
   </section>`;
+}
+
+/* Signing: the personal musical signature exists only after the Convention is signed.
+   Until sign-in with Meta and server storage are connected, the record stays on this device. */
+function signBlock() {
+  const tt = t(), rec = signedRec();
+  if (rec) {
+    const svg = window.SoulScoreSVG ? window.SoulScoreSVG(rec.notes) : "";
+    return `<div class="p20-signed" role="status">
+      <div class="p20-signedhead"><i class="ph ph-seal-check" aria-hidden="true"></i><span class="p20-thanks">${esc(tt.thanks)}</span></div>
+      <span class="p20-sublabel">${esc(tt.sub)}</span>
+      <div class="p20-score">${svg}</div>
+      <div class="p01-ent-sigbar"></div>
+      <div class="p01-ent-sigrow"><span class="p01-ent-cap">${esc(rec.name)}</span>
+        <button class="p01-play p01-ent-play" data-p20-listen aria-label="${esc(tt.listen)}" aria-pressed="false"><i class="ph-fill ph-play"></i></button></div>
+      <p class="p20-signnote"><i class="ph ph-device-mobile" aria-hidden="true"></i>${esc(tt.savedHere)} <button class="p20-link" data-p20-resign type="button">${esc(tt.signAgain)}</button></p>
+    </div>`;
+  }
+  if (st.signing) {
+    const P = (window.P01Strings && window.P01Strings.T && window.P01Strings.T[lang()]) || {};
+    const needR = window.SoulSignature && window.SoulSignature.previewSignature(st.draft, "").has_han;
+    return `<form class="p20-signform" data-p20-signform novalidate>
+      <label class="p20-field"><span>${esc(tt.nameLabel)}</span><input id="p20Name" name="name" autocomplete="name" maxlength="80" placeholder="${esc(tt.namePh)}" value="${esc(st.draft)}" required></label>
+      <label class="p20-field" id="p20ReadingWrap"${needR ? "" : " hidden"}><span>${esc(P.readingLabel || "")}</span><input id="p20Reading" name="reading" autocomplete="off" placeholder="${esc(P.readingPh || "")}" value="${esc(st.draftReading)}"></label>
+      <p class="p20-signmsg" id="p20SignMsg" aria-live="polite">${esc(st.signMsg)}</p>
+      <div class="p20-signrow"><button class="p20-sign" type="submit"><i class="ph ph-signature" aria-hidden="true"></i><span>${esc(tt.cta)}</span></button>
+        <button class="p20-link" type="button" data-p20-cancel>${esc(tt.cancel)}</button></div>
+    </form>`;
+  }
+  return `<div class="p20-signrow"><button class="p20-sign" id="p20Sign" type="button"><i class="ph ph-signature" aria-hidden="true"></i><span>${esc(tt.cta)}</span></button></div>`;
 }
 
 function door(kind, n) {
@@ -267,8 +300,61 @@ function bind() {
   });
   document.querySelectorAll("[data-lsel]").forEach(b => b.onclick = () => { const v = b.dataset.lsel; select(v === "none" ? null : +v, true); });
   document.querySelectorAll("[data-lstep]").forEach(b => b.onclick = () => select(((st.sel == null ? 0 : st.sel) + +b.dataset.lstep + 7) % 7, true));
+  bindSign();
   document.documentElement.lang = lang();
   startLoop();
+}
+function bindSign() {
+  const tt = t();
+  const open = document.getElementById("p20Sign");
+  if (open) open.onclick = () => { st.signing = true; st.signMsg = ""; keepScroll(rerender); const n = document.getElementById("p20Name"); if (n) n.focus(); };
+  const cancel = document.querySelector("[data-p20-cancel]");
+  if (cancel) cancel.onclick = () => { st.signing = false; st.signMsg = ""; keepScroll(rerender); const b = document.getElementById("p20Sign"); if (b) b.focus(); };
+  const name = document.getElementById("p20Name"), reading = document.getElementById("p20Reading");
+  if (name) name.oninput = () => { st.draft = name.value; const w = document.getElementById("p20ReadingWrap");
+    if (w && window.SoulSignature) w.hidden = !window.SoulSignature.previewSignature(name.value, "").has_han; };
+  if (reading) reading.oninput = () => { st.draftReading = reading.value; };
+  const form = document.querySelector("[data-p20-signform]");
+  if (form) form.onsubmit = e => {
+    e.preventDefault();
+    const SS = window.SoulSignature, nm = (name && name.value || "").trim(), rd = (reading && !reading.closest("[hidden]") ? reading.value : "").trim();
+    const P = (window.P01Strings && window.P01Strings.T && window.P01Strings.T[lang()]) || {};
+    if (!SS || !nm) { st.signMsg = tt.noNotes; keepScroll(rerender); const n = document.getElementById("p20Name"); if (n) n.focus(); return; }
+    const sig = SS.previewSignature(nm, rd);
+    if (sig.need_reading) { st.draft = nm; st.signMsg = P.needReading || ""; keepScroll(rerender); const r = document.getElementById("p20Reading"); if (r) r.focus(); return; }
+    if (!sig.notes.length) { st.draft = nm; st.signMsg = tt.noNotes; keepScroll(rerender); return; }
+    ss.set("som_signed", { name: nm, reading: sig.reading, notes: sig.notes, algo: sig.algo_version, at: new Date().toISOString() });
+    st.signing = false; st.signMsg = ""; st.draft = ""; st.draftReading = "";
+    keepScroll(rerender);
+    const l = document.querySelector("[data-p20-listen]"); if (l) l.focus();
+  };
+  const resign = document.querySelector("[data-p20-resign]");
+  if (resign) resign.onclick = () => { try { localStorage.removeItem("som_signed"); } catch (x) {} st.signing = true; keepScroll(rerender); const n = document.getElementById("p20Name"); if (n) n.focus(); };
+  const listen = document.querySelector("[data-p20-listen]");
+  if (listen) listen.onclick = () => { const rec = signedRec(); if (rec) playNotes(rec.notes, listen); };
+}
+let actx = null, voices = [], playT = null;
+function stopNotes() { voices.forEach(o => { try { o.stop(); } catch (e) {} }); voices = []; if (playT) { clearTimeout(playT); playT = null; }
+  document.querySelectorAll("[data-p20-listen]").forEach(b => { b.setAttribute("aria-pressed", "false"); b.innerHTML = '<i class="ph-fill ph-play"></i>'; }); }
+function playNotes(notes, btn) {
+  if (voices.length) { stopNotes(); return; }
+  const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+  actx = actx || new AC(); if (actx.state === "suspended") actx.resume();
+  const beat = 60 / 92; let when = actx.currentTime + 0.05;
+  const master = actx.createGain(); master.gain.value = 0.22; master.connect(actx.destination);
+  notes.forEach(n => {
+    const d = n.dur * beat, f = 440 * Math.pow(2, (n.midi - 69) / 12);
+    [["triangle", 1], ["sine", .5]].forEach(([type, amp], k) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = type; o.frequency.value = f * (k ? 2 : 1);
+      g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(amp * (k ? .25 : 1), when + .015);
+      g.gain.exponentialRampToValueAtTime(0.001, when + Math.max(d * .95, .18));
+      o.connect(g); g.connect(master); o.start(when); o.stop(when + d + .05); voices.push(o);
+    });
+    when += d;
+  });
+  if (btn) { btn.setAttribute("aria-pressed", "true"); btn.innerHTML = '<i class="ph-fill ph-stop"></i>'; }
+  playT = setTimeout(stopNotes, (when - actx.currentTime) * 1000 + 150);
 }
 function keepScroll(fn) { const y = window.scrollY; fn(); window.scrollTo(0, y); }
 const g = { th: 0.5, v: 0, pend: 0, snap: false, drag: false, lx: 0, moved: 0, hover: false };
@@ -342,6 +428,7 @@ function paintGraph(el, dt, R) {
     e.classList.toggle("hot", hot); });
 }
 function stop() {
+  stopNotes();
   if (raf) { cancelAnimationFrame(raf); raf = null; }
   offs.forEach(f => f()); offs = [];
 }

@@ -53,7 +53,7 @@ const byId = (tab,id) => (DATA[tab]||[]).find(x=>x.id===id);
 /* ---------- score SVG (render of the shared signature module; never redrawn by hand) ---------- */
 function scoreSVG(notes){
   if(!notes || !notes.length) return `<p class="score-empty">Здесь появятся ноты вашего имени.</p>`;
-  const L = S.layoutScore(notes); let s="", idx=0;
+  const L = S.layoutScore(notes); let s="", idx=0; const ruNames = !!(window.P01 && P01.state.lang==="ru");
   L.rows.forEach(r=>{
     for(let i=0;i<5;i++) s+=`<line x1="4" x2="${r.end}" y1="${r.top+i*10}" y2="${r.top+i*10}" stroke="#2a2738" opacity=".7"/>`;
     s+=`<text x="8" y="${r.top+30}" font-size="40" fill="#2a2738">\u{1D11E}</text>`;
@@ -62,10 +62,10 @@ function scoreSVG(notes){
       if(it.p>=10) g+=`<line x1="${it.x-10}" x2="${it.x+10}" y1="${r.top-10}" y2="${r.top-10}" stroke="#16141f"/>`;
       g+= it.stemUp?`<line x1="${it.x+5.6}" x2="${it.x+5.6}" y1="${it.y-1}" y2="${it.y-34}" stroke="#16141f"/>`:`<line x1="${it.x-5.6}" x2="${it.x-5.6}" y1="${it.y+1}" y2="${it.y+34}" stroke="#16141f"/>`;
       g+=`<ellipse cx="${it.x}" cy="${it.y}" rx="6" ry="4.2" transform="rotate(-20 ${it.x} ${it.y})" fill="${n.dur===2?"#fff":"#16141f"}" stroke="#16141f"/>`;
-      g+=`<text x="${it.x}" y="${r.top+72}" text-anchor="middle" font-size="11" fill="#8f6610">${esc(n.ch)}</text><text x="${it.x}" y="${r.top+84}" text-anchor="middle" font-size="8" fill="#5d5a6e">${S.RU[n.note]}</text></g>`; s+=g; });
+      g+=`<text x="${it.x}" y="${r.top+72}" text-anchor="middle" font-size="11" fill="#8f6610">${esc(n.ch)}</text><text x="${it.x}" y="${r.top+84}" text-anchor="middle" font-size="8" fill="#5d5a6e">${ruNames ? S.RU[n.note] : esc(n.note)}</text></g>`; s+=g; });
     if(r.last) s+=`<line x1="${r.end-1.5}" x2="${r.end-1.5}" y1="${r.top}" y2="${r.top+40}" stroke="#2a2738" stroke-width="3"/>`;
   });
-  return `<svg viewBox="0 0 ${L.width} ${L.height}" role="img" aria-label="Нотная подпись">${s}</svg>`;
+  return `<svg viewBox="0 0 ${L.width} ${L.height}" role="img" aria-label="${ruNames ? "Нотная подпись" : "Musical signature"}">${s}</svg>`;
 }
 window.SoulScoreSVG = scoreSVG;
 
