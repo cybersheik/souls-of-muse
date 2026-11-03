@@ -8,6 +8,15 @@ function response() {
     json(body) { this.body = body; return this; }, send(body) { this.body = body; return this; } };
 }
 
+test('gateway admits only the scoped explicit translation review route', async()=>{
+ const oldFetch=global.fetch,oldURL=process.env.SOM_HARNESS_URL;process.env.SOM_HARNESS_URL='https://backend.example';let calls=0;
+ try{
+  global.fetch=async(url,options)=>{calls++;assert.equal(url.pathname,'/sessions/one/messages/m1/review');assert.deepEqual(JSON.parse(options.body),{client_event_id:'intent'});return new Response('{}',{status:200});};
+  const res=response();await handler({query:{path:['sessions','one','messages','m1','review']},method:'POST',body:{client_event_id:'intent'},headers:{}},res);assert.equal(res.code,200);
+  const invalid=response();await handler({query:{path:['sessions','one','review']},method:'POST',headers:{}},invalid);assert.equal(invalid.code,404);assert.equal(calls,1);
+ }finally{global.fetch=oldFetch;if(oldURL===undefined)delete process.env.SOM_HARNESS_URL;else process.env.SOM_HARNESS_URL=oldURL;}
+});
+
 test("gateway forwards participant cookie, preserves login cookie, omits global bearer credentials", async () => {
   const oldFetch = global.fetch;
   const oldURL = process.env.SOM_HARNESS_URL;

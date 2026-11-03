@@ -4,6 +4,7 @@ window.CabinetHarness = (() => {
   const state = { user: null, meeting: null, lesson: null, sessions: [], heart: null, busy: false, status: "", pending: null, recording: false, asr: false, tts: false, media: false };
   let capture = null, captureAbort = null, composeText = "", focusCompose = false;
   let materialPending = null, planningPending = null, planningRetry = null;
+  const reviewPending = new WeakMap();
   let speechAudio = null, speechURL = null, speechAbort = null, speechMessage = null;
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const ru = () => window.P01?.state.lang === "ru";
@@ -174,6 +175,30 @@ window.CabinetHarness = (() => {
       finally { if(state.user===user && state.meeting?.id===meetingId)await refresh(); }
     });
   }
+  function retryTranslationReview(id) {
+    const user=state.user,meetingId=state.meeting?.id;
+    const message=state.meeting?.deliveries?.find(item=>item.id===id);
+    if(user?.role!=='maestro'||!meetingId||state.meeting.state!=='active'||state.busy||
+       message?.state!=='flagged'||['processing','complete'].includes(message.review?.state))return;
+    // Preserve an ambiguous request's ID. A matching terminal server marker
+    // proves that attempt finished; the next deliberate click is a new intent.
+    let pendingMessages=reviewPending.get(user);
+    if(!pendingMessages){pendingMessages=new Map();reviewPending.set(user,pendingMessages);}
+    const key=JSON.stringify([meetingId,id]);
+    let pending=pendingMessages.get(key);
+    if(!pending||message.review?.retry_event_id===pending.body.client_event_id){
+      pending={body:{client_event_id:crypto.randomUUID()}};
+      pendingMessages.set(key,pending);
+    }
+    return action(async()=>{
+      try{
+        await call(`sessions/${meetingId}/messages/${id}/review`,pending.body);
+        if(pendingMessages.get(key)===pending)pendingMessages.delete(key);
+      }finally{
+        if(state.user===user&&state.meeting?.id===meetingId)await refresh();
+      }
+    });
+  }
   function approveLessonTranslation(id) {
     if (state.user?.role !== "maestro" || !state.meeting || state.busy) return;
     const user = state.user, meetingId = state.meeting.id;
@@ -216,8 +241,8 @@ window.CabinetHarness = (() => {
     } else if (review?.state === "processing") {
       text = word("Checking translation…", "Проверяем перевод…");
     } else {
-      text = word("Translation check unavailable. Send the message again after the service recovers.",
-        "Проверка перевода недоступна. Отправьте реплику заново после восстановления сервиса.");
+      text = word("Translation check unavailable. Retry the check when the service recovers.",
+        "Проверка перевода недоступна. Повторите проверку после восстановления сервиса.");
     }
     return `<span class="cab-msg-check">${esc(text)}</span>`;
   }
@@ -237,6 +262,7 @@ window.CabinetHarness = (() => {
       ${lessonNote(message)}
       ${message.validation_issues?.length ? `<strong>${esc(message.validation_issues.join(", "))}</strong>` : ""}
       ${reviewNote(message)}
+      ${state.user?.role === "maestro" && state.meeting.state === "active" && message.state === "flagged" && !["processing","complete"].includes(message.review?.state) ? `<button type="button" class="cab-btn" data-harness-review="${esc(message.id)}"${state.busy ? " disabled" : ""}>${word("Retry translation check", "Повторить проверку перевода")}</button>` : ""}
       ${state.user?.role === "maestro" && ["draft", "flagged"].includes(message.state) ? `<button class="cab-btn" data-harness-approve="${esc(message.id)}" data-flagged="${message.state === "flagged"}"${state.busy || message.approval_allowed === false || (message.state === "flagged" && message.review?.state !== "complete") ? " disabled" : ""}>${word("Approve translation", "Одобрить перевод")}</button>` : ""}
       ${state.tts && message.state === "approved" ? `<button class="cab-btn" data-harness-speak="${esc(message.id)}" ${state.busy ? "disabled" : ""}>${word("Listen to translation", "Прослушать перевод")}</button><span data-harness-audio="${esc(message.id)}"></span>` : ""}</div>`).join("") || `<p>${word("Approved messages will appear here", "Здесь появятся одобренные сообщения")}</p>`;
   }
@@ -315,6 +341,7 @@ window.CabinetHarness = (() => {
     window.SomMedia?.mount();
   }
   function bindApprovals() {
+    document.querySelectorAll("[data-harness-review]").forEach(button => button.onclick = () => retryTranslationReview(button.dataset.harnessReview));
     document.querySelectorAll("[data-harness-approve]").forEach(button => button.onclick = () => {
       const id = button.dataset.harnessApprove;
       const flagged = button.dataset.flagged === "true";
@@ -437,5 +464,5 @@ window.CabinetHarness = (() => {
   }
   window.addEventListener("som-media-changed", redraw);
   window.addEventListener("hashchange", () => { cancelCapture(); stopSpeech(); window.SomMedia?.disconnect(true).catch(() => {}); });
-  return { state, panel, messages, send, bind, record, updateLesson, translateLessonStep, approveLessonTranslation, requestLessonPlan, applyLessonPlan, planningRetryAllowed, savePrivateNotes, privateNotesPage };
+  return { state, panel, messages, send, bind, record, updateLesson, translateLessonStep, approveLessonTranslation, requestLessonPlan, applyLessonPlan, planningRetryAllowed, retryTranslationReview, savePrivateNotes, privateNotesPage };
 })();

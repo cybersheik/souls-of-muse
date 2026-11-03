@@ -63,7 +63,7 @@ curl localhost:8000/health   # public liveness/capabilities, no secrets/paths; m
 # Pilot page: http://localhost:8000/pilot (token in memory only)
 ```
 Single worker/replica only; inference is serialized in-process.
-CORS: `https://preview.soulsofmuse.com`, `https://soulsofmuse.com`.
+CORS: `https://soulsofmuse.app`, `https://preview.soulsofmuse.com`, `https://soulsofmuse.com`.
 Missing tokens/key/ledger → fail closed; messages return `503`.
 
 ## Tests (offline only — fake transports/adapters, no paid calls)
@@ -369,6 +369,21 @@ cloud acceptance or latency result is claimed. See
 The required reviewer stage runs after a deterministic flag, using `muse-spark-1.3`, minimal reasoning, temperature 0 and a 512-token output bound under the same budget guard. Source transcript, canonical draft, flags and any lesson-note grouping are sent as quoted JSON data. A strict two-field reply (`verdict`, `reason`) is requested with JSON Schema and checked locally; unknown fields, duplicate keys, invalid verdicts or empty/oversized reasons fail closed. This is a second opinion about the supplied transcript, not acoustic recognition or proof that a performance occurred. It never edits the translation, clears a deterministic flag or approves delivery.
 
 Review state is committed before paid inference. A successful verdict remains visible only to Maestro, including on replay; an Artist sees only approved text. Maestro must explicitly confirm a flagged translation even when the reviewer calls it faithful. Unavailable/malformed review blocks approval even with that confirmation. Replays and restarts do not repeat paid work; interrupted messages/reviews become failed, and budget holds remain untouched. Legacy flagged messages without a completed review stay blocked. Approval revalidates earlier drafts with the current validator, makes no paid call and stops if validation is unavailable. A missing glossary also prevents new interpretation calls and makes pilot readiness false.
+
+Maestro can explicitly retry an unavailable check with
+`POST /sessions/{sid}/messages/{mid}/review` and a new `client_event_id`.
+The check uses the saved canonical source, translation and structured note;
+it never retranslates, edits, approves or delivers the message. Current
+validation runs before the request is committed. The attempt and processing
+state are persisted before entering the same serialized inference gate and
+BudgetGuard as the original review. A failed request's unknown-usage HOLD is
+never released to fund a retry. Replaying an event ID, reloading or restarting
+does not call a model; a completed review is reused even under a new ID.
+Only an active meeting's Maestro member may start a retry. Pending review
+blocks completion and approval. Startup marks interrupted attempts failed;
+another new explicit intent is required. The cabinet preserves an ambiguous
+request ID until an acknowledged response or matching terminal server marker,
+and offers **Retry translation check** instead of resending the whole message.
 
 Earlier Spark testing on two fixed synthetic text pairs was **partial**: it correctly identified a changed tempo of 60→80, but review of a faithful ordinal phrase failed closed. No retry or automatic delivery occurred; the cause of that second failure was not established. A related false `KEY_MINOR` flag for Vietnamese ordinal `thứ hai` was fixed independently and checked through HTTP without another model call; `La thứ ba lần` still means A minor repeated three times. The two reviewer requests cost $0.004853 in the existing ledger. Their measured HTTP times were 13.424 and 6.213 seconds; these are not full voice latency or a P95 result. See `docs/qa-translation-review-20261103.json`; the newer structured-output experiment below is separate.
 

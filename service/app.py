@@ -204,6 +204,10 @@ class MessageIn(BaseModel):
 class ApproveIn(BaseModel):
     confirm_flagged: bool = False
 
+class ReviewRetryIn(BaseModel):
+    model_config = {"extra": "forbid", "strict": True}
+    client_event_id: str = Field(min_length=1, max_length=120, pattern=r"^[a-zA-Z0-9_-]+$")
+
 def _build_real_adapter(data_dir, environ, on_write=None, transport=None):
     """Return (adapter, ready). Never creates a budget ledger.
 
@@ -354,6 +358,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
       CREATE TRIGGER IF NOT EXISTS audit_no_update BEFORE UPDATE ON audit BEGIN SELECT RAISE(ABORT,'audit_append_only'); END;
       CREATE TRIGGER IF NOT EXISTS audit_no_delete BEFORE DELETE ON audit BEGIN SELECT RAISE(ABORT,'audit_append_only'); END;
       CREATE TABLE IF NOT EXISTS message_reviews(message_id TEXT PRIMARY KEY, state TEXT NOT NULL, verdict TEXT, reason TEXT, created_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS message_review_retries(message_id TEXT NOT NULL, client_event_id TEXT NOT NULL, state TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY(message_id,client_event_id));
       CREATE TABLE IF NOT EXISTS message_notes(message_id TEXT PRIMARY KEY, content TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS lesson_workspaces(session_id TEXT PRIMARY KEY, revision INTEGER NOT NULL, content TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS lesson_translations(id TEXT PRIMARY KEY, session_id TEXT NOT NULL, source_hash TEXT NOT NULL, source_json TEXT NOT NULL, source_lang TEXT NOT NULL, target_lang TEXT NOT NULL, state TEXT NOT NULL, target_json TEXT, issues_json TEXT NOT NULL DEFAULT '[]', review_json TEXT);
@@ -374,6 +379,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
     # at startup; budget reservations remain untouched for reconciliation.
     conn_init.execute("UPDATE messages SET state='failed' WHERE state='processing'")
     conn_init.execute("UPDATE message_reviews SET state='failed' WHERE state='processing'")
+    conn_init.execute("UPDATE message_review_retries SET state='failed' WHERE state='processing'")
     conn_init.execute("UPDATE lesson_translations SET state='failed',review_json=? WHERE state='processing'", (json.dumps({"state": "failed"}),))
     conn_init.execute("UPDATE lesson_plan_proposals SET state='failed' WHERE state='processing'")
     conn_init.commit(); conn_init.close()
@@ -501,10 +507,13 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
             c = db()
             try:
                 review = c.execute("SELECT state,verdict,reason FROM message_reviews WHERE message_id=?", (r["id"],)).fetchone()
+                retry = c.execute("SELECT client_event_id FROM message_review_retries WHERE message_id=? ORDER BY rowid DESC LIMIT 1", (r["id"],)).fetchone()
             finally:
                 c.close()
             if review:
                 d["review"] = {"state": review["state"]}
+                if retry:
+                    d["review"]["retry_event_id"] = retry["client_event_id"]
                 if review["state"] == "complete":
                     d["review"].update(verdict=review["verdict"], reason=review["reason"])
             d["approval_allowed"] = r["state"] == "draft" or (r["state"] == "flagged" and bool(review) and review["state"] == "complete")
@@ -599,6 +608,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
                 return {"id": sid, "state": "completed"}
             if s["state"] not in (("active", "closing") if media else ("active",)): return err(409, "invalid_transition")
             busy = c.execute("SELECT (SELECT COUNT(*) FROM messages WHERE session_id=? AND state='processing') + (SELECT COUNT(*) FROM transcriptions WHERE session_id=? AND state='processing')", (sid, sid)).fetchone()[0]
+            busy += c.execute("SELECT COUNT(*) FROM message_reviews r JOIN messages m ON m.id=r.message_id WHERE m.session_id=? AND r.state='processing'", (sid,)).fetchone()[0]
             if media:
                 busy += c.execute("SELECT (SELECT COUNT(*) FROM media_recordings WHERE session_id=? AND state IN ('capturing','processing')) + (SELECT COUNT(*) FROM media_deliveries WHERE session_id=? AND state='processing')",(sid,sid)).fetchone()[0]
                 busy += bool(media.busy(sid))
@@ -749,6 +759,85 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         except PersistenceError:
             return err(503, "persistence_failed")
         finally: c.close()
+
+    @app.post("/sessions/{sid}/messages/{mid}/review")
+    def retry_review(sid: str, mid: str, body: ReviewRetryIn, request: Request, authorization: str = Header(default="")):
+        actor, e = actor_from_auth(authorization, request)
+        if e: return e
+        if actor != "maestro": return err(403, "maestro_required")
+        if not model_ready or adapter is None: return err(503, "model_not_ready")
+        c = db()
+        try:
+            c.execute("BEGIN IMMEDIATE")
+            session = get_session(c, sid, request)
+            if not session: return err(404, "session_not_found")
+            message = c.execute("SELECT * FROM messages WHERE session_id=? AND id=?", (sid, mid)).fetchone()
+            if not message: return err(404, "message_not_found")
+            previous = c.execute("SELECT state FROM message_review_retries WHERE message_id=? AND client_event_id=?",
+                                 (mid, body.client_event_id)).fetchone()
+            if previous:
+                if previous["state"] == "processing": return err(409, "duplicate_in_progress")
+                return msg_dict(message)
+            if session["state"] != "active": return err(409, "session_not_active")
+            if message["state"] != "flagged": return err(409, "review_requires_flagged_draft")
+            current = c.execute("SELECT state FROM message_reviews WHERE message_id=?", (mid,)).fetchone()
+            if current and current["state"] == "processing": return err(409, "duplicate_in_progress")
+            if current and current["state"] == "complete": return msg_dict(message)
+            stored = c.execute("SELECT content FROM message_notes WHERE message_id=?", (mid,)).fetchone()
+            try:
+                note = None
+                if stored:
+                    _, note = parse_interpretation(json.dumps({"translation": message["draft_text"],
+                        "lesson_note": json.loads(stored["content"])}), message["source_text"])
+            except (ValueError, TypeError):
+                return err(409, "lesson_note_unavailable")
+            try:
+                issues = _validate_interpretation(message["source_text"], message["source_lang"],
+                    message["draft_text"], message["target_lang"], glossary, note)
+            except ValidationUnavailable:
+                return err(503, "validation_unavailable")
+            # Explicit new intent is durable before waiting for the shared
+            # inference gate. Replays never retranslate or repeat this attempt.
+            c.execute("INSERT INTO message_review_retries VALUES(?,?,'processing',?)", (mid, body.client_event_id, _now()))
+            c.execute("INSERT INTO message_reviews VALUES(?,'processing',NULL,NULL,?) ON CONFLICT(message_id) DO UPDATE SET state='processing',verdict=NULL,reason=NULL",
+                      (mid, _now()))
+            c.execute("UPDATE messages SET validation_issues=? WHERE id=?", (json.dumps(issues, ensure_ascii=False), mid))
+            audit(c, sid, "translation_review_retried", mid, actor); _commit(c)
+        except PersistenceError:
+            return err(503, "persistence_failed")
+        finally:
+            c.close()
+        review = None
+        if inference_gate.acquire(timeout=30):
+            try:
+                from .review import review_translation
+                review = review_translation(adapter, message["source_text"], message["source_lang"],
+                    message["draft_text"], message["target_lang"], issues, note)
+            except PersistenceError:
+                durability_failed.set()
+                return err(503, "persistence_failed")
+            except Exception:
+                pass  # Failed/unknown usage retains the adapter's existing HOLD.
+            finally:
+                inference_gate.release()
+        c = db()
+        try:
+            c.execute("BEGIN IMMEDIATE")
+            session = get_session(c, sid, request)
+            message = c.execute("SELECT * FROM messages WHERE session_id=? AND id=?", (sid, mid)).fetchone()
+            valid = bool(session and session["state"] == "active" and message and message["state"] == "flagged")
+            if not valid: review = None
+            state = "complete" if review else "failed"
+            c.execute("UPDATE message_review_retries SET state=? WHERE message_id=? AND client_event_id=?",
+                      (state, mid, body.client_event_id))
+            c.execute("UPDATE message_reviews SET state=?,verdict=?,reason=? WHERE message_id=?",
+                      (state, review["verdict"] if review else None, review["reason"] if review else None, mid))
+            audit(c, sid, "translation_review_completed" if review else "translation_review_failed", mid, actor); _commit(c)
+            return msg_dict(message) if valid else err(409, "session_not_active")
+        except PersistenceError:
+            return err(503, "persistence_failed")
+        finally:
+            c.close()
 
     @app.post("/sessions/{sid}/messages/{mid}/approve")
     def approve(sid: str, mid: str, request: Request, body: ApproveIn = None, authorization: str = Header(default="")):

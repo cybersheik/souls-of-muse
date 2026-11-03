@@ -234,10 +234,11 @@ class TranslationReview(unittest.TestCase):
         config.write_text("total_usd: 0.05\nwarn_pct: 0.8\nhard_stop_pct: 0.95\nledger: budget_ledger.sqlite3\n")
         guard = BudgetGuard.initialize_ledger(str(config), str(ledger))
         calls = []
+        recovered = [False]
         def handler(request):
             payload = json.loads(request.content)
             calls.append(payload)
-            self.assertEqual(guard.status()["holds"], 1)
+            self.assertEqual(guard.status()["holds"], 2 if recovered[0] else 1)
             if len(calls) == 1:
                 self.assertEqual(payload["response_format"]["json_schema"]["name"], "music_interpretation")
                 return httpx.Response(200, json={"choices": [{"message": {"content": interpretation_text(WRONG)}, "finish_reason": "stop"}],
@@ -247,6 +248,9 @@ class TranslationReview(unittest.TestCase):
             self.assertEqual(payload["response_format"]["json_schema"]["name"], "translation_review")
             with sqlite3.connect(directory / "service.sqlite3") as c:
                 self.assertEqual(c.execute("SELECT state FROM message_reviews").fetchone()[0], "processing")
+            if recovered[0]:
+                return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps(VERDICT)}, "finish_reason": "stop"}],
+                    "usage": {"prompt_tokens": 20, "completion_tokens": 10}})
             return httpx.Response(503, text="private upstream failure")
         adapter, ready = _build_real_adapter(str(directory), {"MODEL_API_KEY": "explicit-offline-fixture"},
                                              transport=httpx.MockTransport(handler))
@@ -265,6 +269,19 @@ class TranslationReview(unittest.TestCase):
         self.assertEqual(self.p.m.post(self.path + "/" + message["id"] + "/approve",
             json={"confirm_flagged": True}).status_code, 409)
         self.assertEqual(guard.status()["holds"], 1)
+
+        # Explicit retry uses the same real guarded adapter, retains the old
+        # unknown-usage HOLD and settles only its new reviewer reservation.
+        recovered[0] = True
+        route = self.path + "/" + message["id"] + "/review"
+        retried = self.p.m.post(route, json={"client_event_id": "recovered-review"})
+        self.assertEqual(retried.status_code, 200, retried.text)
+        self.assertEqual(retried.json()["review"]["state"], "complete")
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(guard.status()["holds"], 1)
+        self.assertEqual((guard.total_micro, guard.stop_micro), (50_000, 47_500))
+        self.assertEqual(self.p.m.post(route, json={"client_event_id": "recovered-review"}).status_code, 200)
+        self.assertEqual(len(calls), 3)
 
     def test_interrupted_review_is_not_replayed_after_restart(self):
         message = self.p.m.post(self.path, json=self.body).json()
@@ -287,3 +304,135 @@ class TranslationReview(unittest.TestCase):
             c.execute("DELETE FROM message_reviews")
         self.assertEqual(self.p.m.post(self.path + "/" + message["id"] + "/approve",
             json={"confirm_flagged": True}).status_code, 409)
+
+    def failed_review(self):
+        self.adapter.review = RuntimeError("temporary private provider error")
+        message = self.p.m.post(self.path, json=self.body).json()
+        self.assertEqual(message["review"], {"state": "failed"})
+        self.adapter.review = json.dumps(VERDICT)
+        return message, self.path + "/" + message["id"] + "/review"
+
+    def test_explicit_review_retry_reuses_canonical_translation_and_never_delivers(self):
+        original, route = self.failed_review()
+        result = self.p.m.post(route, json={"client_event_id": "retry-1"})
+        self.assertEqual(result.status_code, 200, result.text)
+        retried = result.json()
+        self.assertEqual(retried["text"], original["text"])
+        self.assertEqual(retried["review"], {"state": "complete", **VERDICT, "retry_event_id": "retry-1"})
+        self.assertEqual(self.adapter.roles, ["interpreter", "reviewer", "reviewer"])
+        self.assertEqual(self.p.a.get(self.p.path).json()["deliveries"], [])
+        for event in ["retry-1", "another-id-after-success"]:
+            self.assertEqual(self.p.m.post(route, json={"client_event_id": event}).json(), retried)
+        self.assertEqual(len(self.adapter.roles), 3)
+        self.assertEqual(self.p.m.post(route.replace("/review", "/approve"), json={}).status_code, 409)
+        self.assertEqual(self.p.m.post(route.replace("/review", "/approve"),
+            json={"confirm_flagged": True}).status_code, 200)
+        self.assertNotIn("review", self.p.a.get(self.p.path).json()["deliveries"][0])
+
+    def test_failed_retry_replay_and_restart_do_not_make_another_paid_attempt(self):
+        _, route = self.failed_review()
+        self.adapter.review = RuntimeError("private exception")
+        body = {"client_event_id": "failed-retry"}
+        result = self.p.m.post(route, json=body)
+        self.assertEqual(result.status_code, 200, result.text)
+        self.assertEqual(result.json()["review"], {"state": "failed", "retry_event_id": "failed-retry"})
+        self.assertNotIn("private exception", result.text)
+        self.p.build(); self.p.m = self.p.login("M")
+        self.adapter.review = json.dumps(VERDICT)
+        self.assertEqual(self.p.m.post(route, json=body).json()["review"]["state"], "failed")
+        self.assertEqual(len(self.adapter.roles), 3)
+        self.assertEqual(self.p.m.post(route, json={"client_event_id": "deliberate-new-retry"}).json()["review"]["state"], "complete")
+        self.assertEqual(self.adapter.roles, ["interpreter", "reviewer", "reviewer", "reviewer"])
+
+    def test_processing_retry_blocks_duplicate_approval_and_meeting_completion(self):
+        _, route = self.failed_review()
+        self.adapter.entered, self.adapter.release = threading.Event(), threading.Event()
+        result = []
+        thread = threading.Thread(target=lambda: result.append(self.p.m.post(route,
+            json={"client_event_id": "in-flight"})))
+        thread.start()
+        try:
+            self.assertTrue(self.adapter.entered.wait(3))
+            for event in ["in-flight", "different-click"]:
+                self.assertEqual(self.p.m.post(route, json={"client_event_id": event}).status_code, 409)
+            self.assertEqual(self.p.m.post(self.p.path + "/complete").status_code, 409)
+            self.assertEqual(self.p.m.post(route.replace("/review", "/approve"),
+                json={"confirm_flagged": True}).status_code, 409)
+        finally:
+            self.adapter.release.set(); thread.join(5)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(result[0].status_code, 200, result[0].text)
+        self.assertEqual(len(self.adapter.roles), 3)
+
+    def test_review_retry_requires_maestro_membership_and_valid_explicit_intent(self):
+        _, route = self.failed_review()
+        body = {"client_event_id": "one"}
+        self.assertEqual(self.p.a.post(route, json=body).status_code, 403)
+        other = self.p.login("other")
+        self.assertEqual(other.post(route, json=body).status_code, 403)
+        accounts = json.loads(self.p.env["SOM_WEB_ACCOUNTS"])
+        accounts["foreignMaestro"] = dict(accounts["M"])
+        self.p.env["SOM_WEB_ACCOUNTS"] = json.dumps(accounts)
+        self.p.build(); self.p.m = self.p.login("M")
+        self.assertEqual(self.p.login("foreignMaestro").post(route, json=body).status_code, 404)
+        for invalid in [{}, {"client_event_id": ""}, {"client_event_id": "x", "translation": "replacement"}]:
+            self.assertEqual(self.p.m.post(route, json=invalid).status_code, 422)
+        missing = route.replace(route.split("/")[-2], "not-a-message")
+        self.assertEqual(self.p.m.post(missing, json=body).status_code, 404)
+        self.assertEqual(self.p.m.post(route, json=body, headers={"Origin": "https://bad.invalid"}).status_code, 403)
+        self.assertEqual(len(self.adapter.roles), 2)
+        self.assertEqual(self.p.m.post(self.p.path + "/complete").status_code, 200)
+        self.assertEqual(self.p.m.post(route, json=body).status_code, 409)
+        self.assertEqual(len(self.adapter.roles), 2)
+
+    def test_missing_legacy_review_can_be_requested_without_retranslating(self):
+        message = self.p.m.post(self.path, json=self.body).json()
+        with sqlite3.connect(self.p.directory.name + "/service.sqlite3") as c:
+            c.execute("DELETE FROM message_reviews")
+        response = self.p.m.post(self.path + "/" + message["id"] + "/review",
+            json={"client_event_id": "legacy"})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["review"]["state"], "complete")
+        self.assertEqual(self.adapter.roles, ["interpreter", "reviewer", "reviewer"])
+
+    def test_interrupted_retry_requires_new_explicit_intent_after_restart(self):
+        message, route = self.failed_review()
+        self.p.m.post(route, json={"client_event_id": "interrupted"})
+        with sqlite3.connect(self.p.directory.name + "/service.sqlite3") as c:
+            c.execute("UPDATE message_review_retries SET state='processing'")
+            c.execute("UPDATE message_reviews SET state='processing',verdict=NULL,reason=NULL")
+        self.p.build(); self.p.m = self.p.login("M")
+        replay = self.p.m.post(route, json={"client_event_id": "interrupted"})
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json()["review"]["state"], "failed")
+        self.assertEqual(len(self.adapter.roles), 3)
+        retried = self.p.m.post(route, json={"client_event_id": "after-restart"})
+        self.assertEqual(retried.json()["review"]["state"], "complete")
+        self.assertEqual(len(self.adapter.roles), 4)
+
+    def test_retry_persistence_failure_prevents_the_reviewer_call(self):
+        from service.app import create_app
+        from fastapi import FastAPI
+        _, route = self.failed_review()
+        def fail_commit():
+            with sqlite3.connect(self.p.directory.name + "/service.sqlite3") as c:
+                if c.execute("SELECT COUNT(*) FROM message_review_retries WHERE state='processing'").fetchone()[0]:
+                    raise RuntimeError("fixture persistence unavailable")
+        app = create_app(data_dir=self.p.directory.name, adapter=self.adapter,
+                         environ=self.p.env, heart_key=self.p.key, on_write=fail_commit)
+        self.p.site = FastAPI(); self.p.site.mount("/api/harness", app)
+        self.p.m = self.p.login("M")
+        response = self.p.m.post(route, json={"client_event_id": "durable-first"})
+        self.assertEqual(response.status_code, 503, response.text)
+        self.assertEqual(len(self.adapter.roles), 2)
+        self.assertFalse(self.p.m.get("/api/harness/health").json()["durability_ready"])
+
+    def test_retry_revalidates_saved_content_before_any_new_model_call(self):
+        message, route = self.failed_review()
+        with patch("harness.validator.signature", side_effect=RuntimeError("private validator failure")):
+            result = self.p.m.post(route, json={"client_event_id": "validator-unavailable"})
+        self.assertEqual(result.status_code, 503, result.text)
+        with sqlite3.connect(self.p.directory.name + "/service.sqlite3") as c:
+            c.execute("UPDATE message_notes SET content='not-json' WHERE message_id=?", (message["id"],))
+        self.assertEqual(self.p.m.post(route, json={"client_event_id": "corrupt-note"}).status_code, 409)
+        self.assertEqual(self.adapter.roles, ["interpreter", "reviewer"])

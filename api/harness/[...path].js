@@ -2,7 +2,7 @@
 
 const routes = [
   /^(health|auth\/(login|logout|me))$/,
-  /^sessions(?:\/[a-zA-Z0-9_-]+(?:\/(?:start|complete|join|heart|events|lesson|transcriptions|audit\/verify|messages(?:\/[a-zA-Z0-9_-]+\/(?:approve|speech))?))?)?$/,
+  /^sessions(?:\/[a-zA-Z0-9_-]+(?:\/(?:start|complete|join|heart|events|lesson|transcriptions|audit\/verify|messages(?:\/[a-zA-Z0-9_-]+\/(?:approve|speech|review))?))?)?$/,
   /^sessions\/[a-zA-Z0-9_-]+\/media\/(?:status|join|leave|recordings(?:\/[a-zA-Z0-9_-]+\/(?:stop|cancel))?|speech\/[a-zA-Z0-9_-]+)$/,
   /^sessions\/[a-zA-Z0-9_-]+\/lesson\/translations(?:\/[a-zA-Z0-9_-]+\/approve)?$/,
   /^sessions\/[a-zA-Z0-9_-]+\/lesson\/proposals(?:\/[a-zA-Z0-9_-]+\/apply)?$/,
