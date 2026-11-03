@@ -15,7 +15,23 @@ const cabState = {
 };
 let cabMetro = { timer: null, ctx: null, beat: -1, bpm: 72, on: false };
 function cabLang() { return (window.P01 && P01.state.lang) || "en"; }
-function cabT() { return CabPS.CAB[cabLang()]; }
+/* The member's League follows the League they entered (#/league/<id> saves it in som_ui_prefs).
+   League of the String stays the example default (guitarist). */
+const CAB_MY_LEAGUE_IDS = ["string", "bow", "keys", "winds", "drums", "electronic", "vocal"];
+function cabLeagueIndex() {
+  try { const p = JSON.parse(localStorage.getItem("som_ui_prefs") || "{}"); const i = CAB_MY_LEAGUE_IDS.indexOf(p.league); return i < 0 ? 0 : i; } catch (e) { return 0; }
+}
+function cabT() {
+  const base = CabPS.CAB[cabLang()], i = cabLeagueIndex();
+  if (!i) return base;
+  const ru = cabLang() === "ru", L = CabPS.LEAGUES[i], name = ru ? L[2] : L[1], fam = ru ? L[6] : L[5];
+  const tail = s => { const k = String(s || "").indexOf(" · "); return k < 0 ? "" : s.slice(k); };
+  return Object.assign({}, base, {
+    leagueName: name, leagueFamily: fam,
+    tile4Title: name, tile4Sub: fam + tail(base.tile4Sub),
+    subAdmirer: String(base.subAdmirer || "").replace(ru ? "Лига струны" : "League of the String", name),
+  });
+}
 function cabRoles() {
   const tt = CabPS.T[cabLang()];
   return [["maestro", tt.roleT, "baton"], ["artist", tt.roleS, "ph-music-notes"], ["admirer", tt.roleL, "ph-headphones"]];
