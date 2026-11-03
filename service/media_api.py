@@ -2,6 +2,7 @@
 import asyncio
 import base64
 import importlib.util
+import logging
 import time
 from contextlib import closing
 from pathlib import Path
@@ -25,10 +26,19 @@ class MediaLeave(BaseModel):
 
 
 class ParticipantMedia:
+    CONNECT_GRACE = 60
+    DISCONNECT_GRACE = 20
+    POLL_INTERVAL = 1
+    RETRY_INTERVAL = 5
+
     def __init__(self, rooms, transport):
         self.rooms, self.transport = rooms, transport
         self.db = self.commit = None
         self.lifecycle_locks = {}
+        self.clock = time.monotonic
+        self.leases = {}
+        self.watcher = None
+        self.stop_event = None
 
     @classmethod
     def from_environ(cls, env, data_dir, persist=None):
@@ -51,23 +61,99 @@ class ParticipantMedia:
 
     async def enter(self,sid,members):
         async with self.lifecycle_lock(sid):
-            await self.transport.check_manual_creation()
-            record=await self.rooms.open(sid,members)
-            await self.transport.ensure(record)
-            return record
+            try:
+                await self.transport.check_manual_creation()
+                record=await self.rooms.open(sid,members)
+                await self.transport.ensure(record)
+                lease = self.observe(record)
+                # A successful join grants time to use its freshly issued
+                # capabilities; browser connection follows this response.
+                lease["opened"] = self.clock()
+                if lease["users_seen"]:
+                    lease["missing_since"] = self.clock()
+                return record
+            finally:
+                record = self.rooms.state(sid)
+                if record and record["state"] != "closed":
+                    self.observe(record)
+
+    def observe(self, record, now=None):
+        sid = record["session_id"]
+        lease = self.leases.get(sid)
+        if not lease or lease["epoch"] != record["epoch"]:
+            lease = {"epoch": record["epoch"], "opened": self.clock() if now is None else now,
+                     "users_seen": set(), "missing_since": None, "retry_at": 0}
+            self.leases[sid] = lease
+        return lease
+
+    async def reap(self):
+        with closing(self.rooms.db()) as connection:
+            ids = [r[0] for r in connection.execute("SELECT session_id FROM media_sessions WHERE state!='closed'")]
+        for sid in list(self.leases):
+            if sid not in ids:
+                self.leases.pop(sid, None)
+        for sid in ids:
+            async with self.lifecycle_lock(sid):
+                now = self.clock()
+                record = self.rooms.state(sid)
+                if not record or record["state"] == "closed":
+                    continue
+                lease = self.observe(record, now)
+                present = self.transport.client_presence(record)
+                lease["users_seen"].update(user for user, direction in present)
+                expected = {(user, direction) for user in lease["users_seen"] for direction in ("ingress", "playback")}
+                if expected and expected - present:
+                    if lease["missing_since"] is None:
+                        lease["missing_since"] = now
+                else:
+                    lease["missing_since"] = None
+                expired = (record["state"] == "closing"
+                    or (not expected and now - lease["opened"] >= self.CONNECT_GRACE)
+                    or (lease["missing_since"] is not None and now - lease["missing_since"] >= self.DISCONNECT_GRACE))
+                if expired and now >= lease["retry_at"]:
+                    try:
+                        await self.close_owned(sid, expected_epoch=record["epoch"])
+                    except Exception:
+                        # Capacity stays reserved until verified deletion.
+                        lease["retry_at"] = self.clock() + self.RETRY_INTERVAL
+
+    def start(self):
+        if self.watcher is None:
+            self.stop_event = asyncio.Event()
+            self.watcher = asyncio.create_task(self.watch_presence())
+
+    async def watch_presence(self):
+        while not self.stop_event.is_set():
+            try:
+                await asyncio.wait_for(self.stop_event.wait(), self.POLL_INTERVAL)
+            except asyncio.TimeoutError:
+                pass
+            if self.stop_event.is_set():
+                break
+            try:
+                await self.reap()
+            except Exception:
+                logging.getLogger(__name__).warning("Media lease check failed; admission remains reserved")
 
     async def close(self, sid, expected_epoch=None):
         async with self.lifecycle_lock(sid):
-            record = self.rooms.state(sid)
-            if record and expected_epoch and record["epoch"] != expected_epoch:
-                return False
-            if record:
-                await self.transport.disconnect(record["epoch"])
-            if self.db:
-                with closing(self.db()) as connection:
-                    connection.execute("UPDATE media_recordings SET state='cancelled' WHERE session_id=? AND state='capturing'", (sid,))
-                    self.commit(connection)
-            return await self.rooms.close(sid,expected_epoch)
+            return await self.close_owned(sid, expected_epoch)
+
+    async def close_owned(self, sid, expected_epoch=None):
+        # Caller holds this session's lifecycle lock, including lease rechecks.
+        record = self.rooms.state(sid)
+        if record and expected_epoch and record["epoch"] != expected_epoch:
+            return False
+        if record:
+            await self.transport.disconnect(record["epoch"])
+        if self.db:
+            with closing(self.db()) as connection:
+                connection.execute("UPDATE media_recordings SET state='cancelled' WHERE session_id=? AND state='capturing'", (sid,))
+                self.commit(connection)
+        closed = await self.rooms.close(sid,expected_epoch)
+        if closed:
+            self.leases.pop(sid, None)
+        return closed
 
     async def logout(self, user):
         with closing(self.rooms.db()) as connection:
@@ -81,6 +167,12 @@ class ParticipantMedia:
         if failures: raise MediaError("media_cleanup_pending")
 
     async def shutdown(self):
+        if self.watcher is not None:
+            # Drain in-flight native teardown rather than cancelling it midway.
+            if self.stop_event is not None:
+                self.stop_event.set()
+            await self.watcher
+            self.watcher = None
         with closing(self.rooms.db()) as connection:
             ids=[r[0] for r in connection.execute("SELECT session_id FROM media_sessions")]
         failures=[]

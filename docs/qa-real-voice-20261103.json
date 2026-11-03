@@ -116,5 +116,105 @@
   "cloud_deployed": false,
   "human_voice_quality_accepted": false,
   "full_EN_VI_acceptance": false,
-  "latency_target_accepted": false
+  "latency_target_accepted": false,
+  "audio_follow_up": {
+    "type": "controlled diagnostic; does not establish human speech quality",
+    "pcm_comparison": [
+      {
+        "variant": "baseline",
+        "language": "en",
+        "reference_seconds": 9.0,
+        "received_seconds": 6.6,
+        "lag_ref_minus_received_s": 0.151125,
+        "aligned_waveform_correlation": 0.6097,
+        "aligned_20ms_energy_correlation": 0.928,
+        "reference_active_bounds_s": [
+          1.1,
+          5.26
+        ],
+        "received_active_bounds_s": [
+          0.96,
+          5.1
+        ],
+        "received_clipped_fraction": 3.8e-05
+      },
+      {
+        "variant": "baseline",
+        "language": "vi",
+        "reference_seconds": 9.0,
+        "received_seconds": 6.58,
+        "lag_ref_minus_received_s": 0.1574375,
+        "aligned_waveform_correlation": 0.4524,
+        "aligned_20ms_energy_correlation": 0.856,
+        "reference_active_bounds_s": [
+          1.14,
+          5.2
+        ],
+        "received_active_bounds_s": [
+          0.98,
+          4.96
+        ],
+        "received_clipped_fraction": 0.0
+      },
+      {
+        "variant": "echo-only",
+        "language": "en",
+        "reference_seconds": 9.0,
+        "received_seconds": 6.58,
+        "lag_ref_minus_received_s": 0.164,
+        "aligned_waveform_correlation": 0.5005,
+        "aligned_20ms_energy_correlation": 0.9974,
+        "reference_active_bounds_s": [
+          1.1,
+          5.26
+        ],
+        "received_active_bounds_s": [
+          0.94,
+          5.1
+        ],
+        "received_clipped_fraction": 0.0
+      },
+      {
+        "variant": "echo-only",
+        "language": "vi",
+        "reference_seconds": 9.0,
+        "received_seconds": 6.58,
+        "lag_ref_minus_received_s": 0.1640625,
+        "aligned_waveform_correlation": 0.5228,
+        "aligned_20ms_energy_correlation": 0.995,
+        "reference_active_bounds_s": [
+          1.14,
+          5.2
+        ],
+        "received_active_bounds_s": [
+          0.96,
+          5.04
+        ],
+        "received_clipped_fraction": 0.0
+      }
+    ],
+    "direct_vs_rtc_ASR": [
+      {
+        "case": "direct-en-aligned",
+        "text": "play the A minor chord four times at 60 beats per minute. Do not speed up.",
+        "seconds": 6.64,
+        "latency_s": 2.938,
+        "cost_usd": 0.0003
+      },
+      {
+        "case": "rtc-en",
+        "text": "play the minor chord four times at 60 beats per minute. Do not speed up.",
+        "seconds": 6.64,
+        "latency_s": 1.717,
+        "cost_usd": 0.0003
+      }
+    ],
+    "new_paid_calls": 2,
+    "added_cost_usd": 0.0006,
+    "local_ledger_settled_after": 10,
+    "local_spent_usd_after": 0.012731,
+    "local_unsettled": 0,
+    "last_known_aggregate_with_cloud_only_charges_usd": 0.016642,
+    "finding": "Original PCM retained A minor chord; RTC PCM omitted A. Both retained negation in this pair. No bilateral voice acceptance claimed."
+  }
 }

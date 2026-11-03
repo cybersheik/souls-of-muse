@@ -690,6 +690,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         @asynccontextmanager
         async def media_lifespan(application):
             async with original_lifespan(application):
+                media.start()
                 try:
                     yield
                 finally:

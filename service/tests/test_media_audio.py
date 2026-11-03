@@ -6,6 +6,35 @@ from service.media_transport import AudioCapture, LiveKitTransport
 
 
 class MediaCaptureBounds(unittest.TestCase):
+    def test_cancelled_disconnect_keeps_native_handle_for_retry(self):
+        import asyncio
+        async def scenario():
+            entered,release=asyncio.Event(),asyncio.Event()
+            class Room:
+                connected=True
+                async def disconnect(self):
+                    entered.set();await release.wait();self.connected=False
+            transport=LiveKitTransport(None,None);room=Room();key=('epoch','user','ingress')
+            transport.channels[key]={'room':room,'source':None}
+            task=asyncio.create_task(transport.disconnect('epoch'))
+            await entered.wait();task.cancel()
+            await asyncio.gather(task,return_exceptions=True)
+            self.assertIn(key,transport.channels)
+            release.set();await transport.disconnect('epoch')
+            self.assertFalse(room.connected);self.assertEqual(transport.channels,{})
+        asyncio.run(scenario())
+
+    def test_presence_counts_only_expected_clients_on_connected_channels(self):
+        from types import SimpleNamespace
+        transport=LiveKitTransport(SimpleNamespace(opaque=lambda value:'opaque'),None)
+        record={'epoch':'generation','members':{'user':'artist'}}
+        ingress=SimpleNamespace(isconnected=lambda:True,remote_participants={'muse-opaque':object()})
+        playback=SimpleNamespace(isconnected=lambda:False,remote_participants={'member-opaque':object()})
+        transport.channels={('generation','user','ingress'):{'room':ingress},('generation','user','playback'):{'room':playback}}
+        self.assertEqual(transport.client_presence(record),set())
+        ingress.remote_participants['member-opaque']=object()
+        self.assertEqual(transport.client_presence(record),{('user','ingress')})
+
     def test_pcm_is_bounded_to_ten_seconds_and_keeps_wav_shape(self):
         capture = AudioCapture()
         capture.push(b"\1\0" * 170_000)

@@ -13,7 +13,7 @@ from runtime.admission import initialize_database
 
 
 class OfflineTransport:
-    def __init__(self): self.captures = {}; self.sent = []
+    def __init__(self): self.captures = {}; self.sent = []; self.connected_clients = set()
     async def check_manual_creation(self): pass
     async def ensure(self, record): pass
     def begin_capture(self, epoch, user, event_id): self.captures[(epoch,user)] = (event_id,AudioCapture())
@@ -27,6 +27,7 @@ class OfflineTransport:
     def busy(self, epoch): return any(key[0] == epoch for key in self.captures)
     async def disconnect(self, epoch): self.captures = {k:v for k,v in self.captures.items() if k[0] != epoch}
     async def send(self, epoch, user, audio): self.sent.append((user,audio))
+    def client_presence(self, record): return set(self.connected_clients)
 
 
 class MediaRoutes(unittest.TestCase):
@@ -67,6 +68,11 @@ class MediaRoutes(unittest.TestCase):
         response=self.p.m.post(self.path+"/join",json={"user":"other","role":"maestro"})
         self.assertEqual(response.status_code,200,response.text)
         return response.json()
+
+    def reap_at(self, now):
+        import asyncio
+        self.media.clock=lambda:now
+        asyncio.run(self.media.reap())
 
     def message(self):
         response=self.p.m.post(self.p.path+"/messages",json={"client_event_id":"msg","speaker":"maestro",
@@ -166,6 +172,9 @@ class MediaRoutes(unittest.TestCase):
         site.mount('/api/harness',self.harness)
         with TestClient(site) as client:
             self.assertTrue(self.api.rooms)
+            self.assertIsNotNone(self.media.watcher)
+            self.assertFalse(self.media.watcher.done())
+        self.assertIsNone(self.media.watcher)
         self.assertEqual(self.api.rooms,{})
         self.assertEqual(self.p.m.get(self.p.path).json()['state'],'active')
         self.assertEqual(self.p.m.get(self.p.path+'/heart').json()['counters']['happened'],0)
@@ -177,3 +186,127 @@ class MediaRoutes(unittest.TestCase):
         response=self.p.m.post(self.path+'/leave',json={'generation':old})
         self.assertEqual(response.status_code,200,response.text)
         self.assertTrue(self.api.rooms)
+
+    def test_abandoned_join_is_closed_without_awarding_completion(self):
+        import asyncio
+        self.media.clock=lambda:0
+        self.join()
+        self.reap_at(59)
+        self.assertTrue(self.api.rooms)
+        self.reap_at(60)
+        self.assertEqual(self.api.rooms,{})
+        self.assertEqual(self.p.m.get(self.p.path).json()['state'],'active')
+        self.assertEqual(self.p.m.get(self.p.path+'/heart').json()['counters']['happened'],0)
+
+    def test_disappeared_client_releases_slot_but_brief_reconnect_does_not(self):
+        import asyncio
+        self.media.clock=lambda:0
+        self.join()
+        self.transport.connected_clients={('M','ingress'),('M','playback')}
+        self.reap_at(1)
+        self.transport.connected_clients=set()
+        self.reap_at(2)
+        self.reap_at(21)
+        self.assertTrue(self.api.rooms)
+        self.transport.connected_clients={('M','ingress'),('M','playback')}
+        self.reap_at(21.5)
+        self.transport.connected_clients=set()
+        self.reap_at(22)
+        self.reap_at(42)
+        self.assertEqual(self.api.rooms,{})
+
+    def test_half_connected_participant_cannot_hold_a_room_forever(self):
+        import asyncio
+        self.media.clock=lambda:0
+        self.join()
+        self.transport.connected_clients={('M','ingress')}
+        self.reap_at(1)
+        self.reap_at(21)
+        self.assertEqual(self.api.rooms,{})
+
+    def test_cleanup_retry_keeps_capacity_until_deletion_is_confirmed(self):
+        import asyncio
+        self.media.clock=lambda:0
+        self.join();self.api.fail_delete=True
+        self.reap_at(60)
+        self.assertTrue(self.api.rooms)
+        self.p.active();self.path=self.p.path+'/media'
+        self.assertEqual(self.p.m.post(self.path+'/join').status_code,429)
+        self.api.fail_delete=False
+        self.reap_at(65)
+        self.assertEqual(self.api.rooms,{})
+        self.assertEqual(self.p.m.post(self.path+'/join').status_code,200)
+
+    def test_reconnect_is_rechecked_after_waiting_for_lifecycle_lock(self):
+        import asyncio
+        self.media.clock=lambda:0
+        self.join()
+        self.transport.connected_clients={('M','ingress'),('M','playback')}
+        self.reap_at(1)
+        self.transport.connected_clients=set()
+        self.reap_at(2)
+        sid=self.p.path.split('/')[-1]
+        async def race():
+            lock=self.media.lifecycle_lock(sid)
+            await lock.acquire()
+            try:
+                self.media.clock=lambda:30
+                cleanup=asyncio.create_task(self.media.reap())
+                await asyncio.sleep(0)
+                self.transport.connected_clients={('M','ingress'),('M','playback')}
+            finally:
+                lock.release()
+            await cleanup
+        asyncio.run(race())
+        self.assertTrue(self.api.rooms)
+
+    def test_new_disconnect_gets_full_grace_after_waiting_for_lock(self):
+        import asyncio
+        self.media.clock=lambda:0;self.join()
+        self.transport.connected_clients={('M','ingress'),('M','playback')}
+        self.reap_at(1);sid=self.p.path.split('/')[-1]
+        async def delayed():
+            lock=self.media.lifecycle_lock(sid);await lock.acquire()
+            self.media.clock=lambda:2
+            task=asyncio.create_task(self.media.reap())
+            await asyncio.sleep(0)
+            self.media.clock=lambda:100
+            self.transport.connected_clients=set();lock.release()
+            await task
+        asyncio.run(delayed())
+        self.reap_at(101);self.assertTrue(self.api.rooms)
+        self.reap_at(120);self.assertEqual(self.api.rooms,{})
+
+    def test_retry_delay_starts_when_failed_cleanup_finishes(self):
+        self.media.clock=lambda:0;self.join();original=self.api.delete;calls=[]
+        async def slow_failure(name):
+            calls.append(name);self.media.clock=lambda:80
+            raise TimeoutError('slow deletion')
+        self.api.delete=slow_failure
+        self.reap_at(60);self.assertEqual(len(calls),1)
+        self.reap_at(81);self.assertEqual(len(calls),1)
+        self.api.delete=original
+        self.reap_at(85);self.assertEqual(self.api.rooms,{})
+
+    def test_shutdown_waits_for_inflight_cleanup_without_cancelling_it(self):
+        import asyncio
+        self.media.clock=lambda:0;self.join();self.media.clock=lambda:60
+        original=self.transport.disconnect;cancelled=[]
+        async def scenario():
+            entered,release=asyncio.Event(),asyncio.Event()
+            async def disconnect(epoch):
+                entered.set()
+                try:await release.wait()
+                except asyncio.CancelledError:
+                    cancelled.append(True);raise
+                await original(epoch)
+            self.transport.disconnect=disconnect
+            self.media.stop_event=asyncio.Event()
+            self.media.watcher=asyncio.create_task(self.media.reap())
+            await entered.wait()
+            task=asyncio.create_task(self.media.shutdown())
+            await asyncio.sleep(0);await asyncio.sleep(0)
+            release.set();await task
+        asyncio.run(scenario())
+        self.assertEqual(cancelled,[])
+        self.assertEqual(self.api.rooms,{})

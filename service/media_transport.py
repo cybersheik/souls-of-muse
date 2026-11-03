@@ -175,6 +175,18 @@ class LiveKitTransport:
     def busy(self, epoch):
         return any(key[0] == epoch for key in (*self.captures, *self.sending))
 
+    def client_presence(self, record):
+        """Actual participant connections, excluding the server's own tracks."""
+        present = set()
+        epoch = record["epoch"]
+        for user in record["members"]:
+            expected = "member-" + self.authority.opaque(epoch + ":" + user)
+            for direction in ("ingress", "playback"):
+                channel = self.channels.get((epoch, user, direction))
+                if channel and channel["room"].isconnected() and expected in channel["room"].remote_participants:
+                    present.add((user, direction))
+        return present
+
     async def disconnect(self, epoch):
         self.closing.add(epoch)
         try:
@@ -191,8 +203,12 @@ class LiveKitTransport:
         await asyncio.gather(*tasks, return_exceptions=True)
         for key in list(self.channels):
             if key[0] != epoch: continue
-            channel = self.channels.pop(key)
+            channel = self.channels[key]
             if channel["source"]:
                 channel["source"].clear_queue()
                 await channel["source"].aclose()
+                channel["source"] = None
             await channel["room"].disconnect()
+            # Retain the handle through cancellation/failure so the next
+            # shutdown attempt cannot mistake an unfinished teardown for done.
+            self.channels.pop(key, None)
