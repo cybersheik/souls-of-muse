@@ -366,4 +366,4 @@ function bind() {
   });
 }
 function stopAll() { stopAudio(); if (entRaf) { cancelAnimationFrame(entRaf); entRaf = null; } }
-window.P01 = { entrance, welcome, components, bind, stop: stopAll, state };
+window.P01 = { entrance, welcome, components, bind, stop: stopAll, state, CONV };
