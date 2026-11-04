@@ -2,8 +2,12 @@
 import unittest
 from pathlib import Path
 
-from harness.validator import load_glossary, signature, term_ids
-from service.app import _validate_translation as validate_pair
+from harness.validator import compare, load_glossary, signature, term_ids
+
+
+def validate_pair(source, source_language, target, target_language, glossary):
+    return compare(signature(source, source_language, glossary),
+                   signature(target, target_language, glossary))
 
 
 class BeatPlural(unittest.TestCase):
