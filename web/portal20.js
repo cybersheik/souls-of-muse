@@ -302,7 +302,8 @@ function whatBody() {
 
 function shutter(kind) {
   const tt = t(), closed = !!st.shut[kind], title = kind === "how" ? tt.howTitle : tt.whatTitle;
-  return `<aside class="p20-shutter${closed ? " closed" : ""}" aria-label="${esc(kind === "how" ? tt.tabHow : tt.tabWhat)}"${closed ? " hidden" : ""}>
+  const anim = st.shutAnim === kind; if (anim) st.shutAnim = null;
+  return `<aside class="p20-shutter${closed ? " closed" : ""}${anim ? " p20-anim" : ""}" aria-label="${esc(kind === "how" ? tt.tabHow : tt.tabWhat)}"${closed ? " hidden" : ""}>
       <div class="p20-shuthead"><span class="p20-kicker">${esc(tt.notesKicker)}</span><button class="p20-hide" data-shut="${kind}" type="button">${esc(tt.hideNotes)}<i class="ph ph-arrow-right" aria-hidden="true"></i></button></div>
       <div class="p20-shutbody"><h2>${esc(title)}</h2>${kind === "how" ? howBody() : whatBody()}</div>
     </aside>
@@ -387,7 +388,7 @@ function bind() {
   on(document, "keydown", e => { if (e.key === "Escape" && st.menu) { st.menu = false; rerender(); } });
   document.querySelectorAll("[data-how]").forEach(b => b.onclick = () => { const i = +b.dataset.how; st.how[i] = !st.how[i]; keepScroll(rerender); });
   document.querySelectorAll("[data-shut]").forEach(b => b.onclick = () => { st.shut[b.dataset.shut] = true; ss.set("som_p20_shut", st.shut); rerender(); const tab = document.querySelector("[data-unshut]"); if (tab) tab.focus(); });
-  document.querySelectorAll("[data-unshut]").forEach(b => b.onclick = () => { st.shut[b.dataset.unshut] = false; ss.set("som_p20_shut", st.shut); rerender(); const h = document.querySelector("[data-shut]"); if (h) h.focus(); });
+  document.querySelectorAll("[data-unshut]").forEach(b => b.onclick = () => { st.shut[b.dataset.unshut] = false; st.shutAnim = b.dataset.unshut; ss.set("som_p20_shut", st.shut); rerender(); const h = document.querySelector("[data-shut]"); if (h) h.focus(); });
   document.querySelectorAll("[data-door]").forEach(a => a.onclick = e => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1 || reduced()) return;
     e.preventDefault();
@@ -478,6 +479,9 @@ function select(i, snap) {
   if (i != null) { const b = document.querySelector(`[data-lsel="${i}"]`); if (b) b.focus({ preventScroll: true }); }
 }
 
+/* one clock for the whole visit: re-renders (language, signing, notes) must not
+   make the clouds or the circle jump back to their starting positions */
+let skyT = 0;
 function startLoop() {
   const graph = document.querySelector("[data-graph]");
   const layers = [...document.querySelectorAll("[data-sky] [data-par]")];
@@ -500,16 +504,17 @@ function startLoop() {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(frontIndex(), true); }
     });
   }
-  let last = performance.now(), stT = 0;
+  let last = performance.now();
   const tick = now => {
     const dt = Math.min(0.1, (now - last) / 1000); last = now; const R = reduced();
     if (!document.hidden) {
-      if (!R) stT += dt;
-      paintSky(layers, muses, stT, R);
-      if (graph) paintGraph(graph, dt, R, stT);
+      if (!R) skyT += dt;
+      paintSky(layers, muses, skyT, R);
+      if (graph) paintGraph(graph, dt, R, skyT);
     }
     raf = requestAnimationFrame(tick);
   };
+  paintSky(layers, muses, skyT, reduced());
   raf = requestAnimationFrame(tick);
 }
 /* Depth: each layer drifts on its own and leans away from the pointer by its depth.
