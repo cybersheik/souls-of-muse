@@ -17,6 +17,8 @@ function cabLang() { return (window.P01 && P01.state.lang) || "en"; }
 /* The member's League follows the League they entered (#/league/<id> saves it in som_ui_prefs).
    League of the String stays the example default (guitarist). */
 const CAB_MY_LEAGUE_IDS = ["string", "bow", "keys", "winds", "drums", "electronic", "vocal"];
+/* League colours from the Portal 2.1 legend (same order) */
+const CAB_LCOL = ["#3ED0C8", "#DF86D7", "#86C5FA", "#6FDEA7", "#F6AB6B", "#AD8DFD", "#CCE170"];
 function cabLeagueIndex() {
   try { const p = JSON.parse(localStorage.getItem("som_ui_prefs") || "{}"); const i = CAB_MY_LEAGUE_IDS.indexOf(p.league); return i < 0 ? 0 : i; } catch (e) { return 0; }
 }
@@ -51,13 +53,14 @@ function cabHead(role, sessTitle, sessSub, demo = false) {
   const [who, soul] = user ? [user.name, user.id] : demo ? (CabPS.CAB.people[role] || CabPS.CAB.people.artist) : ["", ""];
   return `<header class="cab-head">
     <a class="cab-brand" href="#/"><img src="assets/lyre.png" alt="Golden Lyre"><span>${cabEsc(C.brand)}</span></a>
+    <img class="cab-muse-sign" src="assets/muse-cut.png" alt="Muse" width="26" height="32">
     ${demo ? cabSiteNav(role, true) : cabSiteNav(role)}
     ${sessTitle ? `<span class="cab-sess-title">${cabEsc(sessTitle)} <span>${cabEsc(sessSub || "")}</span></span>` : ""}
     <div class="cab-head-right">
       <span class="cab-tag cab-tag-neutral">${cabEsc(demo ? C.exampleData : sessTitle ? (cabLang() === "ru" ? "Музыкальная встреча" : "Music meeting") : (cabLang() === "ru" ? "Моё пространство" : "My space"))}</span>
       ${role === "admirer" && sessTitle ? `<span class="cab-tag cab-tag-outline">${cabEsc(C.proposal)}</span>` : ""}
       ${who ? `<span class="cab-who"><span>${cabEsc(who)}</span><span aria-hidden="true">·</span><span class="soul text-gold">${cabEsc(soul)}</span></span>` : ""}
-      ${cabLangSwitch()}
+      ${window.Portal20 && Portal20.langMenu ? Portal20.langMenu() : cabLangSwitch()}
     </div></header>`;
 }
 /* Site route (Portal 2.0 Golden Lyre): back to the Convention and the Leagues from any cabinet screen. */
@@ -139,7 +142,7 @@ function home(role, options = {}) {
   return `<div class="cab" data-cab-screen="home-${role}" data-cab-demo="true">${cabHead(role, "", "", true)}
   <div class="cab-home">
     <aside class="cab-side">
-      <div><span class="rule-gold">${cabEsc(C.myLeague)}</span><div class="cab-league-name">${cabEsc(C.leagueName)}</div><div class="cab-league-fam">${cabEsc(C.leagueFamily)}</div></div>
+      <div class="cab-myleague" style="--c:${CAB_LCOL[cabLeagueIndex()]}"><span class="rule-gold">${cabEsc(C.myLeague)}</span><div class="cab-league-name"><span class="cab-ldot" aria-hidden="true"></span>${cabEsc(C.leagueName)}</div><div class="cab-league-fam">${cabEsc(C.leagueFamily)}</div></div>
       <div class="divider-fade"></div>
       <div><span class="rule-gold">${cabEsc(C.myRole)}</span><div class="cab-roles" role="group" aria-label="${cabEsc(C.myRole)}">${roleButtons(role)}</div></div>
       <div class="divider-fade"></div>
@@ -164,7 +167,9 @@ function home(role, options = {}) {
         </section>
         ${tile("02", C.tile2, C.tile2Title, C.tile2Body)}
         ${tile("03", C.tile3, C.tile3Title, C.tile3Body)}
-        ${tile("04", C.tile4, C.tile4Title, C.tile4Body, C.tile4Sub)}
+        <a class="cab-tile cab-tile-league" href="#/league/${CAB_MY_LEAGUE_IDS[cabLeagueIndex()]}" style="--c:${CAB_LCOL[cabLeagueIndex()]}">
+          <div class="cab-tile-head"><span class="cab-tile-num dim"><span class="num-gold">04</span> · ${cabEsc(C.tile4)}</span><span style="flex:1"></span><i class="ph ph-arrow-right" aria-hidden="true"></i></div>
+          <div class="cab-tile-title"><span class="cab-ldot" aria-hidden="true"></span>${cabEsc(C.tile4Title)}</div>${C.tile4Sub ? `<div class="cab-tile-sub">${cabEsc(C.tile4Sub)}</div>` : ""}<div class="cab-tile-body">${cabEsc(C.tile4Body)}</div></a>
       </div>
       <p class="cab-home-foot">${cabEsc(C.homeFoot)}</p>
     </main>

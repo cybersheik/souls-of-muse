@@ -160,7 +160,10 @@
 /* ---- notes shutter ---- */
 .p20-shutter{position:fixed;right:0;top:64px;bottom:0;width:var(--shut-w);z-index:45;display:flex;flex-direction:column;
   background:color-mix(in srgb,var(--color-surface) 94%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  border-left:1px solid var(--color-neutral-700);box-shadow:var(--shadow-lg);animation:p20-slide 420ms cubic-bezier(.3,.7,.2,1)}
+  border-left:1px solid var(--color-neutral-700);box-shadow:var(--shadow-lg)}
+/* slide in only when the visitor opens the notes, not on every re-render; hidden notes stay hidden */
+.p20-shutter.p20-anim{animation:p20-slide 420ms cubic-bezier(.3,.7,.2,1)}
+.p20-shutter[hidden]{display:none}
 @keyframes p20-slide{from{transform:translateX(100%)}to{transform:none}}
 .p20-shuthead{display:flex;align-items:center;gap:12px;padding:14px 20px 14px 24px;border-bottom:1px solid var(--color-neutral-800)}
 .p20-kicker{flex:1;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-neutral-300)}

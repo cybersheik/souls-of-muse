@@ -174,11 +174,11 @@ function museBox(text, cls) {
 function museIdleText() { return signedRec() ? t().museDone : st.signing ? t().museForm : t().museIdle; }
 
 function convLang() { return st.conv && I18N()[st.conv] ? st.conv : null; }
-function langMenu() {
-  const tt = t(), cur = lang(), cl = convLang();
+function langMenu(uiOnly) {
+  const tt = t(), cur = lang(), cl = uiOnly ? null : convLang();
   return `<div class="p20-lang">
     <button class="p20-langbtn" data-p20-menu aria-haspopup="listbox" aria-expanded="${st.menu}"><i class="ph ph-globe-simple" aria-hidden="true"></i>${esc(cl ? I18N()[cl].name : tt.langName)}<i class="ph ph-caret-down" aria-hidden="true"></i></button>
-    ${st.menu ? `<div class="p20-langlist" role="listbox" aria-label="${esc(tt.language)}">${LANGS.map(([code, label]) => {
+    ${st.menu ? `<div class="p20-langlist" role="listbox" aria-label="${esc(tt.language)}">${LANGS.filter(([code]) => !uiOnly || code === "en" || code === "ru").map(([code, label]) => {
       const avail = code === "en" || code === "ru" || !!I18N()[code], current = cl ? code === cl : code === cur;
       return `<button role="option" aria-selected="${current}" aria-disabled="${!avail}" ${avail ? `data-p20-lang="${code}"` : "tabindex=\"-1\""} class="${avail ? "" : "soon"}"><span dir="auto">${esc(label)}</span>${avail ? "" : `<span class="p20-soon">${esc(tt.soon)}</span>`}${current ? '<i class="ph ph-check" aria-hidden="true"></i>' : ""}</button>`;
     }).join("")}</div>` : ""}
@@ -302,7 +302,8 @@ function whatBody() {
 
 function shutter(kind) {
   const tt = t(), closed = !!st.shut[kind], title = kind === "how" ? tt.howTitle : tt.whatTitle;
-  return `<aside class="p20-shutter${closed ? " closed" : ""}" aria-label="${esc(kind === "how" ? tt.tabHow : tt.tabWhat)}"${closed ? " hidden" : ""}>
+  const anim = st.shutAnim === kind; if (anim) st.shutAnim = null;
+  return `<aside class="p20-shutter${closed ? " closed" : ""}${anim ? " p20-anim" : ""}" aria-label="${esc(kind === "how" ? tt.tabHow : tt.tabWhat)}"${closed ? " hidden" : ""}>
       <div class="p20-shuthead"><span class="p20-kicker">${esc(tt.notesKicker)}</span><button class="p20-hide" data-shut="${kind}" type="button">${esc(tt.hideNotes)}<i class="ph ph-arrow-right" aria-hidden="true"></i></button></div>
       <div class="p20-shutbody"><h2>${esc(title)}</h2>${kind === "how" ? howBody() : whatBody()}</div>
     </aside>
@@ -311,16 +312,19 @@ function shutter(kind) {
 
 function home() {
   const tt = t();
-  return `<div class="p20 p21 p20-home${st.shut.how ? " shut" : ""}">${sky("home")}${header()}
+  /* Portal 2.2: the promise runs across the top; the card and the two small arches
+     share the left column (the arches always show in full, the card scrolls inside
+     itself on short screens); Muse stands in the scene on the right. */
+  return `<div class="p20 p21 p22 p20-home${st.shut.how ? " shut" : ""}">${sky("home")}${header()}
     <main id="main" tabindex="-1" class="p20-main">
       ${route(0)}
+      <h1 class="p20-promise">${esc(tt.promise)}</h1>
       <div class="p20-homegrid">
-        <div class="p20-left"><h1 class="p20-promise">${esc(tt.promise)}</h1>${convCard()}</div>
-        <div class="p21-right">
-          ${museBox(museIdleText(), "home")}
+        <div class="p20-left">${convCard()}
           <div class="p21-stagewrap"><span class="p21-plinth" aria-hidden="true"></span>
             <div class="p20-doors p21-doors">${door("leagues", "02")}${door("space", "03")}</div></div>
         </div>
+        <div class="p21-right">${museBox(museIdleText(), "home")}</div>
       </div>
       <details class="p20-mnotes"><summary>${esc(tt.howTitle)}<i class="ph ph-caret-down" aria-hidden="true"></i></summary><div class="p20-shutbody">${howBody()}</div></details>
       <p class="p20-about">${esc(tt.about)}</p>
@@ -364,6 +368,30 @@ function leagues() {
   </div>`;
 }
 
+/* League 2.2: a League's own page in the portal's language — the night sky, the
+   Golden Lyre route, the League's sphere in its colour with a ring for the emblem
+   the League will choose, Muse with that League's line. app.js supplies the body
+   (buttons, tabs, search, list, dialog) and binds it as before. */
+function leaguePage(id, emblemNote, body) {
+  const L = leagues7(), i = Math.max(0, IDS.indexOf(id)), x = L[i], c = LCOL[i];
+  return `<div class="p20 p21 p22 p22-league" style="--c:${c}">${sky("leagues")}${header()}
+    <main id="main" tabindex="-1" class="p20-main">
+      ${route(1)}
+      <section class="p22-lhero" aria-labelledby="p22LName">
+        <div class="p22-lorb" aria-hidden="true"><span class="p22-emring"></span><span class="p20-orb"><i class="ph-fill ${x.icon}" style="color:color-mix(in oklch, ${c}, var(--color-bg) 78%)"></i></span></div>
+        <div class="p22-ltext">
+          <span class="p22-lkick"><span class="p20-n">0${i + 1} / 07</span><span>${esc(x.family)}</span></span>
+          <h1 id="p22LName">${esc(x.name)}</h1>
+          <p class="p22-linstr">${esc(x.instr)}</p>
+          <p class="p22-emnote"><span class="p22-emdot" aria-hidden="true"></span>${esc(emblemNote)}</p>
+        </div>
+        ${museBox(SAY[lang()][i], "league")}
+      </section>
+      <div class="p22-lbody">${body}</div>
+    </main>
+  </div>`;
+}
+
 /* ---------- behaviour ---------- */
 function rerender() { if (typeof window.render === "function") window.render(); }
 function on(el, ev, fn, opt) { el.addEventListener(ev, fn, opt); offs.push(() => el.removeEventListener(ev, fn, opt)); }
@@ -385,7 +413,7 @@ function bind() {
   on(document, "keydown", e => { if (e.key === "Escape" && st.menu) { st.menu = false; rerender(); } });
   document.querySelectorAll("[data-how]").forEach(b => b.onclick = () => { const i = +b.dataset.how; st.how[i] = !st.how[i]; keepScroll(rerender); });
   document.querySelectorAll("[data-shut]").forEach(b => b.onclick = () => { st.shut[b.dataset.shut] = true; ss.set("som_p20_shut", st.shut); rerender(); const tab = document.querySelector("[data-unshut]"); if (tab) tab.focus(); });
-  document.querySelectorAll("[data-unshut]").forEach(b => b.onclick = () => { st.shut[b.dataset.unshut] = false; ss.set("som_p20_shut", st.shut); rerender(); const h = document.querySelector("[data-shut]"); if (h) h.focus(); });
+  document.querySelectorAll("[data-unshut]").forEach(b => b.onclick = () => { st.shut[b.dataset.unshut] = false; st.shutAnim = b.dataset.unshut; ss.set("som_p20_shut", st.shut); rerender(); const h = document.querySelector("[data-shut]"); if (h) h.focus(); });
   document.querySelectorAll("[data-door]").forEach(a => a.onclick = e => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1 || reduced()) return;
     e.preventDefault();
@@ -394,11 +422,13 @@ function bind() {
   });
   document.querySelectorAll("[data-door]").forEach(a => {
     const say = () => document.querySelector("[data-muse-say]");
-    const inn = () => { const s = say(); if (s) s.textContent = a.dataset.door === "leagues" ? t().museDoorL : t().museDoorS; mz.lean = a.dataset.door === "leagues" ? 0.6 : 1; };
+    const inn = () => { const s = say(); if (s) s.textContent = a.dataset.door === "leagues" ? t().museDoorL : t().museDoorS; mz.lean = a.dataset.door === "leagues" ? -1 : -0.6; };
     const out = () => { const s = say(); if (s) s.textContent = museIdleText(); mz.lean = 0; };
     on(a, "mouseenter", inn); on(a, "focus", inn); on(a, "mouseleave", out); on(a, "blur", out);
   });
   document.querySelectorAll("[data-muse]").forEach(m => on(m, "click", () => { mz.joy = performance.now() / 1000; }));
+  const sb = document.getElementById("p20Sign");
+  if (sb) { on(sb, "mouseenter", () => { mz.lean = -0.8; }); on(sb, "mouseleave", () => { mz.lean = 0; }); }
   document.querySelectorAll("[data-lsel]").forEach(b => b.onclick = () => { const v = b.dataset.lsel; select(v === "none" ? null : +v, true); });
   document.querySelectorAll("[data-auto]").forEach(b => b.onclick = e => { e.stopPropagation(); st.auto = !st.auto; ss.set("som_p21_auto", st.auto);
     b.setAttribute("aria-pressed", String(st.auto)); b.classList.toggle("on", st.auto); });
@@ -474,6 +504,9 @@ function select(i, snap) {
   if (i != null) { const b = document.querySelector(`[data-lsel="${i}"]`); if (b) b.focus({ preventScroll: true }); }
 }
 
+/* one clock for the whole visit: re-renders (language, signing, notes) must not
+   make the clouds or the circle jump back to their starting positions */
+let skyT = 0;
 function startLoop() {
   const graph = document.querySelector("[data-graph]");
   const layers = [...document.querySelectorAll("[data-sky] [data-par]")];
@@ -496,16 +529,17 @@ function startLoop() {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(frontIndex(), true); }
     });
   }
-  let last = performance.now(), stT = 0;
+  let last = performance.now();
   const tick = now => {
     const dt = Math.min(0.1, (now - last) / 1000); last = now; const R = reduced();
     if (!document.hidden) {
-      if (!R) stT += dt;
-      paintSky(layers, muses, stT, R);
-      if (graph) paintGraph(graph, dt, R, stT);
+      if (!R) skyT += dt;
+      paintSky(layers, muses, skyT, R);
+      if (graph) paintGraph(graph, dt, R, skyT);
     }
     raf = requestAnimationFrame(tick);
   };
+  paintSky(layers, muses, skyT, reduced());
   raf = requestAnimationFrame(tick);
 }
 /* Depth: each layer drifts on its own and leans away from the pointer by its depth.
@@ -600,5 +634,5 @@ function stop() {
   offs.forEach(f => f()); offs = [];
 }
 function reset() { st.menu = false; }
-window.Portal20 = { home, leagues, bind, stop, reset, T };
+window.Portal20 = { home, leagues, leaguePage, langMenu: () => langMenu(true), bind, stop, reset, T };
 })();
