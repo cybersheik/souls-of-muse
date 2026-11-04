@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sound Made Visible — Jury Report · Sci Sound Labs</title>
+<meta name="description" content="Formal jury report: motivation, method, numerical results, failure handling, contributions and limits of the Sound Made Visible campaign.">
+<link rel="canonical" href="https://soulsofmuse.app/sci-sound-labs/jury-report.html">
+<link rel="icon" type="image/png" href="../assets/lyre.png">
+<style>
+body{margin:0;background:#f7f4ec;color:#1d1b2e;font:16.5px/1.6 Georgia,serif}
+.wrap{max-width:820px;margin:0 auto;padding:36px 22px 60px}
+h1{font-size:32px;font-weight:normal}h2{font-size:21px;color:#4a3f8f;margin-top:1.5em}
+table{width:100%;border-collapse:collapse;font-family:Verdana,sans-serif;font-size:13.5px}
+th,td{border:1px solid #c9c2a8;padding:7px 9px;text-align:left}th{background:#efe8d2}
+a{color:#6b5310}.small{color:#555;font-size:14px}
+@media screen and (max-width:600px){
+.wrap{padding:28px 16px 48px}
+table{table-layout:fixed}
+th{width:36%}
+th,td{padding:6px;overflow-wrap:break-word}
+ul{padding-left:22px}
+li{overflow-wrap:break-word}
+a{overflow-wrap:anywhere}
+}
+@media print{body{background:#fff}.wrap{padding:0}a{color:#111;text-decoration:none}}
+</style></head><body><main class="wrap">
+<p class="small"><a href="index.html">← Sci Sound Labs — Sound Made Visible</a> · <a href="jury-report.md">Markdown version</a></p>
+<h1>Sound Made Visible — Jury Report</h1>
+<p class="small">Sci Sound Labs (research direction of Souls of Muse) · Sci Sound Labs research team, with Meta Muse</p>
+<h2>1. Motivation</h2>
+<p>Musicians reason about sound with words for what they hear — brighter, longer, nearly in tune — but
+the underlying quantity is invisible at the moment it matters. This project asks whether a visual form
+can be tied to sound so strictly that every visible change is caused by a specific audible one: an
+interval ratio, a detuning, a harmonic balance, a decay time, a resonator's geometry. If so, the image
+becomes discussable evidence in a music session rather than decoration, and short demonstrations can
+carry a real question instead of a slogan.</p>
+<h2>2. Method and roles</h2>
+<p>We ran a bounded two-loop research procedure. An inner loop proposed candidate relationships
+(formulas supplied as data only; no generated candidate code was executed during the research) within
+pre-declared families and ranges. A frozen evaluator, fixed before the campaign, scored each candidate
+numerically and, where applicable, spectrally against synthesised audio. An outer loop reviewed
+outcomes and could redirect later windows — focus, ranges, assumptions — with each change recorded and
+applied only from a subsequent window. Both research roles were performed by muse-wonder-1.0 in separate
+contexts via the direct Meta API. The renderer and media-export tools were authored separately by Muse
+(Meta Muse), outside the research loop. The procedure is our bounded adaptation for this single
+campaign — 24 windows, one frozen evaluator, two research roles — inspired by Andrej Karpathy's
+autoresearch.</p>
+<p>Development history is part of the evidence. A six-variant pilot (21.87–49.95 s per variant,
+5 min 14.82 s total) was reclassified after review as engineering feasibility only: no objective delta,
+no baseline promotion, no working holdout; its note-band mapping failed to distinguish individual notes
+and contained a pause-handling defect. A 15-second note-aware scale (C4–C5 and back, 16 notes, 2 rests,
+80 BPM, eight colours/outlines, quiet fades on rests) corrected the note/rest mapping for a known score:
+in software checks each note is now distinguishable and repeats reproduce exactly. Human readability of
+the code, and any learning benefit, remain untested. A first
+nature-themed run was stopped after six closed windows plus a partial seventh, repaired, and discarded
+from the successful count.</p>
+<h2>3. Numerical results (completed campaign, 31 October 2026)</h2>
+<table>
+<tr><th scope="row">Windows</th><td>24 × 300 s; total 7,200.368 s (≈ 2 h)</td></tr>
+<tr><th scope="row">Research requests</th><td>59 completed (48 inner + 11 outer)</td></tr>
+<tr><th scope="row">Outer-loop changes applied</th><td>11, each to subsequent windows only</td></tr>
+<tr><th scope="row">Outcomes</th><td>23 promising synthetic calibrations; 1 inconclusive; 0 final rejections</td></tr>
+<tr><th scope="row">Families explored (10); calibrated 9, inconclusive 1</th><td>Lissajous 1, beats 2, harmonic balance H2/H1 6, decay 4, membrane 2, string 1, Helmholtz 2, closed pipe 2, open pipe 3, capillary/surface waves 1 (inconclusive)</td></tr>
+<tr><th scope="row">Held-out check</th><td>19 candidate-condition entries × 2 seeded points; max mean relative error 0.081218%. The seeded points reuse the same candidate conditions and model families: not 38 independent physical measurements, and not proof of generalisation beyond the given synthetic evaluator</td></tr>
+<tr><th scope="row">Evaluator</th><td>Frozen for the whole campaign; hypotheses data-only</td></tr>
+</table>
+<p>&ldquo;Promising&rdquo; means agreement with the frozen numerical/synthetic model. The inconclusive case
+(surface/capillary waves) had 0.0184% numeric error but its mandatory spectral check fell outside the
+available range. An initial inversion in the first window's ratio (p/q corrected to q/p) is preserved.
+Per-experiment values: see the <a href="index.html#catalogue">24-experiment catalogue</a>.</p>
+<h2>4. Representative output</h2>
+<p>Twenty-four square research cards (1080 × 1080) and six distinct 11-second vertical videos with
+synchronised audio: Lissajous intervals, beats (rate = |f1 − f2|), harmonic balance H2/H1
+(H2 = second harmonic), decay τ, membrane modes, string resonance. Two polished 16-second English
+films present the clearest demonstrations. Slow-motion drawing is used for string/membrane oscillation
+and fast carriers; audio is real-time. The drawn nodal shapes are schematic renderings of the models;
+the numerical frequency/formula checks are what was validated, not physical spatial patterns
+independently. The public page preserves the complete original collection — seven catalogue groups,
+17 original films (including the six early pilot films and the earlier scale version) and 24 cards —
+plus a separate applied piece, a 39-second seamless projection loop for live performance (18 films in
+total on the page). The loop is curated licensed footage, presented as an applied creative direction
+(edit and sequence: Sci Sound Labs), not a research result.</p>
+<h2>5. Failure handling</h2>
+<p>Three failures were preserved rather than edited away: (i) the pilot's downgrade from
+&ldquo;experiment&rdquo; to &ldquo;feasibility&rdquo;; (ii) the stopped first run, excluded from all successful
+counts; (iii) the inconclusive capillary window, published with its gap labelled. Each correction
+preceded any renewed claim.</p>
+<h2>6. Contributions and limits</h2>
+<p>Contributions: a reproducible sound-to-form media pipeline; a demonstrated two-loop search with
+genuine outer-loop redirection under a frozen evaluator (eleven changes truly applied, which supports
+that the method operates); exploration of ten sound and wave families — nine with numerical calibrations
+and held-out support, one (capillary surface waves, a fluid-surface family) inconclusive; a public
+catalogue in which every card carries its status. Limits: no physical measurements; no human learning,
+perception or engagement tests; several later windows repeated controls and progress plateaued, so 24
+rounds are not 24 independent mechanisms or discoveries; any comparative advantage of the outer loop
+over a fixed strategy was not measured; colour/shape coding is an artificial teaching convention; live
+or arbitrary-audio recognition is not implemented. Pipe octave relations are approximate (end
+corrections), and H2/H1 alone does not determine perceived timbre.</p>
+<h2>7. Public references</h2>
+<ul>
+<li>Andrej Karpathy, <em>autoresearch</em> — <a href="https://github.com/karpathy/autoresearch">github.com/karpathy/autoresearch</a> (method inspiration)</li>
+<li><em>Sound Made Visible</em>, the Kimi-built starting prototype supplied to the project (created with Kimi) — <a href="https://visionsound.ok.kimi.link/">visionsound.ok.kimi.link</a></li>
+<li>UNSW Physclips, <em>Beats</em> — <a href="https://www.animations.physics.unsw.edu.au/jw/beats.htm">animations.physics.unsw.edu.au/jw/beats.htm</a></li>
+<li>UNSW Music Acoustics, <em>Helmholtz Resonance</em> — <a href="https://www.phys.unsw.edu.au/jw/Helmholtz.html">phys.unsw.edu.au/jw/Helmholtz.html</a></li>
+<li>UNSW Music Acoustics, <em>Pipes and harmonics</em> — <a href="https://www.phys.unsw.edu.au/jw/pipes.html">phys.unsw.edu.au/jw/pipes.html</a></li>
+<li>UNSW Music Acoustics, <em>How harmonic are harmonics?</em> — <a href="https://phys.unsw.edu.au/jw/harmonics.html">phys.unsw.edu.au/jw/harmonics.html</a></li>
+</ul>
+<p class="small">The jury can inspect all public media, the 24-experiment catalogue and the numeric
+summaries above on the <a href="index.html">accompanying page</a>. No live or interactive capability
+beyond what is shown is claimed.</p>
+</main></body></html>

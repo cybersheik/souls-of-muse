@@ -8,6 +8,40 @@ function response() {
     json(body) { this.body = body; return this; }, send(body) { this.body = body; return this; } };
 }
 
+test('conference polling preserves only its connection generation and cursor',async()=>{
+ const previous=global.fetch,oldURL=process.env.SOM_HARNESS_URL;process.env.SOM_HARNESS_URL='https://backend.example';
+ try{global.fetch=async url=>{assert.equal(url.pathname,'/sessions/one/conference/events');assert.equal(url.searchParams.get('connection_id'),'0123456789abcdef0123456789abcdef');assert.equal(url.searchParams.get('after'),'9');assert.equal(url.searchParams.has('owner'),false);return new Response('{}');};const res=response();await handler({url:'/api/harness/sessions/one/conference/events',query:{connection_id:'0123456789abcdef0123456789abcdef',after:'9',owner:'other'},method:'GET',headers:{}},res);assert.equal(res.code,200);}finally{global.fetch=previous;if(oldURL===undefined)delete process.env.SOM_HARNESS_URL;else process.env.SOM_HARNESS_URL=oldURL;}
+});
+
+test('gateway resolves real single and nested URL routes without catch-all query params', async () => {
+  const previous = global.fetch, oldURL = process.env.SOM_HARNESS_URL;
+  process.env.SOM_HARNESS_URL = 'https://backend.example';
+  try {
+    const seen = [];
+    global.fetch = async url => { seen.push(url.pathname); return new Response('{}'); };
+    for (const url of ['/api/harness/health', '/api/harness/auth/me', '/api/harness/sessions']) {
+      const res = response();
+      await handler({url, query: {}, method:'GET', headers:{}},res);
+      assert.equal(res.code,200,url);
+    }
+    assert.deepEqual(seen,['/health','/auth/me','/sessions']);
+  } finally { global.fetch=previous; if(oldURL===undefined)delete process.env.SOM_HARNESS_URL;else process.env.SOM_HARNESS_URL=oldURL; }
+});
+
+test('gateway ignores a spoofed catch-all query when the public request URL identifies the route', async () => {
+  const previous=global.fetch,oldURL=process.env.SOM_HARNESS_URL;
+  process.env.SOM_HARNESS_URL='https://backend.example';
+  try {
+    global.fetch=async url=>{assert.equal(url.pathname,'/health');return new Response('{}');};
+    const res=response();
+    await handler({url:'/api/harness/health?path=auth/login',query:{path:'auth/login'},method:'GET',headers:{}},res);
+    assert.equal(res.code,200);
+    for(const path of ['/api/harness/../demo/run','/api/harness/%2e%2e/demo/run','/api/harness/sessions%2fone']) {
+      const bad=response();await handler({url:path,query:{path:'health'},method:'GET',headers:{}},bad);assert.equal(bad.code,404,path);
+    }
+  } finally {global.fetch=previous;if(oldURL===undefined)delete process.env.SOM_HARNESS_URL;else process.env.SOM_HARNESS_URL=oldURL;}
+});
+
 test('gateway admits only the scoped explicit translation review route', async()=>{
  const oldFetch=global.fetch,oldURL=process.env.SOM_HARNESS_URL;process.env.SOM_HARNESS_URL='https://backend.example';let calls=0;
  try{

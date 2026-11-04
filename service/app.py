@@ -9,10 +9,11 @@ roles and meeting membership are resolved server-side.
 Initial service: Meta Muse Wonder. Identity, heart and voice integration: CX1.
 Signed heart journal: Kimi.
 """
-import asyncio, hashlib, hmac, json, os, sqlite3, sys, threading, time, uuid
+import asyncio, hashlib, hmac, json, os, re, sqlite3, sys, threading, time, uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Annotated
 from urllib.parse import quote
 
 from fastapi import FastAPI, Header, Request
@@ -20,6 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 from .interpretation import MAX_RAW, InvalidInterpretation, parse_interpretation, display_note, note_parts
+from . import membership
 
 VERSION = "0.3.0"
 LEAGUES = {"string", "bow", "keys", "winds", "drums", "electronic", "vocal", "guitar", "voice", "folk"}
@@ -193,11 +195,14 @@ def verify_audit_chain(conn):
     return True, len(rows)
 
 class SessionIn(BaseModel):
+    model_config = {"extra": "forbid"}
     kind: str; league: str; maestro_alias: str = Field(min_length=1, max_length=80)
     artist_alias: str = Field(min_length=1, max_length=80); source_lang: str; target_lang: str
     artist_id: str | None = Field(default=None, max_length=100)
+    artist_ids: list[Annotated[str, Field(min_length=1, max_length=100)]] | None = Field(default=None, min_length=1, max_length=2)
 
 class MessageIn(BaseModel):
+    model_config = {"extra": "forbid"}
     client_event_id: str = Field(min_length=1, max_length=120); speaker: str
     text: str = Field(min_length=1, max_length=MAX_TEXT); source_lang: str; target_lang: str
 
@@ -375,6 +380,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         session_cols = {r[1] for r in conn_init.execute("PRAGMA table_info(sessions)")}
         if column not in session_cols:
             conn_init.execute(f"ALTER TABLE sessions ADD COLUMN {column} TEXT")
+    membership.install(conn_init)
     # A single writer owns this database. Interrupted paid work is never replayed
     # at startup; budget reservations remain untouched for reconciliation.
     conn_init.execute("UPDATE messages SET state='failed' WHERE state='processing'")
@@ -415,6 +421,10 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         heart_key = serialization.load_pem_private_key(key_bytes, password=None)
     bridge = HeartBridge(db, _commit, data_dir, heart_key)
     bridge.drain()
+    # Public source files only: verify the deployed bytes without exposing
+    # runtime paths, participant data, model credentials or signing material.
+    source_sha256 = {name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
+                     for name in ("app.py", "identity.py", "membership.py", "conference.py")}
 
     @app.middleware("http")
     async def bounds(request: Request, call_next):
@@ -422,11 +432,24 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         is_health = request.url.path == health_path
         if durability_failed.is_set() and not is_health:
             return JSONResponse({"detail": "persistence_failed"}, status_code=503, headers={"Cache-Control": "no-store"})
-        key = (request.client.host if request.client else "?", int(time.time() // 60))
+        relative = request.url.path.removeprefix(request.scope.get("root_path", "").rstrip("/"))
+        rate_user = identity.user(request)
+        rate_user = rate_user if rate_user and identity.matches_context(request, rate_user) else None
+        conference_user = rate_user if re.fullmatch(r"/sessions/[a-zA-Z0-9_-]+/conference/(join|events|signal|leave)", relative) else None
+        # ICE bursts and three simultaneous roster polls are a different quota
+        # from login/model/session actions. Only a valid personal cookie with
+        # a matching tab context receives this separately bounded allowance.
+        # Shared classroom Wi-Fi must not merge three valid participants' read
+        # quotas. Anonymous/invalid-context requests keep the original IP bound.
+        minute = int(time.time() // 60)
+        key = (("conference", conference_user, minute) if conference_user else
+               ("participant", rate_user, minute) if rate_user else
+               ("http", request.client.host if request.client else "?", minute))
+        rate_limit = 360 if conference_user else 120
         with lock:
             rate[key] = rate.get(key, 0) + 1; count = rate[key]
             if len(rate) > 10000: rate.clear()
-        if count > 120:
+        if count > rate_limit:
             return JSONResponse({"detail": "rate_limited"}, status_code=429)
         try:
             response = await call_next(request)
@@ -469,8 +492,13 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
     def get_session(c, sid, request):
         row = c.execute("SELECT * FROM sessions WHERE id=?", (sid,)).fetchone()
         user = getattr(request.state, "participant", None)
-        if user and row and user not in (row["maestro_id"], row["artist_id"]):
-            return None
+        if row:
+            members = membership.roles(c, sid)
+            if user and members.get(user) != identity.accounts[user]["role"]:
+                return None
+            # A role-only pilot credential cannot stand in for an enrolled person.
+            if members and not user:
+                return None
         return row
     from .lesson import register_routes as register_lesson_routes
     load_lesson = register_lesson_routes(app, db, _commit, actor_from_auth, get_session, audit, err)
@@ -487,6 +515,14 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
 
     def msg_dict(r, include_draft=True):
         d = {"id": r["id"], "speaker": r["speaker"], "source_lang": r["source_lang"], "target_lang": r["target_lang"], "state": r["state"], "created_at": r["created_at"]}
+        c = db()
+        try:
+            received = c.execute("SELECT actor FROM audit WHERE ref_id=? AND event_type='message_received' ORDER BY id LIMIT 1", (r["id"],)).fetchone()
+        finally:
+            c.close()
+        if received and received["actor"].startswith("participant:"):
+            sender = received["actor"][len("participant:"):]
+            d.update(participant_id=sender, participant_name=identity.accounts.get(sender, {}).get("name", sender))
         if r["state"] == "approved" or include_draft:
             d["text"] = r["draft_text"]
             c = db()
@@ -529,7 +565,9 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         durable = not durability_failed.is_set()
         pilot_ready = bool(auth_ready and model_ready and glossary and durable)
         planning_ready = bool(pilot_ready and getattr(adapter, "cfg", {}).get("roles", {}).get("orchestrator", {}).get("endpoint") == "/responses")
-        return {"status": "ok" if durable else "degraded", "durability_ready": durable, "version": VERSION, "model_ready": bool(model_ready),
+        return {"status": "ok" if durable else "degraded", "durability_ready": durable, "version": VERSION,
+                "source_commit": env.get("SOM_RELEASE_SHA") or None, "source_sha256": source_sha256,
+                "model_ready": bool(model_ready),
                 "auth_ready": auth_ready, "role_ready": auth_ready,
                 "roles_ready": auth_ready, "pilot_ready": pilot_ready,
                 "production_ready": False, "full_participant_identity": False,
@@ -550,17 +588,25 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         if body.kind not in KINDS or body.league not in LEAGUES or body.source_lang not in LANGS or body.target_lang not in LANGS or body.source_lang == body.target_lang:
             return err(422, "invalid_session_fields")
         participant = getattr(request.state, "participant", None)
-        artist_id = None
+        if body.artist_ids is not None and (body.kind != "group" or body.artist_id is not None):
+            return err(422, "invalid_artist_fields")
+        if body.artist_ids is not None and len(set(body.artist_ids)) != len(body.artist_ids):
+            return err(422, "duplicate_artist_ids")
+        artist_ids = body.artist_ids if body.artist_ids is not None else ([body.artist_id] if body.artist_id else [])
+        if body.artist_ids is not None and not participant:
+            return err(403, "participant_login_required")
         if participant:
-            artist_id = body.artist_id
-            account = identity.accounts.get(artist_id)
-            if not account or account["role"] != "artist":
+            if not artist_ids or any(identity.accounts.get(person, {}).get("role") != "artist" for person in artist_ids):
                 return err(422, "registered_artist_required")
+        artist_id = artist_ids[0] if participant else None
         sid = uuid.uuid4().hex
         c = db()
         try:
             c.execute("BEGIN IMMEDIATE")
             c.execute("INSERT INTO sessions(id,kind,league,maestro_alias,artist_alias,source_lang,target_lang,state,created_at,maestro_id,artist_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)", (sid, body.kind, body.league, body.maestro_alias, body.artist_alias, body.source_lang, body.target_lang, "created", _now(), participant, artist_id))
+            if participant:
+                c.executemany("INSERT INTO session_members(session_id,participant_id,role) VALUES(?,?,?)",
+                              [(sid, participant, "maestro"), *((sid, person, "artist") for person in artist_ids)])
             audit(c, sid, "session_created", "", actor); _commit(c)
         except PersistenceError:
             return err(503, "persistence_failed")
@@ -646,13 +692,15 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         if not glossary:
             return err(503, "validation_unavailable")
         req_hash = _request_hash(body)
+        participant = getattr(request.state, "participant", None)
         c = db()
         try:
             c.execute("BEGIN IMMEDIATE")
             s = get_session(c, sid, request)
             if not s: return err(404, "session_not_found")
             if s["state"] != "active": return err(409, "session_not_active")
-            existing = c.execute("SELECT * FROM messages WHERE session_id=? AND client_event_id=?", (sid, body.client_event_id)).fetchone()
+            event_id = f"participant:{quote(participant, safe='')}:{body.client_event_id}" if s["kind"] == "group" and participant else body.client_event_id
+            existing = c.execute("SELECT * FROM messages WHERE session_id=? AND client_event_id=?", (sid, event_id)).fetchone()
             if existing:
                 if existing["request_hash"] is not None and not hmac.compare_digest(existing["request_hash"], req_hash):
                     return err(409, "idempotency_conflict")
@@ -661,10 +709,10 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
                 return msg_dict(existing, include_draft=(actor == "maestro"))
             mid = uuid.uuid4().hex
             try:
-                c.execute("INSERT INTO messages VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", (mid, sid, body.client_event_id, body.speaker, body.text, body.source_lang, body.target_lang, None, "processing", "[]", _now(), req_hash))
-                audit(c, sid, "message_received", mid, actor); _commit(c)
+                c.execute("INSERT INTO messages VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", (mid, sid, event_id, body.speaker, body.text, body.source_lang, body.target_lang, None, "processing", "[]", _now(), req_hash))
+                audit(c, sid, "message_received", mid, "participant:" + participant if participant else actor); _commit(c)
             except sqlite3.IntegrityError:
-                row = c.execute("SELECT * FROM messages WHERE session_id=? AND client_event_id=?", (sid, body.client_event_id)).fetchone()
+                row = c.execute("SELECT * FROM messages WHERE session_id=? AND client_event_id=?", (sid, event_id)).fetchone()
                 if row and row["request_hash"] is not None and not hmac.compare_digest(row["request_hash"], req_hash):
                     return err(409, "idempotency_conflict")
                 if row and row["state"] == "processing": return err(409, "duplicate_in_progress")
@@ -903,7 +951,7 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
                 own_notes = {"private_notes": load_private_notes(c, sid, participant)} if participant else {}
             except (ValueError, TypeError):
                 return err(503, "lesson_unavailable")
-            return {"id": sid, "state": s["state"], "kind": s["kind"], "league": s["league"], "maestro_alias": s["maestro_alias"], "artist_alias": s["artist_alias"], "deliveries": deliveries, "lesson_translations": materials, **planning, **own_notes}
+            return {"id": sid, "state": s["state"], "kind": s["kind"], "league": s["league"], "maestro_alias": s["maestro_alias"], "artist_alias": s["artist_alias"], "deliveries": deliveries, "lesson_translations": materials, **membership.public(c, sid, identity.accounts), **planning, **own_notes}
         finally: c.close()
 
     @app.get("/sessions/{sid}/events")
@@ -930,14 +978,17 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         finally: c.close()
 
     @app.get("/sessions")
-    def my_sessions(request: Request):
-        user = identity.user(request)
+    def my_sessions(request: Request, authorization: str = Header(default="")):
+        _, failure = actor_from_auth(authorization, request)
+        if failure is not None:
+            return failure
+        user = getattr(request.state, "participant", None)
         if not user:
             return err(401, "unauthorized")
         c = db()
         try:
-            rows = c.execute("SELECT id,state,maestro_alias,artist_alias FROM sessions WHERE maestro_id=? OR artist_id=? ORDER BY created_at DESC", (user, user)).fetchall()
-            return {"sessions": [dict(row) for row in rows]}
+            rows = c.execute("SELECT s.id,s.state,s.kind,s.league,s.maestro_alias,s.artist_alias FROM sessions s JOIN session_members m ON m.session_id=s.id WHERE m.participant_id=? AND m.role=? ORDER BY s.created_at DESC", (user, identity.accounts[user]["role"])).fetchall()
+            return {"sessions": [{**dict(row), **membership.public(c, row["id"], identity.accounts)} for row in rows]}
         finally:
             c.close()
 
@@ -976,6 +1027,9 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
                               music_hints=env.get("SOM_ASR_MUSIC_HINTS") == "1")
     from .speech import install_speech
     speak = install_speech(app, db, _commit, actor_from_auth, get_session, err, speech, inference_gate)
+    from .conference import register_routes
+    register_routes(app, db, _commit, actor_from_auth, get_session, err,
+                    member_ids=lambda c, sid, session: membership.roles(c, sid))
     if media:
         media.bind(app, db, _commit, actor_from_auth, get_session, err, transcribe, speak)
         identity.on_logout = media.logout

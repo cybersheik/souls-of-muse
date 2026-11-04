@@ -1,11 +1,16 @@
 """Run the actual cabinet and Harness under one local origin."""
 from pathlib import Path
+import os
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from .main import app as harness
+from .app import create_app
+from .native_speech import NativeSpeech
+
+harness = create_app(data_dir=os.environ.get("SERVICE_DATA_DIR"),
+                     speech=NativeSpeech.from_environ(os.environ))
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=harness.router.lifespan_context)
 app.mount("/api/harness", harness)

@@ -1,0 +1,7 @@
+# Linux CPU overlay; install after the independently copied base requirements.
+# +cpu cannot resolve to a PyPI/CUDA torch build. Keep this manifest flat: Modal
+# stages only this file at /.requirements.txt, so relative -r includes fail.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.9.0+cpu
+transformers==4.57.1
+numpy==2.2.6

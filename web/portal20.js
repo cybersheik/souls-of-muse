@@ -188,7 +188,7 @@ function langMenu() {
 function header() {
   return `<header class="p20-head">
     <a class="p20-brand" href="#/"><img src="assets/lyre.png" alt=""><span>Souls of Muse</span></a>
-    <div class="p20-grow"></div>${langMenu()}
+    <div class="p20-grow"></div><a class="p20-sci" href="/sci-sound-labs/" aria-label="Sci Sound Labs"><span class="p20-sci-long">Sci Sound Labs</span><span class="p20-sci-short" aria-hidden="true">Labs</span></a>${langMenu()}
   </header>`;
 }
 

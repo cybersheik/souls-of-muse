@@ -6,6 +6,33 @@ on:
 permissions:
   contents: read
 jobs:
+  mms-cpu-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Install the pinned Linux CPU runtime
+        run: |
+          python -m venv "$RUNNER_TEMP/cx1-mms-cpu-venv"
+          "$RUNNER_TEMP/cx1-mms-cpu-venv/bin/python" -m pip install -r service/requirements.txt -r service/requirements-tts-cpu.txt
+          "$RUNNER_TEMP/cx1-mms-cpu-venv/bin/python" -m pip check
+      - name: Prepare and hash-verify the pinned public EN and VI assets
+        run: |
+          "$RUNNER_TEMP/cx1-mms-cpu-venv/bin/python" -m service.prepare_mms --output "$RUNNER_TEMP/cx1-mms-models"
+      - name: Generate and verify real EN and VI WAVs with outbound connections forbidden
+        env:
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
+          TOKENIZERS_PARALLELISM: 'false'
+          OMP_NUM_THREADS: '2'
+          MKL_NUM_THREADS: '2'
+        run: |
+          "$RUNNER_TEMP/cx1-mms-cpu-venv/bin/python" scripts/verify_mms_runtime.py --models "$RUNNER_TEMP/cx1-mms-models" --output "$RUNNER_TEMP/cx1-mms-wav" --stress
   cloud-runtime:
     runs-on: ubuntu-latest
     timeout-minutes: 5
