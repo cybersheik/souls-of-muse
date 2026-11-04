@@ -138,3 +138,25 @@ test("explicit demo still works when the Harness module is missing", () => {
   assert.match(c.Cabinet.home("artist", { demo: true }), /data-cab-demo="true"/);
   assert.match(c.Cabinet.session("artist", "one", { demo: true }), /data-cab-demo="true"/);
 });
+
+test("created lesson has one prominent Maestro start and an Artist waiting message, with no render-time calls", () => {
+  for (const role of ["maestro", "artist"]) {
+    const c = client({ role, hash: `#/session/${role}/circle` });
+    const saved = c.CabinetHarness.state; let calls = 0;
+    Object.assign(c, { AbortController, setTimeout, clearTimeout, sessionStorage: { getItem: () => null },
+      fetch: () => { calls++; return new Promise(() => {}); }, setInterval() {} });
+    vm.runInContext(fs.readFileSync("web/harness-client.js", "utf8"), c);
+    Object.assign(c.CabinetHarness.state, saved, { authChecking: false,
+      meeting: { id: "one", state: "created", maestro_alias: "Real Maestro", artist_alias: "Actual Artist" } });
+    const before = calls, html = c.Cabinet.session(role, "circle");
+    assert.equal(calls, before);
+    assert.equal((html.match(/data-harness-start/g) || []).length, role === "maestro" ? 1 : 0);
+    if (role === "maestro") {
+      assert.match(html, />Start lesson<\/button>/);
+      assert.ok(html.indexOf("data-harness-start") < html.indexOf("data-cab-live-controls"));
+    } else assert.match(html, /Waiting for your Maestro to start this lesson/);
+    c.CabinetHarness.state.meeting.state = "active";
+    const active = c.Cabinet.session(role, "circle");
+    assert.doesNotMatch(active, /data-harness-start|Waiting for your Maestro/);
+  }
+});

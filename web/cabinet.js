@@ -382,6 +382,7 @@ function session(role, mode, options = {}) {
       <span class="cab-elapsed"><i></i>${cabEsc(live ? live.state : "12:34")}</span><span style="flex:1"></span>
       <a class="cab-btn" ${live ? "data-harness-end" : ""} href="#/space/${role}"><i class="ph ph-sign-out"></i>${cabEsc(isM ? C.endSession : C.leave)}</a>
     </div>
+    ${live && live.state === "created" ? isM ? `<div class="cab-sess-bar"><button type="button" class="cab-btn cab-btn-primary" data-harness-start${CabinetHarness.state.busy ? " disabled" : ""}>${cabLang() === "ru" ? "Начать урок" : "Start lesson"}</button><span>${cabLang() === "ru" ? "Начните урок, чтобы участники могли присоединиться." : "Start the lesson so participants can join."}</span></div>` : `<p class="cab-live-status" role="status">${cabLang() === "ru" ? "Ожидаем, пока Маэстро начнёт урок. Оставайтесь на этой странице." : "Waiting for your Maestro to start this lesson. Keep this page open."}</p>` : ""}
     ${live ? "" : `<p class="cab-notlive bar-muse" role="note">${cabEsc(C.notLive)}</p>${rosterHTML(role, mode, C)}`}
     ${live ? `<details class="cab-live-controls" data-cab-live-controls${panels.controls || ["created", "closing"].includes(live.state) ? " open" : ""}><summary>${cabLang() === "ru" ? "Управление встречей" : "Meeting controls"} · ${cabEsc(live.state)}</summary><p>${cabEsc(sub)}</p>${CabinetHarness.panel()}</details>${CabinetHarness.state.status ? `<p class="cab-live-status" role="status">${cabEsc(CabinetHarness.state.status)}</p>` : ""}` : ""}
     <main id="main" tabindex="-1" class="cab-grid">
