@@ -5,7 +5,7 @@ window.CabinetHarness = (() => {
   let capture = null, captureAbort = null, composeText = "", focusCompose = false;
   let materialPending = null, planningPending = null, planningRetry = null;
   const reviewPending = new WeakMap();
-  let speechAudio = null, speechURL = null, speechAbort = null, speechMessage = null, deviceUtterance = null;
+  let speechAudio = null, speechURL = null, speechAbort = null, speechMessage = null;
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const ru = () => window.P01?.state.lang === "ru";
   const word = (en, local) => ru() ? local : en;
@@ -17,17 +17,29 @@ window.CabinetHarness = (() => {
     const input = document.querySelector("[data-cab-chat-input]");
     if (input) { input.value = composeText; if (focusCompose) { input.focus(); focusCompose = false; } }
   };
-  async function call(path, body) {
+  const speakingLanguages = new Map();
+  function languagePair() {
+    let source = speakingLanguages.get(state.user?.id);
+    if (!source) try { source = sessionStorage.getItem("som_speaking_language:" + state.user?.id); } catch (_) {}
+    if (!["en", "vi"].includes(source)) source = state.user?.role === "artist" ? "vi" : "en";
+    return { source, target: source === "en" ? "vi" : "en" };
+  }
+  function languageControls() {
+    if (!state.user) return "";
+    const pair = languagePair();
+    return `<label class="cab-language-controls">${word("I speak", "Я говорю")} <select data-harness-language ${state.busy || state.recording ? "disabled" : ""}><option value="en" ${pair.source === "en" ? "selected" : ""}>English</option><option value="vi" ${pair.source === "vi" ? "selected" : ""}>Tiếng Việt</option></select> → ${pair.target === "en" ? "English" : "Tiếng Việt"}</label>`;
+  }
+  async function call(path, body, options = {}) {
     const requestedUser = state.user;
     const response = await fetch("/api/harness/" + path, {
       method: body === undefined ? "GET" : "POST", credentials: "same-origin",
       headers: { "Content-Type": "application/json", ...(requestedUser?{'X-SOM-Participant':encodeURIComponent(requestedUser.id)}:{}) },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : JSON.stringify(body), signal: options.signal,
     });
     const data = await response.json();
     const carriesPrivateNotes=data.private_notes||/^notes(?:\?|$)|^sessions\/[^/]+\/notes$/.test(path);
     let contextMismatch=data.detail==='participant_context_changed';
-    if(response.ok&&requestedUser&&carriesPrivateNotes){
+    if(response.ok&&requestedUser&&(carriesPrivateNotes||/^sessions\/[^/]+\/messages\/[^/]+\/speech$/.test(path))){
       try{contextMismatch=decodeURIComponent(response.headers?.get('X-SOM-Participant')||'')!==requestedUser.id;}
       catch(_){contextMismatch=true;}
     }
@@ -267,19 +279,11 @@ window.CabinetHarness = (() => {
       ${state.user?.role === "maestro" && ["draft", "flagged"].includes(message.state) ? `<button class="cab-btn" data-harness-approve="${esc(message.id)}" data-flagged="${message.state === "flagged"}"${state.busy || message.approval_allowed === false || (message.state === "flagged" && message.review?.state !== "complete") ? " disabled" : ""}>${word("Approve translation", "Одобрить перевод")}</button>` : ""}
       ${speechControls(message)}</div>`).join("") || `<p>${word("Approved messages will appear here", "Здесь появятся одобренные сообщения")}</p>`;
   }
-  function deviceVoice(language) {
-    if (!["en", "vi"].includes(language) || !window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== "function") return null;
-    try {
-      return window.speechSynthesis.getVoices().find(voice => voice.localService === true
-        && String(voice.lang).toLowerCase().replace(/_/g, "-").split("-")[0] === language) || null;
-    } catch (_) { return null; }
-  }
   function speechControls(message) {
     if (!state.user || message.state !== "approved") return "";
-    if (!state.tts && !deviceVoice(message.target_lang)) return `<span class="cab-msg-check">${word("Device voice unavailable for this language.", "Голос устройства для этого языка недоступен.")}</span>`;
-    const label = state.tts ? word("Listen to translation", "Прослушать перевод") : word("Device voice", "Голос устройства");
-    return `<button class="cab-btn" data-harness-speak="${esc(message.id)}" ${state.busy ? "disabled" : ""}>${label}</button><span data-harness-audio="${esc(message.id)}"></span>`
-      + (deviceUtterance && speechMessage === message.id ? `<button class="cab-btn" data-harness-stop-speech>${word("Stop device voice", "Остановить голос устройства")}</button>` : "");
+    if (!state.tts) return `<span class="cab-msg-check">${word("Server voice is not connected yet.", "Серверная озвучка пока не подключена.")}</span>`;
+    return `<button class="cab-btn" data-harness-speak="${esc(message.id)}" ${state.busy ? "disabled" : ""}>${word("Listen to translation", "Прослушать перевод")}</button><span data-harness-audio="${esc(message.id)}"></span>`
+      + (speechAudio && speechMessage === message.id ? `<button class="cab-btn" data-harness-stop-speech>${word("Stop playback", "Остановить воспроизведение")}</button>` : "");
   }
   async function send(text, role) {
     if (!state.user || !state.meeting || state.user.role !== role) {
@@ -287,18 +291,35 @@ window.CabinetHarness = (() => {
       redraw();
       return;
     }
-    if (!state.pending || state.pending.text !== text) state.pending = { text, id: crypto.randomUUID() };
+    if (state.busy) return;
+    const user = state.user, meeting = state.meeting.id, pair = languagePair();
+    if (!state.pending || state.pending.text !== text || state.pending.user !== user || state.pending.meeting !== meeting || state.pending.source !== pair.source)
+      state.pending = { text, id: crypto.randomUUID(), user, meeting, source: pair.source };
+    const pending = state.pending;
     await action(async () => {
-      await call(`sessions/${state.meeting.id}/messages`, {
-        client_event_id: state.pending.id, text, speaker: state.user.role,
-        source_lang: role === "maestro" ? "en" : "vi", target_lang: role === "maestro" ? "vi" : "en",
+      state.status = word("Translating and checking… Your message has not been delivered yet.", "Переводим и проверяем… Сообщение ещё не доставлено.");
+      redraw();
+      await call(`sessions/${meeting}/messages`, {
+        client_event_id: pending.id, text, speaker: user.role,
+        source_lang: pair.source, target_lang: pair.target,
       });
+      if (state.user !== user || state.meeting?.id !== meeting) return;
       state.pending = null; composeText = "";
       await refresh();
     });
   }
+
   function bind() {
     const on = (selector, event, fn) => document.querySelectorAll(selector).forEach(el => el.addEventListener(event, fn));
+    on("[data-harness-language]", "change", event => {
+      const language = event.currentTarget.value;
+      if (!state.user || state.busy || state.recording || !["en", "vi"].includes(language)) return;
+      stopSpeech();
+      speakingLanguages.set(state.user.id, language);
+      try { sessionStorage.setItem("som_speaking_language:" + state.user.id, language); } catch (_) {}
+      state.pending = null;
+      redraw();
+    });
     on("[data-harness-login]", "submit", event => {
       event.preventDefault();
       const data = new FormData(event.currentTarget);
@@ -393,8 +414,6 @@ window.CabinetHarness = (() => {
   }
   function stopSpeech() {
     if (speechAbort) speechAbort.abort();
-    const utterance = deviceUtterance; deviceUtterance = null;
-    if (utterance) window.speechSynthesis?.cancel();
     if (speechAudio) { speechAudio.pause(); speechAudio.removeAttribute("src"); speechAudio.load(); speechAudio.remove(); }
     if (speechURL) URL.revokeObjectURL(speechURL);
     speechAudio = null; speechURL = null; speechAbort = null; speechMessage = null;
@@ -403,62 +422,34 @@ window.CabinetHarness = (() => {
     if (state.busy || !state.user || !state.meeting) return;
     stopSpeech();
     if (!state.tts) {
-      const user = state.user, meeting = state.meeting.id;
-      const controller = new AbortController(); speechAbort = controller;
-      const current = () => !controller.signal.aborted && state.user === user && state.meeting?.id === meeting;
-      await action(async () => {
-        // Never synthesize a cached UI draft or caller-supplied replacement.
-        // call() applies the ordinary cookie and account-context precondition.
-        const fresh = await call(`sessions/${encodeURIComponent(meeting)}`);
-        if (!current()) return;
-        if (fresh.id !== meeting) throw new Error("speech_meeting_changed");
-        const message = fresh.deliveries?.find(item => item.id === mid);
-        if (!message || message.state !== "approved" || typeof message.text !== "string" || !message.text.trim() || message.text.length > 400) {
-          throw new Error(word("An approved translation is required.", "Нужен одобренный перевод."));
-        }
-        const voice = deviceVoice(message.target_lang);
-        if (!voice) throw new Error(word("Device voice unavailable for this language.", "Голос устройства для этого языка недоступен."));
-        if (state.tts || !current()) return;
-        const utterance = new window.SpeechSynthesisUtterance(message.text);
-        utterance.voice = voice; utterance.lang = voice.lang;
-        deviceUtterance = utterance; speechMessage = mid;
-        utterance.onend = () => {
-          if (deviceUtterance !== utterance) return;
-          deviceUtterance = null; speechMessage = null;
-          if (speechAbort === controller) speechAbort = null;
-          if (current()) redraw();
-        };
-        utterance.onerror = () => {
-          if (deviceUtterance !== utterance || !current()) return;
-          deviceUtterance = null; speechMessage = null;
-          state.status = word("Device voice could not play. Check the device voice settings and try again.", "Голос устройства не воспроизведён. Проверьте настройки голоса и повторите.");
-          redraw();
-        };
-        window.speechSynthesis.speak(utterance);
-      });
-      return;
+      state.status = word("Server voice is not connected yet.", "Серверная озвучка пока не подключена.");
+      redraw(); return;
     }
     if (window.SomMedia?.connected(state.meeting.id)) {
       await action(() => SomMedia.say(mid));
       return;
     }
     const controller = new AbortController(); speechAbort = controller;
-    const meeting = state.meeting.id;
+    const user = state.user, meeting = state.meeting.id;
+    const current = () => !controller.signal.aborted && speechAbort === controller
+      && state.user === user && state.meeting?.id === meeting;
     await action(async () => {
-      const response = await fetch(`/api/harness/sessions/${meeting}/messages/${mid}/speech`, {
-        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-        body: "{}", signal: controller.signal,
-      });
-      const data = await response.json();
-      if (controller.signal.aborted) return;
-      if (response.status === 401) { stopSpeech(); Object.assign(state, { user: null, meeting: null }); }
-      if (!response.ok) throw new Error(data.detail || "speech_unavailable");
+      let data;
+      try {
+        // Server resolves the approved canonical text; the browser sends no text.
+        // call() checks both participant request and response markers.
+        data = await call(`sessions/${encodeURIComponent(meeting)}/messages/${encodeURIComponent(mid)}/speech`, {}, {signal: controller.signal});
+      } catch (error) { if (!current()) return; throw error; }
+      if (!current()) return;
+      if (!["en", "vi"].includes(data.language) || typeof data.wav_base64 !== "string"
+          || !data.wav_base64 || data.wav_base64.length > 1_280_140) throw new Error("speech_unavailable");
       const bytes = Uint8Array.from(atob(data.wav_base64), char => char.charCodeAt(0));
-      speechURL = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }));
+      if (!current()) return;
+      speechURL = URL.createObjectURL(new Blob([bytes], {type:"audio/wav"}));
       speechAudio = new Audio(speechURL); speechAudio.controls = true;
       speechAudio.setAttribute("aria-label", word("Approved translation", "Одобренный перевод"));
       speechAudio.style.maxWidth = "100%"; speechMessage = mid;
-      // Controls remain usable when the browser requires another playback gesture.
+      // Explicit controls remain if a browser requires a second playback gesture.
       await speechAudio.play().catch(() => {});
     });
   }
@@ -503,20 +494,27 @@ window.CabinetHarness = (() => {
     if (capture) { capture.stop(); return; }
     if (state.recording && captureAbort) { captureAbort.abort(); return; }
     if (!state.asr || state.busy || state.recording || !state.meeting || state.meeting.state !== "active") return;
+    if (!state.user) return;
+    const user = state.user, meeting = state.meeting.id, language = languagePair().source;
     const controller = new AbortController();
+    const current = () => !controller.signal.aborted && captureAbort === controller
+      && state.user === user && state.meeting?.id === meeting;
     captureAbort = controller;
     state.recording = true; state.status = word("Recording · up to 10 seconds", "Запись · до 10 секунд"); redraw();
     try {
-      const viaRoom = !!window.SomMedia?.connected(state.meeting.id);
-      capture = viaRoom ? await SomMedia.record(controller.signal) : await SomAudio.start(controller.signal);
+      // Explicit dictation follows the participant language, independently of
+      // role-fixed private RTC interpretation. Direct AV remains connected.
+      capture = await SomAudio.start(controller.signal);
       const audio = await capture.result;
-      const meeting = state.meeting.id;
+      if (!current()) return;
       state.recording = false; capture = null;
       await action(async () => {
-        const transcript = viaRoom ? audio : await call(`sessions/${meeting}/transcriptions`, {
-          client_event_id: crypto.randomUUID(), language: state.user.role === "maestro" ? "en" : "vi", wav_base64: audio,
+        state.status = word("Recognizing speech… Review the text before sending.", "Распознаём речь… Проверьте текст перед отправкой.");
+        redraw();
+        const transcript = await call(`sessions/${meeting}/transcriptions`, {
+          client_event_id: crypto.randomUUID(), language, wav_base64: audio,
         });
-        if (controller.signal.aborted) return;
+        if (!current()) return;
         composeText = transcript.text; focusCompose = true;
         state.status = "";
         // The participant reviews the recognized words before sending them.
@@ -525,7 +523,7 @@ window.CabinetHarness = (() => {
         if (input) { input.value = transcript.text; input.focus(); }
       });
     } catch (error) {
-      if (!controller.signal.aborted) state.status = word("Recording could not be transcribed", "Запись не удалось распознать") + " · " + error.message;
+      if (current()) state.status = word("Recording could not be transcribed", "Запись не удалось распознать") + " · " + error.message;
     } finally {
       if (captureAbort === controller) { captureAbort = null; capture = null; state.recording = false; }
       redraw();
@@ -533,7 +531,6 @@ window.CabinetHarness = (() => {
   }
   window.addEventListener("som-media-changed", redraw);
   window.addEventListener("pagehide", stopSpeech);
-  window.speechSynthesis?.addEventListener?.("voiceschanged", () => { if (state.user) redraw(); });
   window.addEventListener("hashchange", () => { cancelCapture(); stopSpeech(); window.SomConference?.stop(); window.SomMedia?.disconnect(true).catch(() => {}); });
-  return { state, panel, messages, send, bind, record, updateLesson, translateLessonStep, approveLessonTranslation, requestLessonPlan, applyLessonPlan, planningRetryAllowed, retryTranslationReview, savePrivateNotes, privateNotesPage };
+  return { state, panel, messages, send, bind, record, languagePair, languageControls, updateLesson, translateLessonStep, approveLessonTranslation, requestLessonPlan, applyLessonPlan, planningRetryAllowed, retryTranslationReview, savePrivateNotes, privateNotesPage };
 })();

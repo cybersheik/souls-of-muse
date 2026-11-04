@@ -39,74 +39,19 @@ function fixture({ lang = "en", voices = [{ name: "Linh", lang: "vi-VN", localSe
     click: () => buttons.speak.onclick() };
 }
 
-for (const lang of ["en", "ru"]) test(`device speech is opt-in, labelled, and uses fresh canonical translation (${lang})`, async () => {
+for (const lang of ["en", "ru"]) test(`rejected native voices remain disabled even when installed (${lang})`, async () => {
   const f = fixture({ lang });
-  assert.match(f.api.messages(), lang === "ru" ? /Голос устройства/ : /Device voice/);
+  assert.doesNotMatch(f.api.messages(), /data-harness-speak|Device voice|Голос устройства/);
+  assert.match(f.api.messages(), lang === "ru" ? /Серверная озвучка/ : /Server voice/);
+  await f.click();
   assert.equal(f.spoken.length, 0);
-  await f.click();
-  assert.equal(f.calls.length, 1);
-  assert.equal(f.calls[0].url, "/api/harness/sessions/one");
-  assert.equal(f.calls[0].options.headers["X-SOM-Participant"], "M");
-  assert.equal(f.spoken.length, 1);
-  assert.equal(f.spoken[0].text, "Chơi chậm.");
-  assert.equal(f.spoken[0].lang, "vi-VN");
-  assert.equal(f.spoken[0].voice.name, "Linh");
-  f.buttons["stop-speech"].onclick();
-  assert.ok(f.cancels > 0);
+  assert.equal(f.calls.length, 0);
 });
 
-test("fresh draft, absent message and unsupported language never become device speech", async () => {
-  for (const deliveries of [[canonical({ state: "draft" })], [], [canonical({ target_lang: "ru" })]]) {
-    const f = fixture(); f.setHandler(() => reply({ id: "one", private_notes: {}, deliveries }));
-    await f.click(); assert.equal(f.spoken.length, 0); assert.ok(f.api.state.status);
-  }
-});
-
-test("fresh canonical target language selects English even when the cached message was Vietnamese", async () => {
-  const f = fixture();
-  f.setHandler(() => reply({ id: "one", private_notes: {}, deliveries: [canonical({ target_lang: "en", text: "Play slowly." })] }));
-  await f.click();
-  assert.equal(f.spoken[0].text, "Play slowly.");
-  assert.equal(f.spoken[0].voice.name, "Daniel");
-  assert.equal(f.spoken[0].lang, "en-GB");
-});
-
-test("no matching installed voice gives an honest error without choosing another language or network voice", async () => {
-  const f = fixture({ voices: [{ name: "English", lang: "en-US", localService: true }, { name: "Online VI", lang: "vi-VN", localService: false }] });
-  assert.match(f.api.messages(), /Device voice unavailable/);
+test("unapproved messages cannot expose server playback controls", () => {
+  const f = fixture(); f.api.state.tts = true;
+  f.api.state.meeting.deliveries = [canonical({ state: "draft" })];
   assert.doesNotMatch(f.api.messages(), /data-harness-speak/);
-  await f.click(); assert.equal(f.spoken.length, 0); assert.match(f.api.state.status, /voice.*unavailable/i);
-});
-
-for (const change of ["account", "meeting", "navigation"]) test(`late canonical reply cannot speak after ${change} changes`, async () => {
-  const f = fixture(); let release;
-  f.setHandler(() => new Promise(resolve => { release = resolve; }));
-  const playing = f.click();
-  if (change === "account") f.api.state.user = { id: "A", role: "artist" };
-  if (change === "meeting") f.api.state.meeting = { id: "two", state: "active", deliveries: [] };
-  if (change === "navigation") f.events.hashchange();
-  release(reply({ id: "one", private_notes: {}, deliveries: [canonical()] })); await playing;
-  assert.equal(f.spoken.length, 0);
-  if (change === "account") assert.equal(f.api.state.user.id, "A");
-  if (change === "meeting") assert.equal(f.api.state.meeting.id, "two");
-});
-
-test("wrong-owner response and current-account 401 cancel speech without exposing another account", async () => {
-  const wrong = fixture(); wrong.setHandler(() => reply({ id: "one", private_notes: {}, deliveries: [canonical()] }, 200, "A"));
-  await wrong.click(); assert.equal(wrong.spoken.length, 0); assert.equal(wrong.api.state.user, null);
-  const f = fixture(); await f.click(); const before = f.cancels;
-  f.setHandler(() => reply({ detail: "unauthorized" }, 401)); await f.c.poll();
-  assert.ok(f.cancels > before); assert.equal(f.api.state.user, null);
-});
-
-test("navigation, pagehide and explicit logout cancel an already queued utterance", async () => {
-  for (const kind of ["navigation", "pagehide", "logout"]) {
-    const f = fixture(); await f.click(); const before = f.cancels;
-    if (kind === "navigation") f.events.hashchange();
-    else if (kind === "pagehide") f.events.pagehide();
-    else { f.setHandler(() => reply({ signed_out: true })); await f.buttons.logout.click(); }
-    assert.ok(f.cancels > before);
-  }
 });
 
 test("server TTS capability keeps the server speech path without device fallback", async () => {
