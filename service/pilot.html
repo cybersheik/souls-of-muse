@@ -1,0 +1,53 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Souls of Muse — Pilot</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{font-family:system-ui;max-width:760px;margin:24px auto;padding:0 16px}label{display:block;margin:10px 0}input,select,textarea{width:100%;padding:8px}button{padding:9px 14px;margin:6px 4px 6px 0}.card{border:1px solid #ccc;border-radius:8px;padding:12px;margin:10px 0}.flag{color:#b00}.note{background:#f4f4f4;padding:10px;border-radius:8px}</style></head>
+<body><h1>Souls of Muse — Private Pilot</h1>
+<div class="note">
+<p><b>EN — Operator:</b> Enter the token for your role (Maestro token for Maestro, Artist token for Artist). The token stays in memory only — never in the URL or storage. Role is derived by the server from the token; the selector only changes this view. Maestro creates/starts/completes sessions, sends as Maestro, and approves drafts. Artist sends only as Artist and sees only approved deliveries. Text-only EN↔VI interpretation; no registration, votes, audio or media. Drafts are visible only in the Maestro view.</p>
+<p><b>RU — Оператор:</b> Введите токен своей роли (Maestro — токен Maestro, Artist — токен Artist). Токен хранится только в памяти — не в URL и не в хранилище. Роль определяет сервер по токену; переключатель меняет только отображение. Maestro создаёт/запускает/завершает сессии, отправляет как Maestro и одобряет черновики. Artist отправляет только как Artist и видит только одобренные доставки. Только текстовый перевод EN↔VI; без регистрации, голосований, аудио и медиа. Черновики видны только в виде Maestro.</p>
+</div>
+<label>Role token / Токен роли (memory only) <input id="tok" type="password" autocomplete="off"></label>
+<label>View / Вид <select id="actor"><option value="maestro">Maestro</option><option value="artist">Artist</option></select></label>
+<label>Session ID (join by ID) <input id="sid"></label>
+<label>Text (max 2000 chars) <textarea id="txt" maxlength="2000" rows="3"></textarea></label>
+<label>Direction <select id="dir"><option value="en-vi">EN → VI</option><option value="vi-en">VI → EN</option></select></label>
+<button id="create">Create session</button><button id="start">Start</button><button id="send">Send for interpretation</button><button id="refresh">Refresh deliveries</button><button id="complete">Complete</button>
+<div id="out"></div>
+<script>
+const $=id=>document.getElementById(id);
+function headers(){return {Authorization:"Bearer "+$("tok").value,"Content-Type":"application/json"}}
+async function call(m,p,b){const opts={method:m,headers:headers()};if(b!==undefined)opts.body=JSON.stringify(b);const r=await fetch(p,opts);const t=await r.text();let j;try{j=JSON.parse(t)}catch(e){j={detail:"non_json_response"}}return {s:r.status,j}}
+function clearOut(){const o=$("out");while(o.firstChild)o.removeChild(o.firstChild)}
+function showText(txt){clearOut();const d=document.createElement("div");d.textContent=txt;$("out").appendChild(d)}
+function isMaestroView(){return $("actor").value==="maestro"}
+function renderMessage(d){
+  const card=document.createElement("div");card.className="card";
+  const head=document.createElement("b");head.textContent=d.state||"";card.appendChild(head);
+  card.appendChild(document.createTextNode(" — "));
+  const body=document.createElement("span");body.textContent=d.text||d.detail||"";card.appendChild(body);
+  if(d.validation_issues&&d.validation_issues.length){
+    const f=document.createElement("div");f.className="flag";f.textContent="Flag: "+d.validation_issues.join("; ");card.appendChild(f);
+  }
+  // Approval path only in Maestro view, bound to this message's own id.
+  if(isMaestroView()&&(d.state==="draft"||d.state==="flagged")){
+    const btn=document.createElement("button");
+    btn.textContent=d.state==="flagged"?"Approve flagged":"Approve";
+    const mid=d.id; const flagged=(d.state==="flagged");
+    btn.onclick=async()=>{const r=await call("POST",`/sessions/${$("sid").value}/messages/${mid}/approve`,{confirm_flagged:flagged});card.replaceWith(renderMessage(r.j));};
+    card.appendChild(btn);
+  }
+  return card;
+}
+function renderOne(j){clearOut();$("out").appendChild(renderMessage(j))}
+function renderList(list){
+  clearOut();
+  if(!list||!list.length){showText("No deliveries yet.");return}
+  list.forEach(d=>$("out").appendChild(renderMessage(d)));
+}
+$("actor").addEventListener("change",()=>{clearOut();showText("View changed. Refresh to load deliveries for this view.")});
+$("create").onclick=async()=>{const [sl,tl]=$("dir").value.split("-");const r=await call("POST","/sessions",{kind:"individual",league:"guitar",maestro_alias:"Maestro",artist_alias:"Artist",source_lang:sl,target_lang:tl});if(r.j.id)$("sid").value=r.j.id;showText(JSON.stringify(r.j))};
+$("start").onclick=async()=>{showText(JSON.stringify((await call("POST",`/sessions/${$("sid").value}/start`,{})).j))};
+$("send").onclick=async()=>{const [sl,tl]=$("dir").value.split("-");const r=await call("POST",`/sessions/${$("sid").value}/messages`,{client_event_id:"evt-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),speaker:$("actor").value,text:$("txt").value,source_lang:sl,target_lang:tl});renderOne(r.j)};
+$("refresh").onclick=async()=>{const r=await call("GET",`/sessions/${$("sid").value}`);if(r.j&&r.j.deliveries)renderList(r.j.deliveries);else showText(JSON.stringify(r.j||{}))};
+$("complete").onclick=async()=>{showText(JSON.stringify((await call("POST",`/sessions/${$("sid").value}/complete`,{})).j))};
+</script></body></html>

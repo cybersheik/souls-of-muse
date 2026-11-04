@@ -1,0 +1,220 @@
+{
+  "result": "PARTIAL",
+  "input": "MMS-synthesized EN/VI speech through separate Chrome fake microphone files and real localhost RTC; not human speech acceptance",
+  "code_base": "41e976115aa23029b49b4f57fec1c8d74f1beb16",
+  "models": [
+    "muse-voice-transcribe-1.0",
+    "muse-spark-1.3",
+    "facebook/mms-tts-eng",
+    "facebook/mms-tts-vie"
+  ],
+  "provider_calls": [
+    {
+      "path": "/v1/asr/transcribe",
+      "state": "headers_received",
+      "status": 200,
+      "seconds": 3.172
+    },
+    {
+      "path": "/v1/chat/completions",
+      "state": "headers_received",
+      "status": 200,
+      "seconds": 9.815
+    },
+    {
+      "path": "/v1/asr/transcribe",
+      "state": "headers_received",
+      "status": 200,
+      "seconds": 2.501
+    },
+    {
+      "path": "/v1/chat/completions",
+      "state": "headers_received",
+      "status": 200,
+      "seconds": 5.519
+    }
+  ],
+  "exchanges": [
+    {
+      "speaker": "maestro",
+      "from": "en",
+      "to": "vi",
+      "asr_text": "play the measure short four times at 60 beats per minute. Do not speed up. speed up",
+      "translation": "Vui lòng chơi ô nhịp ngắn bốn lần ở tốc độ 60 nhịp mỗi phút. Xin đừng tăng tốc. tăng tốc",
+      "validation_issues": [],
+      "message_id": "49043ef7a7c349f0a71d86977ac69ea1",
+      "through_translation_ms": 19946
+    },
+    {
+      "speaker": "artist",
+      "from": "vi",
+      "to": "en",
+      "asr_text": " anh sẽ giữ nhịp ở sáu mươi nhịp mỗi phút và lặp lại bốn lần.",
+      "translation": "I will keep the tempo at sixty beats per minute and repeat four times.",
+      "validation_issues": [
+        "term_id: потеряно —, лишние ['TEMPO']"
+      ],
+      "message_id": "bb43a250c44b4a4e963e62d91a36f1ef",
+      "through_translation_ms": 14939
+    }
+  ],
+  "manual_review": [
+    {
+      "id": "49043ef7a7c349f0a71d86977ac69ea1",
+      "approved": false,
+      "confirm_flagged": false,
+      "reviewer": "CX1 test Maestro",
+      "reason": "VI to EN preserves tempo60 and four repetitions; EN ASR changed A minor chord and introduced contradictory speed-up instruction"
+    },
+    {
+      "id": "bb43a250c44b4a4e963e62d91a36f1ef",
+      "approved": true,
+      "confirm_flagged": true,
+      "reviewer": "CX1 test Maestro",
+      "reason": "VI to EN preserves tempo60 and four repetitions; EN ASR changed A minor chord and introduced contradictory speed-up instruction"
+    }
+  ],
+  "reviewed_VI_to_EN_audio": {
+    "energy_before": 0,
+    "energy_after": 0.919371712883191,
+    "packets_after": 258
+  },
+  "raw_microphone_leaked": false,
+  "heart_increment_both": 1,
+  "heart_chain_and_signature": true,
+  "local_restart": {
+    "result": "PASS",
+    "roles": {
+      "maestro": {
+        "state": "completed",
+        "visible_deliveries": 2,
+        "happened": 1
+      },
+      "artist": {
+        "state": "completed",
+        "visible_deliveries": 1,
+        "happened": 1
+      }
+    },
+    "provider_calls_unchanged": 4,
+    "invalid_EN_still_hidden_from_artist": true
+  },
+  "budget": {
+    "local_settled_before": 4,
+    "local_settled_after": 8,
+    "local_spent_before_usd": 0.00669,
+    "local_spent_after_usd": 0.012131,
+    "added_real_cost_usd": 0.005441,
+    "unsettled": 0,
+    "existing_allocation_usd": 0.05,
+    "existing_stop_usd": 0.0475,
+    "last_verified_cloud_only_cost_usd": 0.003911,
+    "last_known_aggregate_with_local_delta_usd": 0.016042,
+    "cloud_ledger_reconciliation_required_before_deploy": true
+  },
+  "validator_fix": "Offline replay recognizes spelled EN/VI numbers and BPM units without a false TEMPO issue; changed tempo/count still flags. Numeric zero and Vietnamese negation share classification. Independent reviewer:1026 integer/decimal cases,11 regressions pass.",
+  "cloud_deployed": false,
+  "human_voice_quality_accepted": false,
+  "full_EN_VI_acceptance": false,
+  "latency_target_accepted": false,
+  "audio_follow_up": {
+    "type": "controlled diagnostic; does not establish human speech quality",
+    "pcm_comparison": [
+      {
+        "variant": "baseline",
+        "language": "en",
+        "reference_seconds": 9.0,
+        "received_seconds": 6.6,
+        "lag_ref_minus_received_s": 0.151125,
+        "aligned_waveform_correlation": 0.6097,
+        "aligned_20ms_energy_correlation": 0.928,
+        "reference_active_bounds_s": [
+          1.1,
+          5.26
+        ],
+        "received_active_bounds_s": [
+          0.96,
+          5.1
+        ],
+        "received_clipped_fraction": 3.8e-05
+      },
+      {
+        "variant": "baseline",
+        "language": "vi",
+        "reference_seconds": 9.0,
+        "received_seconds": 6.58,
+        "lag_ref_minus_received_s": 0.1574375,
+        "aligned_waveform_correlation": 0.4524,
+        "aligned_20ms_energy_correlation": 0.856,
+        "reference_active_bounds_s": [
+          1.14,
+          5.2
+        ],
+        "received_active_bounds_s": [
+          0.98,
+          4.96
+        ],
+        "received_clipped_fraction": 0.0
+      },
+      {
+        "variant": "echo-only",
+        "language": "en",
+        "reference_seconds": 9.0,
+        "received_seconds": 6.58,
+        "lag_ref_minus_received_s": 0.164,
+        "aligned_waveform_correlation": 0.5005,
+        "aligned_20ms_energy_correlation": 0.9974,
+        "reference_active_bounds_s": [
+          1.1,
+          5.26
+        ],
+        "received_active_bounds_s": [
+          0.94,
+          5.1
+        ],
+        "received_clipped_fraction": 0.0
+      },
+      {
+        "variant": "echo-only",
+        "language": "vi",
+        "reference_seconds": 9.0,
+        "received_seconds": 6.58,
+        "lag_ref_minus_received_s": 0.1640625,
+        "aligned_waveform_correlation": 0.5228,
+        "aligned_20ms_energy_correlation": 0.995,
+        "reference_active_bounds_s": [
+          1.14,
+          5.2
+        ],
+        "received_active_bounds_s": [
+          0.96,
+          5.04
+        ],
+        "received_clipped_fraction": 0.0
+      }
+    ],
+    "direct_vs_rtc_ASR": [
+      {
+        "case": "direct-en-aligned",
+        "text": "play the A minor chord four times at 60 beats per minute. Do not speed up.",
+        "seconds": 6.64,
+        "latency_s": 2.938,
+        "cost_usd": 0.0003
+      },
+      {
+        "case": "rtc-en",
+        "text": "play the minor chord four times at 60 beats per minute. Do not speed up.",
+        "seconds": 6.64,
+        "latency_s": 1.717,
+        "cost_usd": 0.0003
+      }
+    ],
+    "new_paid_calls": 2,
+    "added_cost_usd": 0.0006,
+    "local_ledger_settled_after": 10,
+    "local_spent_usd_after": 0.012731,
+    "local_unsettled": 0,
+    "last_known_aggregate_with_cloud_only_charges_usd": 0.016642,
+    "finding": "Original PCM retained A minor chord; RTC PCM omitted A. Both retained negation in this pair. No bilateral voice acceptance claimed."
+  }
+}

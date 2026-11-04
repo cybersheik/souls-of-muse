@@ -1,0 +1,55 @@
+{
+  "date": "2026-11-04",
+  "task": "live lesson repairs",
+  "base_frontend": "9c1fb006a3c442c376bc85a08df564258b4af25e",
+  "reproduction": "Created authenticated meetings had no camera control. The old client also delayed local preview until conference join completed.",
+  "changes": [
+    "Created meeting: explicit local camera/microphone preview, no conference HTTP or RTCPeerConnection",
+    "Local preview appears before signalling join; microphone meter has no audio destination",
+    "Explicit local speaker check, bounded 440Hz/0.3s tone; no native speech fallback",
+    "Created-to-active transition requires a separate Connect even if camera permission was still pending",
+    "20s capture/join deadlines, permission/device error explanations, stop late capture tracks",
+    "Cancelled logical join cannot issue a stale conference join after retry",
+    "Created mobile layout prioritizes equipment; active conversation layout preserved"
+  ],
+  "verification": {
+    "node": {
+      "passed": 166,
+      "failed": 0,
+      "skipped": 1
+    },
+    "independent_scoped_tests": 43,
+    "red_green_regressions": [
+      "pending created capture then active remount requires second click",
+      "cancel pending logical join then retry preserves newest AV connection"
+    ],
+    "rendered_offline_fixture": {
+      "current_web_and_application": true,
+      "outbound_server_network_denied": true,
+      "physical_devices_used": false,
+      "synthetic_local_preview": {
+        "ready_state": 4,
+        "width": 640,
+        "height": 360,
+        "current_time": 5.656005,
+        "muted": true
+      },
+      "native_webrtc_two_browser_endpoints": {
+        "both_remote_videos_ready_state": 4,
+        "remote_current_times_seconds": [
+          41.364648,
+          20.576049
+        ]
+      },
+      "mobile_width": 390,
+      "desktop_width": 1440
+    }
+  },
+  "limits": [
+    "Synthetic media is not a human conversation or physical Mac/Samsung acceptance",
+    "No STUN/TURN/SFU was added; cross-network delivery is not established",
+    "Aborting an already sent HTTP request does not prove server-side cancellation",
+    "No model, ASR, TTS inference or real lesson state mutations in this QA",
+    "Full product readiness remains false"
+  ]
+}

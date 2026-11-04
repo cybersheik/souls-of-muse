@@ -1,0 +1,139 @@
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const handler = require("../api/harness/[...path].js");
+
+function response() {
+  return { headers: {}, setHeader(k, v) { this.headers[k] = v; },
+    status(code) { this.code = code; return this; },
+    json(body) { this.body = body; return this; }, send(body) { this.body = body; return this; } };
+}
+
+test('conference polling preserves only its connection generation and cursor',async()=>{
+ const previous=global.fetch,oldURL=process.env.SOM_HARNESS_URL;process.env.SOM_HARNESS_URL='https://backend.example';
+ try{global.fetch=async url=>{assert.equal(url.pathname,'/sessions/one/conference/events');assert.equal(url.searchParams.get('connection_id'),'0123456789abcdef0123456789abcdef');assert.equal(url.searchParams.get('after'),'9');assert.equal(url.searchParams.has('owner'),false);return new Response('{}');};const res=response();await handler({url:'/api/harness/sessions/one/conference/events',query:{connection_id:'0123456789abcdef0123456789abcdef',after:'9',owner:'other'},method:'GET',headers:{}},res);assert.equal(res.code,200);}finally{global.fetch=previous;if(oldURL===undefined)delete process.env.SOM_HARNESS_URL;else process.env.SOM_HARNESS_URL=oldURL;}
+});
+
+test('gateway resolves real single and nested URL routes without catch-all query params', async () => {
+  const previous = global.fetch, oldURL = process.env.SOM_HARNESS_URL;
+  process.env.SOM_HARNESS_URL = 'https://backend.example';
+  try {
+    const seen = [];
+    global.fetch = async url => { seen.push(url.pathname); return new Response('{}'); };
+    for (const url of ['/api/harness/health', '/api/harness/auth/me', '/api/harness/sessions']) {
+      const res = response();
+      await handler({url, query: {}, method:'GET', headers:{}},res);
+      assert.equal(res.code,200,url);
+    }
+    assert.deepEqual(seen,['/health','/auth/me','/sessions']);
+  } finally { global.fetch=previous; if(oldURL===undefined)delete process.env.SOM_HARNESS_URL;else process.env.SOM_HARNESS_URL=oldURL; }
+});
+
+test('gateway ignores a spoofed catch-all query when the public request URL identifies the route', async () => {
+  const previous=global.fetch,oldURL=process.env.SOM_HARNESS_URL;
+  process.env.SOM_HARNESS_URL='https://backend.example';
+  try {
+    global.fetch=async url=>{assert.equal(url.pathname,'/health');return new Response('{}');};
+    const res=response();
+    await handler({url:'/api/harness/health?path=auth/login',query:{path:'auth/login'},method:'GET',headers:{}},res);
+    assert.equal(res.code,200);
+    for(const path of ['/api/harness/../demo/run','/api/harness/%2e%2e/demo/run','/api/harness/sessions%2fone']) {
+      const bad=response();await handler({url:path,query:{path:'health'},method:'GET',headers:{}},bad);assert.equal(bad.code,404,path);
+    }
+  } finally {global.fetch=previous;if(oldURL===undefined)delete process.env.SOM_HARNESS_URL;else process.env.SOM_HARNESS_URL=oldURL;}
+});
+
+test('gateway admits only the scoped explicit translation review route', async()=>{
+ const oldFetch=global.fetch,oldURL=process.env.SOM_HARNESS_URL;process.env.SOM_HARNESS_URL='https://backend.example';let calls=0;
+ try{
+  global.fetch=async(url,options)=>{calls++;assert.equal(url.pathname,'/sessions/one/messages/m1/review');assert.deepEqual(JSON.parse(options.body),{client_event_id:'intent'});return new Response('{}',{status:200});};
+  const res=response();await handler({query:{path:['sessions','one','messages','m1','review']},method:'POST',body:{client_event_id:'intent'},headers:{}},res);assert.equal(res.code,200);
+  const invalid=response();await handler({query:{path:['sessions','one','review']},method:'POST',headers:{}},invalid);assert.equal(invalid.code,404);assert.equal(calls,1);
+ }finally{global.fetch=oldFetch;if(oldURL===undefined)delete process.env.SOM_HARNESS_URL;else process.env.SOM_HARNESS_URL=oldURL;}
+});
+
+test("gateway forwards participant cookie, preserves login cookie, omits global bearer credentials", async () => {
+  const oldFetch = global.fetch;
+  const oldURL = process.env.SOM_HARNESS_URL;
+  process.env.SOM_HARNESS_URL = "https://backend.example";
+  try {
+    global.fetch = async (url, options) => {
+      assert.equal(url.href, "https://backend.example/auth/login");
+      assert.equal(options.headers.Cookie, "som_participant=private");
+      assert.equal(options.headers.Authorization, undefined);
+      assert.equal(options.headers.Origin, "https://soulsofmuse.app");
+      return new Response('{"role":"maestro"}', { status: 200, headers: {
+        "Set-Cookie": "som_participant=new; HttpOnly; Secure; SameSite=Strict; Path=/api/harness",
+      } });
+    };
+    const res = response();
+    await handler({ query: { path: ["auth", "login"] }, method: "POST", body: { username: "M" },
+      headers: { cookie: "som_participant=private", authorization: "Bearer should-not-forward", origin: "https://soulsofmuse.app" } }, res);
+    assert.equal(res.code, 200);
+    assert.match(res.headers["Set-Cookie"], /HttpOnly/);
+    assert.equal(res.headers["Cache-Control"], "no-store");
+  } finally {
+    global.fetch = oldFetch;
+    if (oldURL === undefined) delete process.env.SOM_HARNESS_URL;
+    else process.env.SOM_HARNESS_URL = oldURL;
+  }
+});
+
+test("gateway rejects unexpected routes before making an upstream request", async () => {
+  process.env.SOM_HARNESS_URL = "https://backend.example";
+  const res = response();
+  await handler({ query: { path: ["demo", "run"] }, method: "POST", headers: {} }, res);
+  assert.equal(res.code, 404);
+  delete process.env.SOM_HARNESS_URL;
+});
+
+test("gateway passes speech JSON for the approved message route", async () => {
+  const oldFetch = global.fetch;
+  process.env.SOM_HARNESS_URL = "https://backend.example";
+  try {
+    global.fetch = async url => {
+      assert.equal(url.pathname, "/sessions/meeting/messages/message/speech");
+      return new Response('{"wav_base64":"waveform","language":"vi"}', { status: 200 });
+    };
+    const res = response();
+    await handler({ query: { path: ["sessions", "meeting", "messages", "message", "speech"] }, method: "POST", headers: {} }, res);
+    assert.equal(res.code, 200);
+    assert.equal(JSON.parse(res.body).language, "vi");
+  } finally { global.fetch = oldFetch; delete process.env.SOM_HARNESS_URL; }
+});
+
+test("gateway permits only the scoped media controls", async () => {
+  const oldFetch = global.fetch;
+  process.env.SOM_HARNESS_URL = "https://backend.example";
+  try {
+    global.fetch = async () => new Response('{}', { status: 200 });
+    for (const path of ["media/join", "media/leave", "media/status", "media/recordings", "media/recordings/id/stop", "media/recordings/id/cancel", "media/speech/id"]) {
+      const res = response();
+      await handler({ query: { path: ["sessions", "meeting", ...path.split("/")] }, method: "POST", headers: {} }, res);
+      assert.equal(res.code, 200, path);
+    }
+    const res = response();
+    await handler({ query: { path: ["sessions", "meeting", "media", "admin"] }, method: "POST", headers: {} }, res);
+    assert.equal(res.code, 404);
+  } finally { global.fetch = oldFetch; delete process.env.SOM_HARNESS_URL; }
+});
+
+test('gateway forwards only the scoped lesson workspace route', async()=>{
+ const previous=global.fetch,oldURL=process.env.SOM_HARNESS_URL;process.env.SOM_HARNESS_URL='https://backend.example';
+ try{
+  let calls=0;global.fetch=async(url,options)=>{calls++;assert.equal(url.pathname,'/sessions/meeting/lesson');assert.equal(options.headers.Authorization,undefined);return new Response('{"revision":1}',{status:200});};
+  for(const method of ['GET','POST']){const res=response();await handler({query:{path:['sessions','meeting','lesson']},method,headers:{},body:{revision:0}},res);assert.equal(res.code,200);}
+  const res=response();await handler({query:{path:['sessions','meeting','lesson','admin']},method:'POST',headers:{}},res);assert.equal(res.code,404);assert.equal(calls,2);
+ }finally{global.fetch=previous;if(oldURL===undefined)delete process.env.SOM_HARNESS_URL;else process.env.SOM_HARNESS_URL=oldURL;}
+});
+test('gateway forwards material generation and approval but rejects model/admin subroutes',async()=>{
+ const previous=global.fetch,oldURL=process.env.SOM_HARNESS_URL;process.env.SOM_HARNESS_URL='https://backend.example';let calls=0;
+ try{global.fetch=async()=>{calls++;return new Response('{}',{status:200});};for(const parts of [['translations'],['translations','job','approve']]){const res=response();await handler({query:{path:['sessions','meeting','lesson',...parts]},method:'POST',body:{},headers:{}},res);assert.equal(res.code,200);}const res=response();await handler({query:{path:['sessions','meeting','lesson','translations','job','reset']},method:'POST',headers:{}},res);assert.equal(res.code,404);assert.equal(calls,2);}finally{global.fetch=previous;if(oldURL===undefined)delete process.env.SOM_HARNESS_URL;else process.env.SOM_HARNESS_URL=oldURL;}
+});
+test('gateway permits scoped planning and adoption but rejects provider and reset routes',async()=>{
+ const previous=global.fetch,oldURL=process.env.SOM_HARNESS_URL;process.env.SOM_HARNESS_URL='https://backend.example';let calls=0;
+ try{global.fetch=async()=>{calls++;return new Response('{}',{status:200});};for(const parts of [['proposals'],['proposals','job','apply']]){const res=response();await handler({query:{path:['sessions','meeting','lesson',...parts]},method:'POST',body:{},headers:{}},res);assert.equal(res.code,200);}for(const parts of [['proposals','job','reset'],['responses']]){const res=response();await handler({query:{path:['sessions','meeting','lesson',...parts]},method:'POST',headers:{}},res);assert.equal(res.code,404);}assert.equal(calls,2);}finally{global.fetch=previous;if(oldURL===undefined)delete process.env.SOM_HARNESS_URL;else process.env.SOM_HARNESS_URL=oldURL;}
+});
+test('gateway forwards only the private notes cursor and cookie, with no owner or bearer override',async()=>{
+ const previous=global.fetch,oldURL=process.env.SOM_HARNESS_URL;process.env.SOM_HARNESS_URL='https://backend.example';const seen=[];
+ try{global.fetch=async(url,options)=>{seen.push({url,options});return new Response('{}',{status:200,headers:{'X-SOM-Participant':'M'}});};for(const parts of [['notes'],['sessions','meeting','notes']]){const res=response();await handler({query:{path:parts,cursor:'safe-cursor',owner:'other'},method:'GET',headers:{cookie:'som_participant=opaque',authorization:'Bearer not-forwarded','x-som-participant':'M'}},res);assert.equal(res.code,200);assert.equal(res.headers['X-SOM-Participant'],'M');}assert.equal(seen[0].url.searchParams.get('cursor'),'safe-cursor');assert.equal(seen[0].url.searchParams.has('owner'),false);assert.equal(seen[0].options.headers.Cookie,'som_participant=opaque');assert.equal(seen[0].options.headers.Authorization,undefined);assert.equal(seen[0].options.headers['X-SOM-Participant'],'M');assert.equal(seen[1].url.search,'');const res=response();await handler({query:{path:['notes','other']},method:'GET',headers:{}},res);assert.equal(res.code,404);assert.equal(seen.length,2);}finally{global.fetch=previous;if(oldURL===undefined)delete process.env.SOM_HARNESS_URL;else process.env.SOM_HARNESS_URL=oldURL;}
+});

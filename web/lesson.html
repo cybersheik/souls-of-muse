@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"><title>Souls of Muse — предпросмотр дизайна (превью)</title><meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body><div id="souls-of-muse-preview-notice" role="note" lang="ru" style="box-sizing:border-box;width:fit-content;max-width:min(540px,calc(100vw - 24px));margin:14px auto 6px;padding:10px 16px 11px;background:linear-gradient(180deg,#18243f,#141e34);border:1px solid rgba(158,143,214,.18);border-left:2px solid rgba(158,143,214,.55);border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.16);font:13px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;text-align:center;"><strong style="display:block;font-size:13px;font-weight:600;letter-spacing:.01em;color:#cfc6ee;">Интерактивный предпросмотр</strong><span style="display:block;margin-top:1px;font-size:12.5px;color:#a9b7d0;">Данные урока и видео смоделированы — подключение к живому занятию не выполняется.</span></div>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/nocturne-cce07e63-bda7-479d-9318-f0cdcc3c2834/styles.css">
+<script src="_ds/nocturne-cce07e63-bda7-479d-9318-f0cdcc3c2834/_ds_bundle.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<style>
+html,body{margin:0;background:color-mix(in srgb,var(--color-bg) 75%,black);color:var(--color-text);font-family:var(--font-body);}
+a{color:var(--color-accent-300);} a:hover{color:var(--color-accent-200);}
+button{font-family:inherit;}
+</style>
+</helmet>
+<div style="display:flex;gap:96px;padding:80px;align-items:flex-start;width:max-content;">
+
+<div style="display:flex;flex-direction:column;gap:16px;">
+<div style="display:flex;align-items:baseline;gap:12px;"><span style="font-size:22px;font-weight:500;">Экран учителя</span><span style="font-size:13px;color:var(--color-neutral-500);">Ramires95 · группа из 4 учеников</span></div>
+<div data-screen-label="Учитель" style="width:1280px;height:800px;position:relative;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--color-neutral-800);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;background:radial-gradient(900px 500px at 15% -10%, var(--color-accent-900), transparent 60%), var(--color-bg);">
+
+  <header style="display:flex;align-items:center;gap:var(--space-8);padding:var(--space-4) var(--space-8);border-bottom:1px solid var(--color-divider);height:52px;box-sizing:border-box;flex:none;">
+    <div style="display:flex;align-items:center;gap:var(--space-3);">
+      <div style="width:20px;height:20px;border-radius:50%;border:1px solid var(--color-accent);display:grid;place-items:center;"><div style="width:7px;height:7px;border-radius:50%;background:var(--color-accent);box-shadow:0 0 10px var(--color-accent);"></div></div>
+      <div style="font-weight:500;font-size:15px;">Muse</div>
+    </div>
+    <div style="font-size:14px;font-weight:500;">Урок 3 · Гитара <span style="color:var(--color-neutral-500);font-weight:400;">группа · 4 ученика</span></div>
+    <div style="flex:1;"></div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-400);font-family:'JetBrains Mono',monospace;"><span style="width:6px;height:6px;border-radius:50%;background:var(--color-accent);box-shadow:0 0 8px var(--color-accent);"></span>{{ elapsed }}</div>
+    <button class="btn btn-secondary" style="display:flex;align-items:center;gap:6px;"><i class="ph ph-sign-out"></i>Завершить урок</button>
+  </header>
+
+  <div style="display:flex;gap:var(--space-4);padding:var(--space-6) calc(var(--space-8) + 32px) 0 var(--space-8);flex:none;">
+    <button onClick="{{ pickAll }}" style="width:128px;flex:none;text-align:left;cursor:pointer;border-radius:var(--radius-md);border:1px solid {{ allBd }};background:{{ allBg }};color:var(--color-text);padding:var(--space-4);display:flex;flex-direction:column;gap:6px;" style-hover="border-color:var(--color-accent-600);">
+      <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;"><i class="ph ph-users-three" style="font-size:15px;color:var(--color-accent);"></i>Всем</div>
+      <div style="font-size:12px;line-height:1.35;color:var(--color-neutral-400);">Говорить с группой</div>
+      <div style="font-size:11px;color:var(--color-neutral-500);font-family:'JetBrains Mono',monospace;margin-top:auto;">{{ groupSummary }}</div>
+    </button>
+    <sc-for list="{{ roster }}" as="st" hint-placeholder-count="4">
+      <button onClick="{{ st.pick }}" style="flex:1;min-width:0;text-align:left;cursor:pointer;border-radius:var(--radius-md);border:1px solid {{ st.bd }};background:{{ st.bg }};color:var(--color-text);padding:var(--space-4);display:flex;flex-direction:column;gap:7px;" style-hover="border-color:var(--color-accent-600);">
+        <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+          <div style="display:flex;gap:2px;align-items:center;height:12px;width:12px;"><sc-for list="{{ st.lv }}" as="w" hint-placeholder-count="3"><div style="width:2px;height:{{ w.h }}px;border-radius:1px;background:{{ w.c }};"></div></sc-for></div>
+          <span style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ st.name }}</span>
+          <span style="font-size:10px;color:var(--color-neutral-500);font-family:'JetBrains Mono',monospace;">{{ st.lang }}</span>
+          <span style="flex:1;"></span>
+          <sc-if value="{{ st.hand }}" hint-placeholder-val="{{ false }}"><i class="ph-fill ph-hand-waving" style="font-size:14px;color:var(--color-accent);"></i></sc-if>
+          <sc-if value="{{ st.alert }}" hint-placeholder-val="{{ false }}"><span class="tag tag-accent" style="white-space:nowrap;font-size:10px;">{{ st.alertLabel }}</span></sc-if>
+          <sc-if value="{{ st.focused }}" hint-placeholder-val="{{ false }}"><i class="ph ph-headphones" style="font-size:14px;color:var(--color-accent-300);"></i></sc-if>
+        </div>
+        <div style="font-size:12px;color:var(--color-neutral-300);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;gap:5px;align-items:center;"><i class="ph ph-sparkle" style="font-size:11px;color:var(--color-accent-400);flex:none;"></i>{{ st.status }}</div>
+        <div style="height:4px;border-radius:2px;background:var(--color-neutral-800);overflow:hidden;"><div style="height:100%;width:{{ st.pct }}%;border-radius:2px;background:{{ st.fill }};transition:width 700ms ease;"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-neutral-500);font-family:'JetBrains Mono',monospace;"><span>{{ st.metrics }}</span><span>{{ st.pct }}%</span></div>
+      </button>
+    </sc-for>
+  </div>
+
+  <div style="flex:1;display:grid;grid-template-columns:230px minmax(0,1fr) 310px;gap:var(--space-8);padding:var(--space-6) calc(var(--space-8) + 32px) var(--space-8) var(--space-8);min-height:0;">
+
+    <div style="display:flex;flex-direction:column;gap:var(--space-8);min-width:0;">
+      <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+        <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500);">{{ T_audioLabel }}</span><span class="tag tag-accent">live</span></div>
+        <div style="display:flex;gap:var(--space-6);align-items:center;">
+          <div style="width:92px;height:92px;flex:none;border-radius:50%;border:1px solid var(--color-neutral-600);display:grid;place-items:center;">
+            <div style="width:{{ T_dot }}px;height:{{ T_dot }}px;border-radius:50%;background:var(--color-accent);box-shadow:0 0 {{ T_glow }}px var(--color-accent-600);transition:all 110ms linear;"></div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:flex-end;">
+            <div style="display:flex;flex-direction:column;gap:5px;align-items:center;"><div style="display:flex;flex-direction:column-reverse;gap:3px;"><sc-for list="{{ T_mPeer }}" as="m" hint-placeholder-count="12"><div style="width:20px;height:4px;border-radius:1px;background:{{ m.bg }};border:1px solid {{ m.bd }};"></div></sc-for></div><i class="ph ph-speaker-high" style="font-size:12px;color:var(--color-neutral-500);"></i></div>
+            <div style="display:flex;flex-direction:column;gap:5px;align-items:center;"><div style="display:flex;flex-direction:column-reverse;gap:3px;"><sc-for list="{{ T_mSelf }}" as="m" hint-placeholder-count="12"><div style="width:20px;height:4px;border-radius:1px;background:{{ m.bg }};border:1px solid {{ m.bd }};"></div></sc-for></div><i class="ph ph-microphone" style="font-size:12px;color:var(--color-neutral-500);"></i></div>
+          </div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--color-neutral-500);display:flex;flex-direction:column;gap:3px;">
+          <span>{{ T_audio1 }}</span>
+          <span>{{ T_audio2 }}</span>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+        <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500);">Видео</span>
+        <sc-if value="{{ T_camOn }}" hint-placeholder-val="{{ false }}">
+          <div style="aspect-ratio:16/10;border-radius:var(--radius-md);background:linear-gradient(160deg,var(--color-neutral-800),var(--color-bg));border:1px solid var(--color-accent-800);position:relative;display:grid;place-items:center;">
+            <i class="ph ph-hand" style="font-size:30px;color:var(--color-neutral-600);"></i>
+            <div style="position:absolute;left:8px;bottom:6px;font-size:11px;color:var(--color-neutral-300);display:flex;gap:6px;align-items:center;"><span style="width:6px;height:6px;border-radius:50%;background:var(--color-accent);"></span>Руки {{ focusName }}</div>
+          </div>
+          <button onClick="{{ stopHands }}" class="btn btn-ghost" style="display:flex;align-items:center;gap:6px;align-self:flex-start;"><i class="ph ph-video-camera-slash"></i>Завершить контроль</button>
+        </sc-if>
+        <sc-if value="{{ T_reqIdle }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ requestHands }}" class="btn btn-secondary" style="display:flex;align-items:center;gap:6px;"><i class="ph ph-video-camera"></i>Видео контроль</button>
+        </sc-if>
+        <sc-if value="{{ T_reqWaiting }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px dashed var(--color-accent-800);font-size:12px;color:var(--color-neutral-400);"><i class="ph ph-hourglass" style="color:var(--color-accent);"></i>Ждём камеру {{ focusName }}</div>
+        </sc-if>
+        <sc-if value="{{ T_needFocus }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px dashed var(--color-neutral-800);font-size:12px;line-height:1.4;color:var(--color-neutral-500);"><i class="ph ph-video-camera"></i>Видео контроль — выберите ученика</div>
+        </sc-if>
+        <sc-if value="{{ teacherCam }}" hint-placeholder-val="{{ false }}">
+          <div style="width:64%;aspect-ratio:16/10;border-radius:var(--radius-md);background:linear-gradient(200deg,var(--color-neutral-900),var(--color-bg));border:1px solid var(--color-neutral-800);position:relative;display:grid;place-items:center;"><i class="ph ph-guitar" style="font-size:22px;color:var(--color-neutral-700);"></i><div style="position:absolute;left:8px;bottom:5px;font-size:11px;color:var(--color-neutral-400);">Видят все</div></div>
+        </sc-if>
+        <button onClick="{{ toggleTeacherCam }}" class="btn btn-secondary" style="display:flex;align-items:center;gap:6px;"><i class="ph ph-monitor-play"></i>{{ T_camLabel }}</button>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:var(--space-6);min-width:0;min-height:0;">
+      <div style="display:flex;align-items:center;gap:var(--space-6);">
+        <div style="font-size:20px;font-weight:500;letter-spacing:-0.02em;white-space:nowrap;">План урока</div>
+        <span class="tag tag-outline" style="white-space:nowrap;">{{ stepLabel }}</span>
+        <div style="flex:1;"></div>
+        <span style="font-size:12px;color:var(--color-neutral-500);white-space:nowrap;">шаг меняется у всех</span>
+      </div>
+      <div style="flex:1;border-radius:var(--radius-lg);background:linear-gradient(180deg,var(--color-surface),color-mix(in srgb,var(--color-surface) 40%,var(--color-bg)));box-shadow:var(--shadow-md);padding:var(--space-6);display:flex;flex-direction:column;gap:4px;min-height:0;overflow:auto;">
+        <sc-for list="{{ planItems }}" as="p" hint-placeholder-count="5">
+          <div style="display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-4);border-radius:var(--radius-md);border:1px solid {{ p.bd }};background:{{ p.bg }};">
+            <button onClick="{{ p.pick }}" style="display:flex;align-items:center;gap:var(--space-4);border:0;background:transparent;padding:0;color:{{ p.color }};cursor:pointer;text-align:left;font-size:14px;">
+              <i class="{{ p.icon }}" style="font-size:17px;color:{{ p.iconColor }};"></i><span style="flex:1;font-weight:{{ p.weight }};">{{ p.t }}</span><span style="font-size:12px;color:var(--color-neutral-500);font-family:'JetBrains Mono',monospace;">{{ p.d }}</span>
+            </button>
+            <sc-if value="{{ p.cur }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:var(--space-3);padding-left:29px;">
+                <div style="font-size:13px;line-height:1.5;color:var(--color-neutral-300);">{{ p.goal }}</div>
+                <sc-for list="{{ p.tips }}" as="tip" hint-placeholder-count="2"><div style="display:flex;gap:var(--space-3);font-size:12px;color:var(--color-neutral-400);"><i class="ph ph-check" style="color:var(--color-accent);margin-top:2px;"></i>{{ tip }}</div></sc-for>
+                <div style="display:flex;gap:var(--space-3);align-items:center;font-size:12px;color:var(--color-accent-300);"><i class="ph ph-sparkle"></i>Muse оценивает: смена на первую долю, чистота струн</div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--space-6);padding:var(--space-3) var(--space-6);border-radius:var(--radius-lg);border:1px solid var(--color-neutral-800);">
+        <button onClick="{{ toggleMetro }}" class="btn btn-primary" style="display:flex;align-items:center;gap:6px;min-width:108px;justify-content:center;"><i class="{{ metroIcon }}"></i>{{ metroLabel }}</button>
+        <div style="display:flex;gap:9px;align-items:center;"><sc-for list="{{ beatDots }}" as="d" hint-placeholder-count="4"><div style="width:{{ d.size }}px;height:{{ d.size }}px;border-radius:50%;background:{{ d.bg }};border:1px solid {{ d.bd }};box-shadow:0 0 {{ d.glow }}px var(--color-accent);"></div></sc-for></div>
+        <div style="display:flex;align-items:center;gap:2px;">
+          <button onClick="{{ slower }}" class="btn btn-icon btn-ghost"><i class="ph ph-minus"></i></button>
+          <div style="display:flex;align-items:baseline;gap:4px;min-width:64px;justify-content:center;"><span style="font-size:22px;font-weight:500;font-family:'JetBrains Mono',monospace;">{{ bpm }}</span><span style="font-size:11px;color:var(--color-neutral-500);">BPM</span></div>
+          <button onClick="{{ faster }}" class="btn btn-icon btn-ghost"><i class="ph ph-plus"></i></button>
+        </div>
+        <div style="flex:1;"></div>
+        <span style="font-size:12px;color:var(--color-neutral-500);">4/4 · у всей группы</span>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:var(--space-4);min-width:0;min-height:0;border-left:1px solid var(--color-divider);padding-left:var(--space-8);">
+      <div style="display:flex;align-items:center;gap:var(--space-3);">
+        <button onClick="{{ toggleMenuT }}" class="btn btn-primary" style="display:flex;align-items:center;gap:6px;"><i class="ph ph-sparkle"></i>Muse<i class="ph ph-caret-down" style="font-size:11px;"></i></button>
+        <span style="flex:1;"></span>
+        <span class="tag tag-neutral" style="white-space:nowrap;display:flex;gap:4px;align-items:center;"><i class="ph ph-translate"></i>{{ T_langTag }}</span>
+      </div>
+      <sc-if value="{{ recS }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-900);font-size:12px;color:var(--color-accent-200);">
+          <div style="display:flex;gap:2px;align-items:center;height:14px;"><sc-for list="{{ miniWave }}" as="w" hint-placeholder-count="6"><div style="width:2px;height:{{ w.h }}px;border-radius:1px;background:var(--color-accent);"></div></sc-for></div>
+          London_hippie надиктовывает заметку Muse
+        </div>
+      </sc-if>
+      <div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500);">{{ T_chatLabel }}</div>
+      <div ref="{{ chatRefT }}" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:var(--space-4);padding-right:4px;">
+        <sc-for list="{{ msgsT }}" as="m" hint-placeholder-count="4">
+          <div style="display:flex;flex-direction:column;gap:3px;min-width:0;align-items:{{ m.align }};">
+            <div style="display:flex;gap:5px;align-items:center;font-size:11px;color:{{ m.whoColor }};"><i class="{{ m.icon }}"></i>{{ m.who }}</div>
+            <div style="max-width:90%;box-sizing:border-box;overflow-wrap:anywhere;padding:var(--space-2) var(--space-4);border-radius:var(--radius-md);background:{{ m.bg }};border:1px solid {{ m.bd }};font-size:13px;line-height:1.45;color:{{ m.color }};">{{ m.text }}</div>
+            <sc-if value="{{ m.showOrig }}" hint-placeholder-val="{{ false }}"><div style="max-width:90%;font-size:11px;line-height:1.4;color:var(--color-neutral-500);text-align:{{ m.align2 }};">{{ m.orig }}</div></sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <form onSubmit="{{ sendT }}" style="display:flex;gap:var(--space-3);">
+        <input class="input" value="{{ draftT }}" onChange="{{ onDraftT }}" placeholder="{{ T_placeholder }}" style="flex:1;min-width:0;"></input>
+        <button type="submit" class="btn btn-primary btn-icon"><i class="ph ph-paper-plane-right"></i></button>
+      </form>
+      <div style="display:flex;flex-direction:column;gap:var(--space-3);padding-top:var(--space-4);border-top:1px solid var(--color-divider);">
+        <div style="display:flex;align-items:center;gap:var(--space-3);">
+          <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500);flex:1;">Мои заметки</span>
+          <button onClick="{{ toggleRecT }}" class="btn btn-ghost" style="display:flex;align-items:center;gap:5px;font-size:12px;"><i class="{{ T_recIcon }}"></i>{{ T_recLabel }}</button>
+        </div>
+        <sc-if value="{{ recT }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:var(--space-3);height:28px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--color-accent);box-shadow:0 0 8px var(--color-accent);"></span><div style="flex:1;display:flex;gap:2px;align-items:center;height:24px;"><sc-for list="{{ wave }}" as="w" hint-placeholder-count="28"><div style="flex:1;height:{{ w.h }}px;border-radius:1px;background:var(--color-accent-600);"></div></sc-for></div><span style="font-size:11px;color:var(--color-neutral-500);">Muse слушает</span></div>
+        </sc-if>
+        <div style="display:flex;flex-direction:column;gap:6px;max-height:72px;overflow:auto;">
+          <sc-for list="{{ notesT }}" as="n" hint-placeholder-count="2"><div style="display:flex;gap:8px;font-size:12px;line-height:1.4;color:var(--color-neutral-300);"><i class="ph ph-note-pencil" style="color:var(--color-neutral-600);margin-top:2px;"></i><span>{{ n }}</span></div></sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:absolute;top:52px;right:0;bottom:0;display:flex;z-index:3;box-shadow:{{ dT_sh }};">
+    <div onPointerDown="{{ dragT }}" title="Нажмите или потяните" style="width:32px;flex:none;cursor:ew-resize;touch-action:none;user-select:none;display:flex;flex-direction:column;align-items:center;gap:var(--space-4);padding:var(--space-6) 0;border-left:1px solid var(--color-neutral-800);background:var(--color-surface);" style-hover="background:var(--color-accent-900);">
+      <i class="{{ dT_caret }}" style="font-size:13px;color:var(--color-accent);"></i>
+      <span style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:{{ dT_label }};white-space:nowrap;">Нотная тетрадь</span>
+      <div style="flex:1;"></div>
+      <i class="ph ph-dots-six-vertical" style="font-size:16px;color:var(--color-neutral-600);"></i>
+    </div>
+    <div style="width:{{ dT_w }}px;transition:{{ dT_tr }};overflow:hidden;background:var(--color-surface);">
+      <div style="min-width:320px;width:100%;height:100%;box-sizing:border-box;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-6);overflow:auto;">
+        <div style="display:flex;align-items:center;gap:var(--space-4);">
+          <div style="display:flex;gap:2px;"><sc-for list="{{ T_tabs }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.pick }}" style="border:0;background:transparent;cursor:pointer;padding:6px 9px;font-size:13px;color:{{ t.color }};box-shadow:inset 0 -1px 0 {{ t.line }};">{{ t.label }}</button></sc-for></div>
+          <div style="flex:1;"></div>
+          <span style="font-size:12px;color:var(--color-neutral-500);white-space:nowrap;">видят все ученики</span>
+        </div>
+        <sc-if value="{{ T_isChords }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--space-4);">
+            <sc-for list="{{ T_bars }}" as="b" hint-placeholder-count="4">
+              <div onClick="{{ b.click }}" style="cursor:pointer;border-radius:var(--radius-md);border:1px solid {{ b.bd }};background:{{ b.bg }};padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);">
+                <div style="display:flex;justify-content:space-between;"><span style="font-size:11px;color:var(--color-neutral-500);font-family:'JetBrains Mono',monospace;">такт {{ b.n }}</span><i class="ph ph-arrows-clockwise" style="font-size:12px;color:var(--color-neutral-600);"></i></div>
+                <div style="font-size:28px;font-weight:500;letter-spacing:-0.02em;color:{{ b.nameColor }};">{{ b.name }}</div>
+                <svg viewBox="-2 -4 64 74" style="width:100%;max-width:100px;">
+                  <line x1="6" y1="10" x2="54" y2="10" stroke="var(--color-neutral-300)" stroke-width="2.5"></line>
+                  <line x1="6" y1="24" x2="54" y2="24" stroke="var(--color-neutral-700)"></line><line x1="6" y1="38" x2="54" y2="38" stroke="var(--color-neutral-700)"></line><line x1="6" y1="52" x2="54" y2="52" stroke="var(--color-neutral-700)"></line><line x1="6" y1="66" x2="54" y2="66" stroke="var(--color-neutral-700)"></line>
+                  <line x1="6" y1="10" x2="6" y2="66" stroke="var(--color-neutral-600)"></line><line x1="15.6" y1="10" x2="15.6" y2="66" stroke="var(--color-neutral-600)"></line><line x1="25.2" y1="10" x2="25.2" y2="66" stroke="var(--color-neutral-600)"></line><line x1="34.8" y1="10" x2="34.8" y2="66" stroke="var(--color-neutral-600)"></line><line x1="44.4" y1="10" x2="44.4" y2="66" stroke="var(--color-neutral-600)"></line><line x1="54" y1="10" x2="54" y2="66" stroke="var(--color-neutral-600)"></line>
+                  <sc-for list="{{ b.marks }}" as="m" hint-placeholder-count="6"><text x="{{ m.x }}" y="5" text-anchor="middle" font-size="7" fill="var(--color-neutral-500)">{{ m.ch }}</text></sc-for>
+                  <sc-for list="{{ b.dots }}" as="d" hint-placeholder-count="3"><circle cx="{{ d.x }}" cy="{{ d.y }}" r="4" fill="{{ b.dotColor }}"></circle></sc-for>
+                </svg>
+                <div style="display:flex;gap:3px;"><sc-for list="{{ b.beats }}" as="k" hint-placeholder-count="4"><div style="flex:1;height:3px;border-radius:2px;background:{{ k.bg }};"></div></sc-for></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-size:12px;color:var(--color-neutral-500);">Нажмите на такт, чтобы сменить аккорд — у учеников обновится сразу.</div>
+        </sc-if>
+        <sc-if value="{{ T_isNotes }}" hint-placeholder-val="{{ false }}">
+          <svg viewBox="0 0 840 90" style="width:100%;">
+            <line x1="0" y1="20" x2="840" y2="20" stroke="var(--color-neutral-600)"></line><line x1="0" y1="30" x2="840" y2="30" stroke="var(--color-neutral-600)"></line><line x1="0" y1="40" x2="840" y2="40" stroke="var(--color-neutral-600)"></line><line x1="0" y1="50" x2="840" y2="50" stroke="var(--color-neutral-600)"></line><line x1="0" y1="60" x2="840" y2="60" stroke="var(--color-neutral-600)"></line>
+            <line x1="250" y1="20" x2="250" y2="60" stroke="var(--color-neutral-600)"></line><line x1="445" y1="20" x2="445" y2="60" stroke="var(--color-neutral-600)"></line><line x1="640" y1="20" x2="640" y2="60" stroke="var(--color-neutral-600)"></line><line x1="836" y1="20" x2="836" y2="60" stroke="var(--color-neutral-400)" stroke-width="3"></line>
+            <text x="6" y="62" font-size="54" fill="var(--color-neutral-300)">𝄞</text><text x="44" y="38" font-size="18" fill="var(--color-neutral-300)">4</text><text x="44" y="58" font-size="18" fill="var(--color-neutral-300)">4</text>
+            <sc-for list="{{ notes }}" as="n" hint-placeholder-count="16"><line x1="{{ n.sx }}" y1="{{ n.y }}" x2="{{ n.sx }}" y2="{{ n.sy }}" stroke="{{ n.fill }}" stroke-width="1.2"></line><ellipse cx="{{ n.x }}" cy="{{ n.y }}" rx="6" ry="4.4" transform="{{ n.rot }}" fill="{{ n.fill }}"></ellipse></sc-for>
+            <sc-for list="{{ barLabels }}" as="l" hint-placeholder-count="4"><text x="{{ l.x }}" y="84" font-size="13" fill="{{ l.color }}">{{ l.name }}</text></sc-for>
+          </svg>
+        </sc-if>
+        <sc-if value="{{ T_isTabs }}" hint-placeholder-val="{{ false }}">
+          <pre style="margin:0;font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.7;color:var(--color-neutral-300);overflow:auto;">  Am          F           C           G
+e|-0-----0---|-0-----0---|-0-----0---|-3-----3---|
+B|---1-----1-|---1-----1-|---1-----1-|---0-----0-|
+G|-----2-----|-----2-----|-----0-----|-----0-----|
+D|-2---------|-3---------|-2---------|-0---------|
+A|-0---------|-----------|-3---------|-2---------|
+E|-----------|-----------|-----------|-3---------|</pre>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ menuT }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;right:56px;top:218px;width:290px;border-radius:var(--radius-md);background:var(--color-surface);box-shadow:var(--shadow-lg);border:1px solid var(--color-neutral-800);padding:var(--space-2);display:flex;flex-direction:column;z-index:5;">
+      <sc-for list="{{ menuItemsT }}" as="it" hint-placeholder-count="3">
+        <button onClick="{{ it.go }}" style="display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-4);border:0;border-radius:6px;background:transparent;color:var(--color-text);font-size:13px;cursor:pointer;text-align:left;" style-hover="background:var(--color-accent-900);"><i class="{{ it.icon }}" style="font-size:16px;color:var(--color-accent);"></i>{{ it.label }}</button>
+      </sc-for>
+      <div style="font-size:11px;color:var(--color-neutral-600);padding:var(--space-3) var(--space-4) var(--space-2);">Или скажите: «Muse, кто отстаёт?»</div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ plaqueT }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:290px;top:200px;width:560px;max-height:560px;overflow:auto;border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-lg);border:1px solid var(--color-neutral-800);padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-6);z-index:4;">
+      <div style="display:flex;align-items:center;gap:var(--space-3);"><i class="ph ph-sparkle" style="color:var(--color-accent);"></i><span style="font-size:17px;font-weight:500;flex:1;">{{ T_plaqueTitle }}</span><button onClick="{{ closePlaqueT }}" class="btn btn-icon btn-ghost"><i class="ph ph-x"></i></button></div>
+      <sc-if value="{{ T_pHands }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ T_camOn }}" hint-placeholder-val="{{ false }}">
+          <div style="aspect-ratio:16/9;border-radius:var(--radius-md);background:linear-gradient(160deg,var(--color-neutral-800),var(--color-bg));border:1px solid var(--color-accent-800);display:grid;place-items:center;position:relative;">
+            <i class="ph ph-hand" style="font-size:56px;color:var(--color-neutral-600);"></i>
+            <div style="position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--color-neutral-300);">{{ focusName }} · левая рука, крупно</div>
+          </div>
+          <div style="display:flex;gap:var(--space-3);align-items:flex-start;font-size:13px;color:var(--color-accent-300);"><i class="ph ph-sparkle" style="margin-top:2px;"></i><span>Muse: {{ focusIssue }}</span></div>
+        </sc-if>
+        <sc-if value="{{ T_reqWaiting }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;color:var(--color-neutral-400);">Запрос отправлен. Ждём, когда {{ focusName }} включит камеру…</div></sc-if>
+        <sc-if value="{{ T_reqIdle }}" hint-placeholder-val="{{ false }}"><button onClick="{{ requestHands }}" class="btn btn-primary" style="align-self:flex-start;display:flex;gap:6px;align-items:center;"><i class="ph ph-video-camera"></i>Запросить видео контроль</button></sc-if>
+        <sc-if value="{{ T_needFocus }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;color:var(--color-neutral-400);">Сначала выберите ученика в верхней панели.</div></sc-if>
+      </sc-if>
+      <sc-if value="{{ T_pExamples }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+          <sc-for list="{{ exampleItems }}" as="e" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid {{ e.bd }};">
+              <div style="width:64px;height:40px;border-radius:6px;background:linear-gradient(160deg,var(--color-neutral-800),var(--color-bg));display:grid;place-items:center;flex:none;"><i class="ph ph-play" style="color:var(--color-neutral-400);"></i></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:2px;"><span style="font-size:14px;">{{ e.t }}</span><span style="font-size:11px;color:var(--color-neutral-500);font-family:'JetBrains Mono',monospace;">{{ e.d }}</span></div>
+              <button onClick="{{ e.send }}" class="btn btn-ghost" style="font-size:12px;white-space:nowrap;">{{ e.btn }}</button>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:16px;">
+<div style="display:flex;align-items:baseline;gap:12px;"><span style="font-size:22px;font-weight:500;">Экран ученицы</span><span style="font-size:13px;color:var(--color-neutral-500);">London_hippie · одна из 4 в группе</span></div>
+<div data-screen-label="Ученица" style="width:1280px;height:800px;position:relative;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--color-neutral-800);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;background:radial-gradient(900px 500px at 15% -10%, var(--color-accent-900), transparent 60%), var(--color-bg);">
+
+  <header style="display:flex;align-items:center;gap:var(--space-8);padding:var(--space-4) var(--space-8);border-bottom:1px solid var(--color-divider);height:52px;box-sizing:border-box;flex:none;">
+    <div style="display:flex;align-items:center;gap:var(--space-3);">
+      <div style="width:20px;height:20px;border-radius:50%;border:1px solid var(--color-accent);display:grid;place-items:center;"><div style="width:7px;height:7px;border-radius:50%;background:var(--color-accent);box-shadow:0 0 10px var(--color-accent);"></div></div>
+      <div style="font-weight:500;font-size:15px;">Muse</div>
+    </div>
+    <div style="font-size:14px;font-weight:500;">Урок 3 · Гитара <span style="color:var(--color-neutral-500);font-weight:400;">с Ramires95</span></div>
+    <span class="tag tag-neutral" style="white-space:nowrap;display:flex;gap:4px;align-items:center;"><i class="ph ph-users-three"></i>в группе 4</span>
+    <div style="flex:1;"></div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-400);font-family:'JetBrains Mono',monospace;"><span style="width:6px;height:6px;border-radius:50%;background:var(--color-accent);box-shadow:0 0 8px var(--color-accent);"></span>{{ elapsed }}</div>
+    <button class="btn btn-secondary" style="display:flex;align-items:center;gap:6px;"><i class="ph ph-sign-out"></i>Выйти</button>
+  </header>
+
+  <div style="flex:1;display:grid;grid-template-columns:240px minmax(0,1fr) 310px;gap:var(--space-8);padding:var(--space-8) calc(var(--space-8) + 32px) var(--space-8) var(--space-8);min-height:0;">
+
+    <div style="display:flex;flex-direction:column;gap:var(--space-8);min-width:0;">
+      <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+        <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500);">Звук · всегда в эфире</span><span class="tag tag-accent">live</span></div>
+        <div style="display:flex;gap:var(--space-6);align-items:center;">
+          <div style="width:96px;height:96px;flex:none;border-radius:50%;border:1px solid var(--color-neutral-600);display:grid;place-items:center;">
+            <div style="width:{{ S_dot }}px;height:{{ S_dot }}px;border-radius:50%;background:var(--color-accent);box-shadow:0 0 {{ S_glow }}px var(--color-accent-600);transition:all 110ms linear;"></div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:flex-end;">
+            <div style="display:flex;flex-direction:column;gap:5px;align-items:center;"><div style="display:flex;flex-direction:column-reverse;gap:3px;"><sc-for list="{{ S_mPeer }}" as="m" hint-placeholder-count="12"><div style="width:20px;height:4px;border-radius:1px;background:{{ m.bg }};border:1px solid {{ m.bd }};"></div></sc-for></div><i class="ph ph-speaker-high" style="font-size:12px;color:var(--color-neutral-500);"></i></div>
+            <div style="display:flex;flex-direction:column;gap:5px;align-items:center;"><div style="display:flex;flex-direction:column-reverse;gap:3px;"><sc-for list="{{ S_mSelf }}" as="m" hint-placeholder-count="12"><div style="width:20px;height:4px;border-radius:1px;background:{{ m.bg }};border:1px solid {{ m.bd }};"></div></sc-for></div><i class="ph ph-microphone" style="font-size:12px;color:var(--color-neutral-500);"></i></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid {{ S_presBd }};font-size:12px;line-height:1.4;color:{{ S_presColor }};"><i class="{{ S_presIcon }}" style="font-size:14px;flex:none;"></i>{{ S_presence }}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--color-neutral-500);display:flex;flex-direction:column;gap:3px;">
+          <span>Ramires95 · {{ latency }} мс</span>
+          <span>голос: перевод Muse PT → RU</span>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+        <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500);">Видео</span>
+        <sc-if value="{{ teacherCam }}" hint-placeholder-val="{{ false }}">
+          <div style="aspect-ratio:16/10;border-radius:var(--radius-md);background:linear-gradient(160deg,var(--color-neutral-800),var(--color-bg));border:1px solid var(--color-neutral-800);position:relative;display:grid;place-items:center;">
+            <i class="ph ph-guitar" style="font-size:32px;color:var(--color-neutral-600);"></i>
+            <div style="position:absolute;left:8px;bottom:6px;font-size:11px;color:var(--color-neutral-300);display:flex;gap:6px;align-items:center;"><span style="width:6px;height:6px;border-radius:50%;background:var(--color-accent);"></span>Видео демонстрация</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ S_reqPrompt }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-4);border-radius:var(--radius-md);border:1px solid var(--color-accent-700);background:var(--color-accent-900);">
+            <div style="font-size:13px;color:var(--color-accent-100);display:flex;gap:6px;align-items:center;"><i class="ph ph-video-camera"></i>Ramires95 включает видео контроль</div>
+            <button onClick="{{ acceptHands }}" class="btn btn-primary" style="display:flex;gap:6px;align-items:center;align-self:flex-start;"><i class="ph ph-video-camera"></i>Включить камеру</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ S_camOn }}" hint-placeholder-val="{{ false }}">
+          <div style="width:64%;aspect-ratio:16/10;border-radius:var(--radius-md);background:linear-gradient(200deg,var(--color-neutral-900),var(--color-bg));border:1px solid var(--color-accent-800);position:relative;display:grid;place-items:center;"><i class="ph ph-hand" style="font-size:22px;color:var(--color-neutral-700);"></i><div style="position:absolute;left:8px;bottom:5px;font-size:11px;color:var(--color-neutral-400);">Видео контроль</div></div>
+        </sc-if>
+        <sc-if value="{{ S_noVideo }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px dashed var(--color-neutral-800);font-size:12px;color:var(--color-neutral-500);"><i class="ph ph-video-camera-slash"></i>Видео включит учитель, когда понадобится</div>
+        </sc-if>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:var(--space-6);min-width:0;min-height:0;">
+      <div style="display:flex;align-items:center;gap:var(--space-6);">
+        <div style="font-size:20px;font-weight:500;letter-spacing:-0.02em;white-space:nowrap;">План упражнений</div>
+        <span class="tag tag-outline" style="white-space:nowrap;">{{ stepLabel }}</span>
+        <div style="flex:1;"></div>
+        <span style="font-size:12px;color:var(--color-neutral-500);white-space:nowrap;">ведёт Ramires95</span>
+      </div>
+      <div style="flex:1;border-radius:var(--radius-lg);background:linear-gradient(180deg,var(--color-surface),color-mix(in srgb,var(--color-surface) 40%,var(--color-bg)));box-shadow:var(--shadow-md);padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-6);min-height:0;overflow:auto;">
+        <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+          <div style="font-size:12px;color:var(--color-accent-300);font-family:'JetBrains Mono',monospace;">Сейчас · {{ stepDur }}</div>
+          <div style="font-size:26px;font-weight:500;letter-spacing:-0.02em;text-wrap:pretty;">{{ stepTitle }}</div>
+          <div style="font-size:14px;line-height:1.5;color:var(--color-neutral-300);">{{ stepGoal }}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-4) var(--space-6);border-radius:var(--radius-md);border:1px solid var(--color-accent-800);">
+          <div style="display:flex;align-items:center;gap:var(--space-3);font-size:13px;color:var(--color-accent-200);"><i class="ph ph-sparkle"></i><span style="flex:1;">Muse: {{ S_status }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;">{{ S_pct }}%</span></div>
+          <div style="height:5px;border-radius:3px;background:var(--color-neutral-800);overflow:hidden;"><div style="height:100%;width:{{ S_pct }}%;border-radius:3px;background:var(--color-accent);box-shadow:0 0 10px var(--color-accent-600);transition:width 700ms ease;"></div></div>
+          <div style="font-size:11px;color:var(--color-neutral-500);font-family:'JetBrains Mono',monospace;">{{ S_metrics }}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+          <sc-for list="{{ stepTips }}" as="tip" hint-placeholder-count="3"><div style="display:flex;gap:var(--space-3);font-size:13px;color:var(--color-neutral-200);"><i class="ph ph-check" style="color:var(--color-accent);margin-top:2px;"></i>{{ tip }}</div></sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;margin-top:auto;padding-top:var(--space-4);border-top:1px solid var(--color-divider);">
+          <sc-for list="{{ S_plan }}" as="p" hint-placeholder-count="5">
+            <div style="display:flex;align-items:center;gap:var(--space-4);padding:5px 0;font-size:13px;color:{{ p.color }};"><i class="{{ p.icon }}" style="font-size:15px;color:{{ p.iconColor }};"></i><span style="flex:1;">{{ p.t }}</span><span style="font-size:11px;color:var(--color-neutral-600);font-family:'JetBrains Mono',monospace;">{{ p.d }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--space-6);padding:var(--space-3) var(--space-6);border-radius:var(--radius-lg);border:1px solid var(--color-neutral-800);height:46px;box-sizing:border-box;">
+        <i class="ph ph-metronome" style="font-size:18px;color:var(--color-neutral-400);"></i>
+        <div style="display:flex;gap:9px;align-items:center;"><sc-for list="{{ beatDots }}" as="d" hint-placeholder-count="4"><div style="width:{{ d.size }}px;height:{{ d.size }}px;border-radius:50%;background:{{ d.bg }};border:1px solid {{ d.bd }};box-shadow:0 0 {{ d.glow }}px var(--color-accent);"></div></sc-for></div>
+        <div style="display:flex;align-items:baseline;gap:4px;"><span style="font-size:22px;font-weight:500;font-family:'JetBrains Mono',monospace;">{{ bpm }}</span><span style="font-size:11px;color:var(--color-neutral-500);">BPM</span></div>
+        <div style="flex:1;"></div>
+        <span style="font-size:12px;color:var(--color-neutral-500);">{{ S_metroNote }}</span>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:var(--space-4);min-width:0;min-height:0;border-left:1px solid var(--color-divider);padding-left:var(--space-8);">
+      <div style="display:flex;align-items:center;gap:var(--space-3);">
+        <button onClick="{{ toggleMenuS }}" class="btn btn-primary" style="display:flex;align-items:center;gap:6px;"><i class="ph ph-sparkle"></i>Muse<i class="ph ph-caret-down" style="font-size:11px;"></i></button>
+        <span style="flex:1;"></span>
+        <span class="tag tag-neutral" style="white-space:nowrap;display:flex;gap:4px;align-items:center;"><i class="ph ph-translate"></i>PT → RU</span>
+      </div>
+      <sc-if value="{{ recT }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-900);font-size:12px;color:var(--color-accent-200);">
+          <div style="display:flex;gap:2px;align-items:center;height:14px;"><sc-for list="{{ miniWave }}" as="w" hint-placeholder-count="6"><div style="width:2px;height:{{ w.h }}px;border-radius:1px;background:var(--color-accent);"></div></sc-for></div>
+          Ramires95 надиктовывает заметку Muse
+        </div>
+      </sc-if>
+      <div ref="{{ chatRefS }}" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:var(--space-4);padding-right:4px;">
+        <sc-for list="{{ msgsS }}" as="m" hint-placeholder-count="4">
+          <div style="display:flex;flex-direction:column;gap:3px;min-width:0;align-items:{{ m.align }};">
+            <div style="display:flex;gap:5px;align-items:center;font-size:11px;color:{{ m.whoColor }};"><i class="{{ m.icon }}"></i>{{ m.who }}</div>
+            <div style="max-width:90%;box-sizing:border-box;overflow-wrap:anywhere;padding:var(--space-2) var(--space-4);border-radius:var(--radius-md);background:{{ m.bg }};border:1px solid {{ m.bd }};font-size:13px;line-height:1.45;color:{{ m.color }};">{{ m.text }}</div>
+            <sc-if value="{{ m.showOrig }}" hint-placeholder-val="{{ false }}"><div style="max-width:90%;font-size:11px;line-height:1.4;color:var(--color-neutral-500);text-align:{{ m.align2 }};">{{ m.orig }}</div></sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <form onSubmit="{{ sendS }}" style="display:flex;gap:var(--space-3);">
+        <input class="input" value="{{ draftS }}" onChange="{{ onDraftS }}" placeholder="Напишите учителю…" style="flex:1;min-width:0;"></input>
+        <button type="submit" class="btn btn-primary btn-icon"><i class="ph ph-paper-plane-right"></i></button>
+      </form>
+      <div style="display:flex;flex-direction:column;gap:var(--space-3);padding-top:var(--space-4);border-top:1px solid var(--color-divider);">
+        <div style="display:flex;align-items:center;gap:var(--space-2);">
+          <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500);flex:1;">Заметки и вопросы</span>
+          <button onClick="{{ toggleHand }}" class="btn btn-ghost" style="display:flex;align-items:center;gap:5px;font-size:12px;color:{{ S_handColor }};"><i class="{{ S_handIcon }}"></i>{{ S_handLabel }}</button>
+          <button onClick="{{ toggleRecS }}" class="btn btn-ghost" style="display:flex;align-items:center;gap:5px;font-size:12px;"><i class="{{ S_recIcon }}"></i>{{ S_recLabel }}</button>
+        </div>
+        <sc-if value="{{ recS }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:var(--space-3);height:28px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--color-accent);box-shadow:0 0 8px var(--color-accent);"></span><div style="flex:1;display:flex;gap:2px;align-items:center;height:24px;"><sc-for list="{{ wave }}" as="w" hint-placeholder-count="28"><div style="flex:1;height:{{ w.h }}px;border-radius:1px;background:var(--color-accent-600);"></div></sc-for></div><span style="font-size:11px;color:var(--color-neutral-500);">Muse слушает</span></div>
+        </sc-if>
+        <div style="display:flex;flex-direction:column;gap:6px;max-height:80px;overflow:auto;">
+          <sc-for list="{{ notesS }}" as="n" hint-placeholder-count="2"><div style="display:flex;gap:8px;font-size:12px;line-height:1.4;color:var(--color-neutral-300);"><i class="{{ n.icon }}" style="color:var(--color-neutral-600);margin-top:2px;"></i><span>{{ n.text }}</span></div></sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:absolute;top:52px;right:0;bottom:0;display:flex;z-index:3;box-shadow:{{ dS_sh }};">
+    <div onPointerDown="{{ dragS }}" title="Нажмите или потяните" style="width:32px;flex:none;cursor:ew-resize;touch-action:none;user-select:none;display:flex;flex-direction:column;align-items:center;gap:var(--space-4);padding:var(--space-6) 0;border-left:1px solid var(--color-neutral-800);background:var(--color-surface);" style-hover="background:var(--color-accent-900);">
+      <i class="{{ dS_caret }}" style="font-size:13px;color:var(--color-accent);"></i>
+      <span style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:{{ dS_label }};white-space:nowrap;">Нотная тетрадь</span>
+      <div style="flex:1;"></div>
+      <i class="ph ph-dots-six-vertical" style="font-size:16px;color:var(--color-neutral-600);"></i>
+    </div>
+    <div style="width:{{ dS_w }}px;transition:{{ dS_tr }};overflow:hidden;background:var(--color-surface);">
+      <div style="min-width:320px;width:100%;height:100%;box-sizing:border-box;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-6);overflow:auto;">
+        <div style="display:flex;align-items:center;gap:var(--space-4);">
+          <div style="display:flex;gap:2px;"><sc-for list="{{ S_tabs }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.pick }}" style="border:0;background:transparent;cursor:pointer;padding:6px 9px;font-size:13px;color:{{ t.color }};box-shadow:inset 0 -1px 0 {{ t.line }};">{{ t.label }}</button></sc-for></div>
+          <div style="flex:1;"></div>
+          <span style="font-size:12px;color:var(--color-neutral-500);white-space:nowrap;">ведёт Ramires95</span>
+        </div>
+        <sc-if value="{{ S_isChords }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--space-4);">
+            <sc-for list="{{ S_bars }}" as="b" hint-placeholder-count="4">
+              <div style="border-radius:var(--radius-md);border:1px solid {{ b.bd }};background:{{ b.bg }};padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);">
+                <span style="font-size:11px;color:var(--color-neutral-500);font-family:'JetBrains Mono',monospace;">такт {{ b.n }}</span>
+                <div style="font-size:28px;font-weight:500;letter-spacing:-0.02em;color:{{ b.nameColor }};">{{ b.name }}</div>
+                <svg viewBox="-2 -4 64 74" style="width:100%;max-width:100px;">
+                  <line x1="6" y1="10" x2="54" y2="10" stroke="var(--color-neutral-300)" stroke-width="2.5"></line>
+                  <line x1="6" y1="24" x2="54" y2="24" stroke="var(--color-neutral-700)"></line><line x1="6" y1="38" x2="54" y2="38" stroke="var(--color-neutral-700)"></line><line x1="6" y1="52" x2="54" y2="52" stroke="var(--color-neutral-700)"></line><line x1="6" y1="66" x2="54" y2="66" stroke="var(--color-neutral-700)"></line>
+                  <line x1="6" y1="10" x2="6" y2="66" stroke="var(--color-neutral-600)"></line><line x1="15.6" y1="10" x2="15.6" y2="66" stroke="var(--color-neutral-600)"></line><line x1="25.2" y1="10" x2="25.2" y2="66" stroke="var(--color-neutral-600)"></line><line x1="34.8" y1="10" x2="34.8" y2="66" stroke="var(--color-neutral-600)"></line><line x1="44.4" y1="10" x2="44.4" y2="66" stroke="var(--color-neutral-600)"></line><line x1="54" y1="10" x2="54" y2="66" stroke="var(--color-neutral-600)"></line>
+                  <sc-for list="{{ b.marks }}" as="m" hint-placeholder-count="6"><text x="{{ m.x }}" y="5" text-anchor="middle" font-size="7" fill="var(--color-neutral-500)">{{ m.ch }}</text></sc-for>
+                  <sc-for list="{{ b.dots }}" as="d" hint-placeholder-count="3"><circle cx="{{ d.x }}" cy="{{ d.y }}" r="4" fill="{{ b.dotColor }}"></circle></sc-for>
+                </svg>
+                <div style="display:flex;gap:3px;"><sc-for list="{{ b.beats }}" as="k" hint-placeholder-count="4"><div style="flex:1;height:3px;border-radius:2px;background:{{ k.bg }};"></div></sc-for></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-size:13px;color:var(--color-neutral-400);display:flex;gap:var(--space-3);align-items:center;"><i class="ph ph-sparkle" style="color:var(--color-accent);"></i>Muse: в переходе F → C третий палец остаётся на струне A.</div>
+        </sc-if>
+        <sc-if value="{{ S_isNotes }}" hint-placeholder-val="{{ false }}">
+          <svg viewBox="0 0 840 90" style="width:100%;">
+            <line x1="0" y1="20" x2="840" y2="20" stroke="var(--color-neutral-600)"></line><line x1="0" y1="30" x2="840" y2="30" stroke="var(--color-neutral-600)"></line><line x1="0" y1="40" x2="840" y2="40" stroke="var(--color-neutral-600)"></line><line x1="0" y1="50" x2="840" y2="50" stroke="var(--color-neutral-600)"></line><line x1="0" y1="60" x2="840" y2="60" stroke="var(--color-neutral-600)"></line>
+            <line x1="250" y1="20" x2="250" y2="60" stroke="var(--color-neutral-600)"></line><line x1="445" y1="20" x2="445" y2="60" stroke="var(--color-neutral-600)"></line><line x1="640" y1="20" x2="640" y2="60" stroke="var(--color-neutral-600)"></line><line x1="836" y1="20" x2="836" y2="60" stroke="var(--color-neutral-400)" stroke-width="3"></line>
+            <text x="6" y="62" font-size="54" fill="var(--color-neutral-300)">𝄞</text><text x="44" y="38" font-size="18" fill="var(--color-neutral-300)">4</text><text x="44" y="58" font-size="18" fill="var(--color-neutral-300)">4</text>
+            <sc-for list="{{ notes }}" as="n" hint-placeholder-count="16"><line x1="{{ n.sx }}" y1="{{ n.y }}" x2="{{ n.sx }}" y2="{{ n.sy }}" stroke="{{ n.fill }}" stroke-width="1.2"></line><ellipse cx="{{ n.x }}" cy="{{ n.y }}" rx="6" ry="4.4" transform="{{ n.rot }}" fill="{{ n.fill }}"></ellipse></sc-for>
+            <sc-for list="{{ barLabels }}" as="l" hint-placeholder-count="4"><text x="{{ l.x }}" y="84" font-size="13" fill="{{ l.color }}">{{ l.name }}</text></sc-for>
+          </svg>
+        </sc-if>
+        <sc-if value="{{ S_isTabs }}" hint-placeholder-val="{{ false }}">
+          <pre style="margin:0;font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.7;color:var(--color-neutral-300);overflow:auto;">  Am          F           C           G
+e|-0-----0---|-0-----0---|-0-----0---|-3-----3---|
+B|---1-----1-|---1-----1-|---1-----1-|---0-----0-|
+G|-----2-----|-----2-----|-----0-----|-----0-----|
+D|-2---------|-3---------|-2---------|-0---------|
+A|-0---------|-----------|-3---------|-2---------|
+E|-----------|-----------|-----------|-3---------|</pre>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ menuS }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;right:56px;top:104px;width:290px;border-radius:var(--radius-md);background:var(--color-surface);box-shadow:var(--shadow-lg);border:1px solid var(--color-neutral-800);padding:var(--space-2);display:flex;flex-direction:column;z-index:5;">
+      <sc-for list="{{ menuItemsS }}" as="it" hint-placeholder-count="4">
+        <button onClick="{{ it.go }}" style="display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-4);border:0;border-radius:6px;background:transparent;color:var(--color-text);font-size:13px;cursor:pointer;text-align:left;" style-hover="background:var(--color-accent-900);"><i class="{{ it.icon }}" style="font-size:16px;color:var(--color-accent);"></i>{{ it.label }}</button>
+      </sc-for>
+      <div style="font-size:11px;color:var(--color-neutral-600);padding:var(--space-3) var(--space-4) var(--space-2);">Или скажите: «Muse, замедли»</div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ plaqueS }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:300px;top:96px;width:560px;max-height:600px;overflow:auto;border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-lg);border:1px solid var(--color-neutral-800);padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-6);z-index:4;">
+      <div style="display:flex;align-items:center;gap:var(--space-3);"><i class="ph ph-sparkle" style="color:var(--color-accent);"></i><span style="font-size:17px;font-weight:500;flex:1;">Видеопример</span><button onClick="{{ closePlaqueS }}" class="btn btn-icon btn-ghost"><i class="ph ph-x"></i></button></div>
+      <sc-if value="{{ hasExample }}" hint-placeholder-val="{{ true }}">
+        <div style="aspect-ratio:16/9;border-radius:var(--radius-md);background:linear-gradient(160deg,var(--color-neutral-800),var(--color-bg));border:1px solid var(--color-neutral-800);display:grid;place-items:center;position:relative;">
+          <i class="ph ph-play-circle" style="font-size:56px;color:var(--color-neutral-500);"></i>
+          <div style="position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--color-neutral-300);">{{ exampleTitle }}</div>
+          <div style="position:absolute;right:12px;bottom:10px;font-size:12px;color:var(--color-accent-200);font-family:'JetBrains Mono',monospace;">×{{ rate }}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--space-4);">
+          <button onClick="{{ slowerS }}" class="btn btn-secondary" style="display:flex;gap:6px;align-items:center;"><i class="ph ph-minus-circle"></i>Замедли</button>
+          <button onClick="{{ fasterS }}" class="btn btn-secondary" style="display:flex;gap:6px;align-items:center;"><i class="ph ph-plus-circle"></i>Ускорь</button>
+          <span style="font-size:12px;color:var(--color-neutral-500);">Скорость примера меняется только у вас</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{ noExample }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;color:var(--color-neutral-400);">Ramires95 ещё не отправил видеопример.</div></sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastS }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:50%;bottom:24px;transform:translateX(-50%);padding:var(--space-3) var(--space-6);border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-accent-800);box-shadow:var(--shadow-lg);font-size:13px;color:var(--color-accent-200);display:flex;gap:8px;align-items:center;z-index:6;"><i class="ph ph-sparkle"></i>{{ toastS }}</div>
+  </sc-if>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;translationView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Перевод + оригинал&quot;,&quot;Только перевод&quot;],&quot;default&quot;:&quot;Перевод + оригинал&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const SHAPES={Am:'x02210',F:'xx3211',C:'x32010',G:'320003',Em:'022000',D:'xx0232',Dm:'xx0231',E:'022100'};
+const LIB=['Am','F','C','G','Em','D','Dm','E'];
+const NOTE_Y={F4:55,G4:50,A4:45,B4:40,C5:35,D5:30,E5:25,G5:15};
+const ARP={Am:['A4','C5','E5','C5'],F:['F4','A4','C5','A4'],C:['C5','E5','G5','E5'],G:['G4','B4','D5','B4'],Em:['G4','B4','E5','B4'],D:['A4','D5','F4','D5'],Dm:['A4','D5','F4','D5'],E:['G4','B4','E5','B4']};
+const PLAN=[
+ {t:'Настройка гитары',d:'3 мин',goal:'Все струны в строе по тюнеру Muse.',tips:['Начните со струны A — 110 Гц']},
+ {t:'Разминка: хроматика 1-2-3-4',d:'5 мин',goal:'Разогреть пальцы левой руки.',tips:['Один палец — один лад','Большой палец за грифом']},
+ {t:'Аккорды Am, F, C, G по отдельности',d:'8 мин',goal:'Каждый аккорд звучит чисто, без глухих струн.',tips:['Проверяйте каждую струну по очереди']},
+ {t:'Смена аккордов под метроном',d:'10 мин',goal:'Менять аккорд точно на первую долю, без пауз, на 72 BPM.',tips:['Смотрите на следующий аккорд заранее','В F → C третий палец остаётся на струне A','Сбиваетесь — играйте только на первую долю']},
+ {t:'Перебор p-i-m-a',d:'8 мин',goal:'Ровный перебор по той же связке аккордов.',tips:['Бас — большим пальцем','Остальные пальцы не отрывайте высоко']}];
+const EXAMPLES=[{t:'Смена Am → F, медленно',d:'0:24 · 60 BPM'},{t:'Перебор p-i-m-a на Am',d:'0:31'},{t:'Связка Am F C G целиком',d:'0:40 · 72 BPM'},{t:'Ошибка: глушится 1-я струна',d:'0:18'}];
+const IDS=['london','kenji','amara','luka'];
+const STU={london:{name:'London_hippie',lang:'RU',issue:'на F глушится 1-я струна — указательный палец лежит неплотно.'},kenji:{name:'Kenji_sax',lang:'JA',issue:'в смене F → C сбивается во 2-м такте, опаздывает на долю.'},amara:{name:'Amara_k',lang:'EN',issue:'чисто, можно поднимать темп до 80.'},luka:{name:'Luka_b',lang:'DE',issue:'F ставит медленно — безымянный палец ищет лад.'}};
+const NOTE_T=['Kenji — дать упражнение только на первую долю.','Amara готова к 80 BPM, Luka — вернуться к шагу 3.'];
+const NOTE_S=['Вопрос: как не глушить первую струну в F?','Тренировать переход C → G отдельно, дома по 5 минут.'];
+const INIT=[
+ {from:'teacher',to:'all',pt:'Oi a todos! Hoje: troca de acordes Am – F – C – G.',ru:'Всем привет! Сегодня: смена аккордов Am – F – C – G.'},
+ {from:'muse',to:'all',pt:'Os 4 alunos afinaram. Passo 4 iniciado.',ru:'Все 4 ученика настроились. Начат шаг 4.'},
+ {from:'london',to:'london',ru:'Сыграла. Кажется, F звучит глухо?',pt:'Toquei. Acho que o F está abafado?'},
+ {from:'muse',to:'london',ru:'На F глушится первая струна — указательный палец лежит неплотно.',pt:'No F a primeira corda está abafada — o indicador não pressiona bem.'},
+ {from:'kenji',to:'kenji',pt:'Perco o ritmo na troca F → C.',orig:'F → C の切り替えでリズムが崩れます。'},
+ {from:'teacher',to:'london',pt:'Pressiona com a lateral do dedo. Tenta de novo a 72.',ru:'Прижми ребром пальца. Попробуй ещё раз на 72.'}
+];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+class Component extends DCLogic {
+  state={playing:false,bpm:72,beat:-1,bar:0,chords:['Am','F','C','G'],tabT:'chords',tabS:'chords',msgs:INIT,draftT:'',draftS:'',teacherCam:false,camFor:null,handsReq:null,step:3,notesT:['Цель урока: чистая смена Am → F без пауз у всех четверых.'],notesS:[{text:'Вопрос: какой медиатор лучше для перебора?',icon:'ph ph-question'}],recT:false,recS:false,menuT:false,menuS:false,plaqueT:null,plaqueS:null,example:null,exTarget:null,rate:1,toastS:null,lvT:0.2,lvS:0.3,lvO:0.3,t:754,lat:38,nT:0,nS:0,
+    focus:'london',dT:0,dS:420,dragging:null,
+    studs:{london:{p:0.55,b:81,idle:0,hand:false},kenji:{p:0.32,b:64,idle:0,hand:true},amara:{p:0.86,b:93,idle:0,hand:false},luka:{p:0.14,b:72,idle:95,hand:false}}};
+  chatRefT=React.createRef(); chatRefS=React.createRef();
+  componentDidMount(){
+    this.lv=setInterval(()=>this.setState(s=>{
+      const p=s.playing;
+      const tT=s.recT?0.5+Math.random()*0.4:p?0.3+Math.random()*0.5:Math.random()*0.45;
+      const tS=s.recS?0.5+Math.random()*0.4:p?0.5+Math.random()*0.45:Math.random()*0.3;
+      const tO=0.3+Math.random()*0.5;
+      return {lvT:s.lvT*0.4+tT*0.6,lvS:s.lvS*0.4+tS*0.6,lvO:s.lvO*0.4+tO*0.6,lat:Math.round(34+Math.random()*9)};
+    }),120);
+    this.clock=setInterval(()=>this.setState(s=>({t:s.t+1})),1000);
+    this.sim=setInterval(()=>this.setState(s=>{
+      const studs={};
+      IDS.forEach(id=>{const o={...s.studs[id]};
+        if(id==='luka'){if(o.idle>0){o.idle+=2;if(Math.random()<0.07)o.idle=0;}else if(Math.random()<0.03)o.idle=1;}
+        if(o.idle===0){const sp=id==='london'?(s.playing?0.045:0.008):(s.playing?0.04:0.02);o.p=clamp(o.p+Math.random()*sp,0,1);o.b=Math.round(clamp(o.b+(Math.random()-0.35)*4,50,99));}
+        if(id==='kenji'&&s.focus!=='kenji'&&Math.random()<0.03)o.hand=true;
+        studs[id]=o;});
+      return {studs};
+    }),2000);
+    this.scroll();
+  }
+  componentWillUnmount(){clearInterval(this.lv);clearInterval(this.clock);clearInterval(this.sim);clearTimeout(this.tick);clearTimeout(this.tt);clearTimeout(this.camT);}
+  componentDidUpdate(){const k=this.state.msgs.length+'|'+this.state.focus;if(this._mc!==k){this._mc=k;this.scroll();}}
+  scroll(){[this.chatRefT,this.chatRefS].forEach(r=>{if(r.current)r.current.scrollTop=r.current.scrollHeight;});}
+  click(accent){try{this.ac=this.ac||new (window.AudioContext||window.webkitAudioContext)();const o=this.ac.createOscillator(),g=this.ac.createGain(),t=this.ac.currentTime;o.frequency.value=accent?1600:1000;g.gain.setValueAtTime(0.25,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.05);o.connect(g).connect(this.ac.destination);o.start(t);o.stop(t+0.06);}catch(e){}}
+  step=()=>{this.setState(s=>{const beat=(s.beat+1)%4;const bar=beat===0&&s.beat!==-1?(s.bar+1)%4:s.bar;return {beat,bar};},()=>this.click(this.state.beat===0));this.tick=setTimeout(this.step,60000/this.state.bpm);};
+  toggleMetro=()=>{if(this.state.playing){clearTimeout(this.tick);this.setState({playing:false,beat:-1});}else this.setState({playing:true,beat:-1},this.step);};
+  addMsg(m){this.setState(s=>({msgs:[...s.msgs,m]}));}
+  toast(t){this.setState({toastS:t});clearTimeout(this.tt);this.tt=setTimeout(()=>this.setState({toastS:null}),2600);}
+  drag=key=>e=>{
+    const frame=e.currentTarget.closest('[data-screen-label]');const sc=frame?(frame.getBoundingClientRect().width/frame.offsetWidth||1):1;
+    const x0=e.clientX,w0=this.state[key];let moved=false;e.preventDefault();e.stopPropagation();
+    this.setState({dragging:key});
+    const mv=ev=>{const d=(x0-ev.clientX)/sc;if(Math.abs(d)>4)moved=true;if(moved)this.setState({[key]:clamp(w0+d,0,1180)});};
+    const up=()=>{window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up);
+      if(!moved)this.setState({dragging:null,[key]:w0>40?0:520});else this.setState(s=>({dragging:null,[key]:s[key]<60?0:s[key]}));};
+    window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up);
+  };
+  setFocus(f){this.setState(s=>{const studs={...s.studs};if(f!=='all')studs[f]={...studs[f],hand:false};return {focus:f,studs,camFor:s.camFor===f?s.camFor:null,handsReq:s.handsReq===f?s.handsReq:null};});}
+  statusOf(id){const s=this.state,o=s.studs[id];
+    if(id==='london'){if(s.recS)return 'Надиктовывает вопрос Muse';if(s.plaqueS)return `Смотрит видеопример ×${s.rate}`;}
+    if(o.idle>0){const m=Math.floor(o.idle/60),sec=String(o.idle%60).padStart(2,'0');return `Пауза ${m}:${sec} · не играет`;}
+    if(o.p>=0.99)return 'Шаг выполнен · ждёт следующего';
+    if(o.p>0.8)return 'Уверенно держит темп';
+    if(id==='london')return s.playing?'Играет связку под метроном':'Разбирает аккорды без метронома';
+    if(id==='kenji')return 'Смена F → C · сбивается во 2-м такте';
+    if(id==='luka')return 'Ставит F · ищет лад';
+    return 'Играет связку под метроном';}
+  renderVals(){
+    const s=this.state;
+    const seg=lv=>Array.from({length:12},(_,i)=>{const on=i<Math.round(lv*12);return {bg:on?(i>=9?'var(--color-accent-300)':'var(--color-accent-600)'):'transparent',bd:on?'transparent':'var(--color-neutral-800)'};});
+    const bars=editable=>s.chords.map((c,i)=>{const sh=SHAPES[c],active=s.playing&&i===s.bar;return {n:i+1,name:c,
+      bd:active?'var(--color-accent)':'var(--color-neutral-800)',bg:active?'var(--color-accent-900)':'transparent',
+      nameColor:active?'var(--color-accent-200)':'var(--color-text)',dotColor:active?'var(--color-accent)':'var(--color-neutral-300)',
+      marks:[...sh].map((ch,j)=>({x:6+j*9.6,ch:ch==='x'?'×':ch==='0'?'o':''})),
+      dots:[...sh].map((ch,j)=>/[1-9]/.test(ch)?{x:6+j*9.6,y:10+(+ch-0.5)*14}:null).filter(Boolean),
+      beats:[0,1,2,3].map(k=>({bg:active&&k<=s.beat?'var(--color-accent)':'var(--color-neutral-800)'})),
+      click:editable?()=>this.setState(st=>{const ch=[...st.chords];ch[i]=LIB[(LIB.indexOf(ch[i])+1)%LIB.length];return {chords:ch};}):undefined};});
+    const notes=[];
+    s.chords.forEach((c,bi)=>ARP[c].forEach((nm,k)=>{const x=100+bi*195+k*44,y=NOTE_Y[nm],up=y>=40,on=s.playing&&bi===s.bar&&k===s.beat;notes.push({x,y,sx:up?x+5.6:x-5.6,sy:up?y-30:y+30,rot:`rotate(-20 ${x} ${y})`,fill:on?'var(--color-accent)':'var(--color-neutral-200)'});}));
+    const showOrig=(this.props.translationView??'Перевод + оригинал')==='Перевод + оригинал';
+    const F=s.focus,fName=F==='all'?'':STU[F].name;
+    const mk=(m,mine,who,text,orig)=>{const muse=m.from==='muse';return {align:mine?'flex-end':'flex-start',align2:mine?'right':'left',who,
+      icon:muse?'ph ph-sparkle':mine?'ph ph-user':'ph ph-user-circle',whoColor:muse?'var(--color-accent-300)':'var(--color-neutral-500)',
+      bg:mine?'var(--color-accent-900)':muse?'transparent':'var(--color-surface)',bd:mine||muse?'var(--color-accent-800)':'transparent',
+      color:muse?'var(--color-accent-200)':'var(--color-text)',text,showOrig:showOrig&&!muse&&!!orig,orig};};
+    const msgsT=s.msgs.filter(m=>F==='all'?m.to==='all':(m.to==='all'||m.to===F)).map(m=>{const mine=m.from==='teacher',muse=m.from==='muse';
+      const tl=m.to==='all'?'4 языка':STU[m.to].lang;
+      const who=muse?(m.to==='all'?'Muse · всем':'Muse'):mine?(m.to==='all'?'Вы · всем':'Вы'):STU[m.from].name;
+      const text=m.own&&mine?m.text:m.own?m.text:m.pt;
+      const orig=mine?`→ ${tl} · доставлено с переводом`:(m.own?'':`оригинал · ${STU[m.from]?.lang}: ${m.orig||m.ru||''}`);
+      return mk(m,mine,who,text,orig);});
+    const msgsS=s.msgs.filter(m=>m.to==='all'||m.to==='london').map(m=>{const mine=m.from==='london',muse=m.from==='muse';
+      const who=muse?'Muse':mine?'Вы':(m.to==='all'?'Ramires95 · всем':'Ramires95 · лично');
+      const text=m.own?m.text:m.ru;
+      const orig=mine?'→ PT · доставлено с переводом':(m.own?'':`оригинал · PT: ${m.pt}`);
+      return mk(m,mine,who,text,orig);});
+    const tabs=key=>[['chords','Аккорды'],['notes','Ноты'],['tabs','Табы']].map(([k,l])=>({label:l,color:s[key]===k?'var(--color-text)':'var(--color-neutral-500)',line:s[key]===k?'var(--color-accent)':'transparent',pick:()=>this.setState({[key]:k})}));
+    const wave=Array.from({length:28},()=>({h:Math.round(3+Math.random()*20)}));
+    const miniWave=Array.from({length:6},()=>({h:Math.round(3+Math.random()*11)}));
+    const mm=String(Math.floor(s.t/60)).padStart(2,'0'),ss=String(s.t%60).padStart(2,'0');
+    const plan=PLAN[s.step];
+    const openT=p=>()=>this.setState({plaqueT:p,menuT:false});
+    const changeRate=d=>()=>{const r=Math.round(clamp(s.rate+d,0.5,1.5)*100)/100;this.setState({rate:r,plaqueS:'video',menuS:false});this.toast(`Видеопример ×${r} — только у вас`);};
+    const lvOf=id=>id==='london'?s.lvS:(s.studs[id].idle>0?0.04:0.25+((s.t*7+id.length*13)%10)/20);
+    const roster=IDS.map(id=>{const o=s.studs[id],foc=F===id,alert=o.idle>60||o.b<70,pct=Math.round(o.p*100);const l=lvOf(id);
+      return {name:STU[id].name,lang:STU[id].lang,status:this.statusOf(id),pct,metrics:`чисто ${Math.round(o.p*10)}/10 · в долю ${o.b}%`,
+        hand:o.hand,alert,alertLabel:o.idle>60?'не играет':'нужна помощь',focused:foc,
+        bd:foc?'var(--color-accent)':alert?'var(--color-accent-800)':'var(--color-neutral-800)',bg:foc?'var(--color-accent-900)':'transparent',
+        fill:foc?'var(--color-accent)':o.p>0.8?'var(--color-accent-300)':'var(--color-accent-600)',
+        lv:[0.6,1,0.75].map(k=>({h:Math.max(2,Math.round(l*k*12)),c:foc?'var(--color-accent)':'var(--color-neutral-500)'})),
+        pick:()=>this.setFocus(id)};});
+    const ready=IDS.filter(id=>s.studs[id].p>0.8).length,help=IDS.filter(id=>s.studs[id].idle>60||s.studs[id].b<70).length;
+    const L=s.studs.london;
+    const peerT=F==='all'?0.02:F==='london'?s.lvS:s.lvO;
+    const peerS=F==='london'||F==='all'?s.lvT:0.04;
+    const camOn=F!=='all'&&s.camFor===F;
+    return {
+      elapsed:`${mm}:${ss}`,latency:s.lat,stepLabel:`Шаг ${s.step+1} из ${PLAN.length}`,
+      stepTitle:plan.t,stepGoal:plan.goal,stepTips:plan.tips,stepDur:plan.d,
+      roster,pickAll:()=>this.setFocus('all'),allBd:F==='all'?'var(--color-accent)':'var(--color-neutral-800)',allBg:F==='all'?'var(--color-accent-900)':'transparent',
+      groupSummary:`${ready} готовы · ${help} помощь`,focusName:fName,focusIssue:F==='all'?'':STU[F].issue,
+      T_audioLabel:F==='all'?'Звук · говорите со всеми':'Звук · лично',
+      T_audio1:F==='all'?'Muse слушает всех 4':`${fName} · ${s.lat} мс`,
+      T_audio2:F==='all'?'Muse PT → RU · JA · EN · DE':`голос: Muse PT → ${STU[F].lang}`,
+      T_langTag:F==='all'?'PT → 4 языка':`PT → ${STU[F].lang}`,
+      T_chatLabel:F==='all'?'Чат группы':`Лично · ${fName}`,
+      T_placeholder:F==='all'?'Escreva para todos…':`Escreva para ${fName}…`,
+      T_dot:Math.round(18+peerT*50),T_glow:Math.round(8+peerT*26),T_mPeer:seg(peerT),T_mSelf:seg(s.lvT),
+      S_dot:Math.round(18+peerS*50),S_glow:Math.round(8+peerS*26),S_mPeer:seg(peerS),S_mSelf:seg(s.lvS),
+      S_presence:F==='london'?'Ramires95 слушает вас':F==='all'?'Ramires95 говорит со всеми':`Ramires95 занимается с ${fName} · Muse слушает вас`,
+      S_presIcon:F==='london'?'ph ph-headphones':F==='all'?'ph ph-users-three':'ph ph-sparkle',
+      S_presBd:F==='london'?'var(--color-accent-700)':'var(--color-neutral-800)',S_presColor:F==='london'?'var(--color-accent-200)':'var(--color-neutral-400)',
+      S_status:this.statusOf('london'),S_pct:Math.round(L.p*100),S_metrics:`чисто ${Math.round(L.p*10)} из 10 смен · в долю ${L.b}%`,
+      S_plan:PLAN.map((p,i)=>{const cur=i===s.step,done=i<s.step;return {t:p.t,d:p.d,icon:done?'ph ph-check-circle':cur?'ph ph-play-circle':'ph ph-circle',iconColor:done?'var(--color-neutral-600)':cur?'var(--color-accent)':'var(--color-neutral-700)',color:done?'var(--color-neutral-600)':cur?'var(--color-text)':'var(--color-neutral-400)'};}),
+      teacherCam:s.teacherCam,T_camOn:camOn,
+      T_reqIdle:F!=='all'&&s.handsReq!==F&&s.camFor!==F,T_reqWaiting:F!=='all'&&s.handsReq===F,T_needFocus:F==='all',
+      S_reqPrompt:s.handsReq==='london',S_camOn:s.camFor==='london',S_noVideo:!s.teacherCam&&s.camFor!=='london'&&s.handsReq!=='london',
+      requestHands:()=>{if(F==='all')return;this.setState({handsReq:F});if(F!=='london'){clearTimeout(this.camT);this.camT=setTimeout(()=>this.setState(st=>st.handsReq===F?{camFor:F,handsReq:null}:null),1400);}},
+      acceptHands:()=>this.setState({camFor:'london',handsReq:null}),
+      stopHands:()=>this.setState({camFor:null}),
+      toggleTeacherCam:()=>this.setState({teacherCam:!s.teacherCam}),
+      T_camLabel:s.teacherCam?'Завершить демонстрацию':'Видео демонстрация',
+      T_tabs:tabs('tabT'),S_tabs:tabs('tabS'),
+      T_isChords:s.tabT==='chords',T_isNotes:s.tabT==='notes',T_isTabs:s.tabT==='tabs',
+      S_isChords:s.tabS==='chords',S_isNotes:s.tabS==='notes',S_isTabs:s.tabS==='tabs',
+      T_bars:bars(true),S_bars:bars(false),notes,
+      barLabels:s.chords.map((c,i)=>({x:100+i*195,name:c,color:s.playing&&i===s.bar?'var(--color-accent-300)':'var(--color-neutral-500)'})),
+      dragT:this.drag('dT'),dragS:this.drag('dS'),
+      dT_w:Math.round(s.dT),dS_w:Math.round(s.dS),
+      dT_tr:s.dragging==='dT'?'none':'width 260ms ease',dS_tr:s.dragging==='dS'?'none':'width 260ms ease',
+      dT_caret:s.dT>0?'ph ph-caret-right':'ph ph-caret-left',dS_caret:s.dS>0?'ph ph-caret-right':'ph ph-caret-left',
+      dT_label:s.dT>0?'var(--color-accent-200)':'var(--color-neutral-300)',dS_label:s.dS>0?'var(--color-accent-200)':'var(--color-neutral-300)',
+      dT_sh:s.dT>0?'var(--shadow-lg)':'none',dS_sh:s.dS>0?'var(--shadow-lg)':'none',
+      toggleMetro:this.toggleMetro,metroLabel:s.playing?'Стоп':'Метроном',metroIcon:s.playing?'ph ph-pause':'ph ph-metronome',
+      beatDots:[0,1,2,3].map(k=>{const on=s.playing&&k===s.beat;return {size:k===0?14:10,bg:on?'var(--color-accent)':'transparent',bd:on?'var(--color-accent)':'var(--color-neutral-600)',glow:on?12:0};}),
+      bpm:s.bpm,slower:()=>this.setState({bpm:Math.max(40,s.bpm-4)}),faster:()=>this.setState({bpm:Math.min(200,s.bpm+4)}),
+      S_metroNote:s.playing?'темп задаёт учитель':'метроном выключен учителем',
+      msgsT,msgsS,chatRefT:this.chatRefT,chatRefS:this.chatRefS,
+      draftT:s.draftT,draftS:s.draftS,
+      onDraftT:e=>this.setState({draftT:e.target.value}),onDraftS:e=>this.setState({draftS:e.target.value}),
+      sendT:e=>{e.preventDefault();const t=s.draftT.trim();if(!t)return;this.setState({draftT:''});this.addMsg({from:'teacher',to:F,own:true,text:t});},
+      sendS:e=>{e.preventDefault();const t=s.draftS.trim();if(!t)return;this.setState({draftS:''});this.addMsg({from:'london',to:'london',own:true,text:t});},
+      recT:s.recT,recS:s.recS,wave,miniWave,
+      toggleRecT:()=>s.recT?this.setState(st=>({recT:false,notesT:[...st.notesT,NOTE_T[st.nT%NOTE_T.length]],nT:st.nT+1})):this.setState({recT:true}),
+      toggleRecS:()=>s.recS?this.setState(st=>{const t=NOTE_S[st.nS%NOTE_S.length];return {recS:false,notesS:[...st.notesS,{text:t,icon:t.startsWith('Вопрос')?'ph ph-question':'ph ph-note-pencil'}],nS:st.nS+1};}):this.setState({recS:true}),
+      T_recIcon:s.recT?'ph ph-stop-circle':'ph ph-microphone',T_recLabel:s.recT?'Готово':'Надиктовать',
+      S_recIcon:s.recS?'ph ph-stop-circle':'ph ph-microphone',S_recLabel:s.recS?'Готово':'Надиктовать',
+      toggleHand:()=>this.setState(st=>({studs:{...st.studs,london:{...st.studs.london,hand:!st.studs.london.hand}}})),
+      S_handIcon:L.hand?'ph-fill ph-hand-waving':'ph ph-hand-waving',S_handLabel:L.hand?'Рука поднята':'Поднять руку',S_handColor:L.hand?'var(--color-accent-200)':'var(--color-text)',
+      notesT:s.notesT,notesS:s.notesS,
+      menuT:s.menuT,menuS:s.menuS,
+      toggleMenuT:()=>this.setState({menuT:!s.menuT}),toggleMenuS:()=>this.setState({menuS:!s.menuS}),
+      menuItemsT:[
+        {label:'Видео контроль ученика',icon:'ph ph-video-camera',go:openT('hands')},
+        {label:'Подготовленные примеры',icon:'ph ph-film-strip',go:openT('examples')},
+        {label:'Открой нотную тетрадь',icon:'ph ph-notebook',go:()=>this.setState({dT:520,menuT:false})}],
+      menuItemsS:[
+        {label:'Открой нотную тетрадь',icon:'ph ph-notebook',go:()=>this.setState({dS:520,menuS:false})},
+        {label:'Покажи видеопример',icon:'ph ph-play-circle',go:()=>this.setState({plaqueS:'video',menuS:false})},
+        {label:'Замедли',icon:'ph ph-minus-circle',go:changeRate(-0.25)},
+        {label:'Ускорь',icon:'ph ph-plus-circle',go:changeRate(0.25)}],
+      plaqueT:!!s.plaqueT,plaqueS:!!s.plaqueS,
+      T_plaqueTitle:s.plaqueT==='hands'?(F==='all'?'Видео контроль':`Видео контроль · ${fName}`):'Подготовленные примеры',
+      closePlaqueT:()=>this.setState({plaqueT:null}),closePlaqueS:()=>this.setState({plaqueS:null}),
+      T_pHands:s.plaqueT==='hands',T_pExamples:s.plaqueT==='examples',
+      planItems:PLAN.map((p,i)=>{const cur=i===s.step,done=i<s.step;return {t:p.t,d:p.d,goal:p.goal,tips:p.tips,cur,weight:cur?500:400,
+        icon:done?'ph ph-check-circle':cur?'ph ph-play-circle':'ph ph-circle',iconColor:done?'var(--color-neutral-500)':cur?'var(--color-accent)':'var(--color-neutral-600)',
+        color:done?'var(--color-neutral-500)':'var(--color-text)',bd:cur?'var(--color-accent-700)':'transparent',bg:cur?'var(--color-accent-900)':'transparent',
+        pick:()=>{if(i===s.step)return;this.setState(st=>{const studs={};IDS.forEach(id=>studs[id]={...st.studs[id],p:Math.random()*0.08});return {step:i,studs};});this.addMsg({from:'muse',to:'all',ru:`Начат шаг ${i+1}: ${p.t}.`,pt:`Passo ${i+1} iniciado.`});}};}),
+      exampleItems:EXAMPLES.map((e,i)=>{const sent=s.example===i&&s.exTarget===F;return {t:e.t,d:e.d,bd:sent?'var(--color-accent-700)':'var(--color-neutral-800)',btn:sent?'Отправлен':(F==='all'?'Отправить всем':`Отправить ${fName}`),
+        send:()=>{this.setState({example:i,exTarget:F,rate:1});this.addMsg({from:'muse',to:F,ru:`Ramires95 отправил видеопример: «${e.t}».`,pt:`Exemplo enviado: «${e.t}».`});}};}),
+      hasExample:s.example!=null&&(s.exTarget==='all'||s.exTarget==='london'),noExample:!(s.example!=null&&(s.exTarget==='all'||s.exTarget==='london')),
+      exampleTitle:s.example!=null?EXAMPLES[s.example].t:'',rate:s.rate,
+      slowerS:changeRate(-0.25),fasterS:changeRate(0.25),
+      toastS:s.toastS
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-03",
+  "scope": "read-only release source comparison, no branch realignment/merge/deployment",
+  "production_branch_sha": "26224ed945c1932f9faf0b9d67e789f1f1040c87",
+  "production_branch_confirmed_by_ls_remote": true,
+  "published_site_sha": "c269fea92603fcf83b1c565c4cb139502509d565",
+  "candidate_base_sha": "e8e307956b7aae80d4ed9f96a395bf95e9a5c6df",
+  "published_ancestor_of_candidate": true,
+  "production_index_tree_entry": "100644 blob c30c0471d695c11426eec4a149c9d08e8cf69ec2\tweb/index.html",
+  "published_index_tree_entry": "100644 blob 8a9132b75a5b6a81db21cbb232ef3516aaac709b\tweb/index.html",
+  "production_full_tree_contains_index": true,
+  "release_branch_matches_published": false,
+  "release_alignment_and_review_still_required": true
+}

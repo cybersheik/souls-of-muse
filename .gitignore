@@ -22,3 +22,6 @@ node_modules/
 reports/
 private/
 evidence-local/
+
+# Generated GoDaddy upload staging; canonical UI stays in web/
+deploy/godaddy/public/

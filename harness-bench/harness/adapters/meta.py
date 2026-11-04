@@ -1,14 +1,16 @@
 """Meta Model API adapter with budget holds before any paid HTTP call.
 
-Only /chat/completions is supported. /responses raises ConfigError before
-HTTP rather than inventing a payload/schema. ASR paid route is disabled until
-its usage contract is verified; WAV files are still inspected locally first.
+Chat Completions and stateless, text-only Responses share the same budget.
+Responses does not enable tools, background work or retained history.
+ASR is explicitly opt-in and follows the verified file-transcription
+contract. WAV files are inspected locally before any paid request.
 SAM and TTS remain unimplemented with no local/system fallback.
 Constructor performs no network I/O. No retries are performed.
 """
 import json
 import math
 import os
+import re
 import time
 import wave
 from pathlib import Path
@@ -37,10 +39,44 @@ class MetaResponseError(RuntimeError):
     pass
 
 
+def _response_format(role):
+    value = role.get("response_format")
+    if value is None:
+        return None
+    try:
+        from jsonschema import Draft202012Validator
+        if not isinstance(value, dict) or set(value) != {"type", "json_schema"} or value["type"] != "json_schema":
+            raise ValueError()
+        spec = value["json_schema"]
+        if (not isinstance(spec, dict) or set(spec) != {"name", "strict", "schema"}
+                or spec["strict"] is not True or not isinstance(spec["name"], str)
+                or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", spec["name"]) or not isinstance(spec["schema"], dict)):
+            raise ValueError()
+        def check_refs(node, depth=0):
+            if depth > 16:
+                raise ValueError()
+            if isinstance(node, dict):
+                if any(key in node for key in ("$ref", "$dynamicRef", "$recursiveRef")):
+                    raise ValueError()
+                for child in node.values():
+                    check_refs(child, depth + 1)
+            elif isinstance(node, list):
+                for child in node:
+                    check_refs(child, depth + 1)
+        check_refs(spec["schema"])
+        Draft202012Validator.check_schema(spec["schema"])
+        return value
+    except Exception:
+        raise ConfigError("unsupported or invalid structured response format") from None
+
+
 MAX_REQUEST_BYTES = 32768
 FRAMING_TOKENS = 2048
 MAX_OUTPUT_TOKENS = 8192
-ASR_DISABLED_REASON = "ASR paid route disabled: Meta ASR usage/billing contract is unverified, so no reservation or POST is made"
+# Documented Chat Completions reasoning_effort values (dev.meta.ai/docs/reasoning).
+# "none" is not supported (upstream returns 400) and is rejected here first.
+SUPPORTED_REASONING_EFFORTS = frozenset({"minimal", "low", "medium", "high"})
+ASR_DISABLED_REASON = "ASR paid route disabled until explicitly enabled by the operator; no reservation or POST is made"
 
 
 def _is_int(value):
@@ -104,7 +140,7 @@ class MetaAdapter(Adapter):
                 raise ConfigError("injected http_client headers must not redirect key; failing closed")
             self.http = http_client
         else:
-            self.http = httpx.Client(base_url=self.base, timeout=60, transport=transport, headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+            self.http = httpx.Client(base_url=self.base, timeout=60, transport=transport, headers={"Authorization": f"Bearer {key}"})
 
     def _role(self, role):
         roles = self.cfg.get("roles") or {}
@@ -130,14 +166,26 @@ class MetaAdapter(Adapter):
         temp = rc.get("temperature", 0.1)
         if isinstance(temp, bool) or not isinstance(temp, (int, float)) or not math.isfinite(float(temp)) or temp < 0 or temp > 2:
             raise ConfigError("temperature must be a finite number in [0, 2]")
-        return model, max_tokens, float(temp)
+        reasoning_effort = None
+        if "reasoning_effort" in rc:
+            reasoning_effort = rc.get("reasoning_effort")
+            if not isinstance(reasoning_effort, str) or reasoning_effort not in SUPPORTED_REASONING_EFFORTS:
+                raise ConfigError("reasoning_effort must be 'minimal', 'low', 'medium' or 'high'; 'none' and other values are unsupported")
+        return model, max_tokens, float(temp), reasoning_effort
 
     def complete(self, role, system, user, fault="none"):
         rc = self._role(role)
-        model, max_tokens, temp = self._validate_chat_role(rc)
+        if rc.get("endpoint") == "/responses":
+            return self._complete_responses(rc, system, user)
+        model, max_tokens, temp, reasoning_effort = self._validate_chat_role(rc)
         if not isinstance(system, str) or not isinstance(user, str):
             raise ConfigError("system and user prompts must be strings")
         payload = {"model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}], "temperature": temp, "max_tokens": max_tokens}
+        if reasoning_effort is not None:
+            payload["reasoning_effort"] = reasoning_effort
+        response_format = _response_format(rc)
+        if response_format is not None:
+            payload["response_format"] = response_format
         try:
             body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         except Exception as exc:
@@ -173,21 +221,152 @@ class MetaAdapter(Adapter):
             raise MetaResponseError("response usage invalid or unknown; full budget reservation remains on HOLD") from None
         # BudgetExceeded from settle means BLOCKED/excess and must propagate.
         try:
-            text = data["choices"][0]["message"]["content"]
+            choice = data["choices"][0]
+            finish_reason = choice.get("finish_reason") if isinstance(choice, dict) else None
         except Exception as exc:
             # Usage was trusted and settled, but payload shape is unusable.
+            raise MetaResponseError("malformed response choices; usage was settled from trusted usage") from None
+        if finish_reason == "length":
+            # Truncated output (reasoning may consume the whole budget) must
+            # never be delivered as a complete translation, even if partial.
+            raise MetaResponseError("response truncated: finish_reason=length; usage was settled from trusted usage")
+        try:
+            text = choice["message"]["content"]
+        except Exception as exc:
             raise MetaResponseError("malformed response choices; usage was settled from trusted usage") from None
         if not isinstance(text, str):
             raise MetaResponseError("malformed response text; usage was settled from trusted usage")
         return {"text": text, "usage": usage, "latency_s": round(latency, 3), "reservation_id": reservation_id, "cost_usd": cost}
 
+    def _complete_responses(self, rc, system, user):
+        # Official contract: /docs/api-reference/responses/create-response,
+        # /docs/api-reference/responses/schemas and /docs/reasoning (03 Nov).
+        model, maximum, temp, effort = self._validate_chat_role({**rc, "endpoint": "/chat/completions"})
+        if maximum < 16 or not isinstance(system, str) or not isinstance(user, str):
+            raise ConfigError("Responses requires string prompts and max_tokens >= 16")
+        payload = {"model": model, "instructions": system, "input": user,
+                   "max_output_tokens": maximum, "temperature": temp,
+                   "store": False, "stream": False, "background": False}
+        if effort is not None:
+            payload["reasoning"] = {"effort": effort}
+        fmt = _response_format(rc)
+        if fmt is not None:
+            payload["text"] = {"format": {"type": "json_schema", **fmt["json_schema"]}}
+        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        if len(body) > MAX_REQUEST_BYTES:
+            raise ConfigError("serialized Responses request exceeds explicit UTF-8 byte bound")
+        reservation_id = self.budget.reserve_chat(model, len(body) + FRAMING_TOKENS, maximum)
+        started = time.perf_counter()
+        try:
+            response = self.http.post("/responses", content=body, headers={"Content-Type": "application/json"})
+        except httpx.TimeoutException:
+            raise MetaTransportError("network timeout; full budget reservation remains on HOLD") from None
+        except httpx.TransportError:
+            raise MetaTransportError("network transport error; full budget reservation remains on HOLD") from None
+        latency = time.perf_counter() - started
+        if response.status_code != 200:
+            raise MetaAPIError(f"Meta API returned HTTP {response.status_code}; full budget reservation remains on HOLD")
+        try:
+            data = response.json()
+            if not isinstance(data, dict) or data.get("object") != "response" or data.get("model") != model:
+                raise ValueError()
+            usage = data["usage"]
+            expected = {"input_tokens", "output_tokens", "total_tokens", "input_tokens_details", "output_tokens_details"}
+            if not isinstance(usage, dict) or set(usage) != expected:
+                raise ValueError()
+            if (not isinstance(usage["input_tokens_details"], dict)
+                    or set(usage["input_tokens_details"]) != {"cached_tokens"}
+                    or not isinstance(usage["output_tokens_details"], dict)
+                    or set(usage["output_tokens_details"]) != {"reasoning_tokens"}):
+                raise ValueError()
+            normalized = {"prompt_tokens": usage["input_tokens"], "completion_tokens": usage["output_tokens"],
+                          "total_tokens": usage["total_tokens"], "prompt_tokens_details": usage["input_tokens_details"],
+                          "completion_tokens_details": usage["output_tokens_details"]}
+        except Exception:
+            raise MetaResponseError("malformed Responses accounting; full budget reservation remains on HOLD") from None
+        try:
+            cost = self.budget.settle(reservation_id, model, normalized)
+        except UsageValidationError:
+            raise MetaResponseError("invalid Responses usage; full budget reservation remains on HOLD") from None
+        # Even a truncated/refused response has a cost. Settle trusted usage
+        # first, but never turn partial output, reasoning or tools into a plan.
+        try:
+            if data.get("status") != "completed" or data.get("error") or data.get("incomplete_details"):
+                raise ValueError()
+            output = data["output"]
+            if not isinstance(output, list):
+                raise ValueError()
+            messages = []
+            for item in output:
+                if not isinstance(item, dict):
+                    raise ValueError()
+                if item.get("type") == "reasoning":
+                    continue
+                if (item.get("type") != "message" or item.get("role") != "assistant"
+                        or item.get("status", "completed") != "completed"
+                        or item.get("phase") not in (None, "final_answer")):
+                    raise ValueError()
+                parts = item["content"]
+                if not isinstance(parts, list) or not parts:
+                    raise ValueError()
+                if any(not isinstance(p, dict) or p.get("type") != "output_text" or not isinstance(p.get("text"), str) for p in parts):
+                    raise ValueError()
+                messages.append("".join(p["text"] for p in parts))
+            if len(messages) != 1 or not messages[0].strip():
+                raise ValueError()
+        except Exception:
+            raise MetaResponseError("unusable or incomplete Responses output; trusted usage was settled") from None
+        return {"text": messages[0], "usage": usage, "latency_s": round(latency, 3),
+                "reservation_id": reservation_id, "cost_usd": cost}
+
     def transcribe(self, wav_path, keywords=None, language_bias=None):
         rc = self._role("asr")
         model = rc.get("model")
-        # Inspect locally before any reservation/POST, even though route is disabled.
         info = inspect_wav(wav_path)
-        _ = (model, info, keywords, language_bias)
-        raise ConfigError(ASR_DISABLED_REASON)
+        if not self.asr_enabled:
+            raise ConfigError(ASR_DISABLED_REASON)
+        if model != "muse-voice-transcribe-1.0" or rc.get("endpoint_file") != "/asr/transcribe":
+            raise ConfigError("unsupported ASR configuration")
+        mode = rc.get("mode", "PUSH_TO_TALK")
+        if mode not in ("PUSH_TO_TALK", "ENDPOINTING", "DIARIZATION"):
+            raise ConfigError("unsupported ASR mode")
+        keywords = keywords or []
+        language_bias = language_bias or []
+        if not isinstance(keywords, list) or len(keywords) > 200 or any(not isinstance(k, str) or len(k) > 100 for k in keywords):
+            raise ConfigError("invalid ASR keywords")
+        if not isinstance(language_bias, list) or any(k not in ("English", "Vietnamese") for k in language_bias):
+            raise ConfigError("unsupported ASR language bias")
+        if self.http.headers.get("Content-Type"):
+            raise ConfigError("ASR multipart client must not override Content-Type")
+        settings = {"model": model, "audioEncoding": "WAV", "mode": mode,
+                    "keywords": keywords, "languageBias": language_bias}
+        reservation = self.budget.reserve_asr_seconds(model, info["duration_seconds"])
+        started = time.perf_counter()
+        try:
+            with Path(wav_path).open("rb") as audio:
+                response = self.http.post("/asr/transcribe", headers={"Accept": "application/json"}, files={
+                    "request": (None, json.dumps(settings), "application/json"),
+                    "audio": ("recording.wav", audio, "audio/wav"),
+                })
+        except httpx.TransportError:
+            raise MetaTransportError("ASR transport failed; reservation remains on HOLD") from None
+        if response.status_code != 200:
+            raise MetaAPIError(f"ASR returned HTTP {response.status_code}; reservation remains on HOLD")
+        try:
+            data = response.json()
+            duration = data["audioDurationMs"]
+            text = data["transcript"]
+            if not _is_int(duration) or duration <= 0 or not isinstance(text, str) or not isinstance(data["sessionId"], str) or not isinstance(data["turns"], list):
+                raise ValueError("invalid ASR response")
+        except (ValueError, TypeError, KeyError):
+            raise MetaResponseError("ASR response invalid; reservation remains on HOLD") from None
+        cost = self.budget.settle_asr_seconds(reservation, model, duration / 1000)
+        return {"text": text, "seconds": duration / 1000, "latency_s": time.perf_counter() - started,
+                "cost_usd": cost, "reservation_id": reservation}
+
+    @property
+    def asr_enabled(self):
+        return (self.cfg.get("roles") or {}).get("asr", {}).get("enabled") is True
 
     def segment(self, image_path, prompt):
         raise ConfigError("SAM segmentation is unimplemented in this adapter; no paid call or local fallback is attempted")

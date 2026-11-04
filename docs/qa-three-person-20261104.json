@@ -1,0 +1,311 @@
+{
+  "pass": true,
+  "accounts": 3,
+  "peer_connections": 6,
+  "transport": "actual native audio/video WebRTC with synthetic camera/microphone; direct speech retained per owner decision",
+  "models": "not invoked",
+  "mobile": {
+    "overflow": false,
+    "videos": 3
+  },
+  "pageerrors": [],
+  "stats": [
+    {
+      "user": "maestro",
+      "peers": [
+        {
+          "connection": "connected",
+          "inbound": [
+            {
+              "kind": "audio",
+              "bytes": 5018,
+              "frames": 0,
+              "packets": 93
+            },
+            {
+              "kind": "video",
+              "bytes": 42011,
+              "frames": 26,
+              "packets": 62
+            }
+          ],
+          "senders": [
+            "audio",
+            "video"
+          ]
+        },
+        {
+          "connection": "connected",
+          "inbound": [
+            {
+              "kind": "audio",
+              "bytes": 5091,
+              "frames": 0,
+              "packets": 90
+            },
+            {
+              "kind": "video",
+              "bytes": 42036,
+              "frames": 26,
+              "packets": 62
+            }
+          ],
+          "senders": [
+            "audio",
+            "video"
+          ]
+        }
+      ],
+      "video": [
+        {
+          "width": 640,
+          "height": 360,
+          "tracks": [
+            {
+              "kind": "audio",
+              "state": "live",
+              "enabled": true
+            },
+            {
+              "kind": "video",
+              "state": "live",
+              "enabled": true
+            }
+          ]
+        },
+        {
+          "width": 640,
+          "height": 360,
+          "tracks": [
+            {
+              "kind": "audio",
+              "state": "live",
+              "enabled": true
+            },
+            {
+              "kind": "video",
+              "state": "live",
+              "enabled": true
+            }
+          ]
+        },
+        {
+          "width": 640,
+          "height": 360,
+          "tracks": [
+            {
+              "kind": "audio",
+              "state": "live",
+              "enabled": true
+            },
+            {
+              "kind": "video",
+              "state": "live",
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "user": "artist1",
+      "peers": [
+        {
+          "connection": "connected",
+          "inbound": [
+            {
+              "kind": "audio",
+              "bytes": 5284,
+              "frames": 0,
+              "packets": 97
+            },
+            {
+              "kind": "video",
+              "bytes": 48890,
+              "frames": 27,
+              "packets": 71
+            }
+          ],
+          "senders": [
+            "audio",
+            "video"
+          ]
+        },
+        {
+          "connection": "connected",
+          "inbound": [
+            {
+              "kind": "audio",
+              "bytes": 4958,
+              "frames": 0,
+              "packets": 96
+            },
+            {
+              "kind": "video",
+              "bytes": 44063,
+              "frames": 27,
+              "packets": 65
+            }
+          ],
+          "senders": [
+            "audio",
+            "video"
+          ]
+        }
+      ],
+      "video": [
+        {
+          "width": 640,
+          "height": 360,
+          "tracks": [
+            {
+              "kind": "audio",
+              "state": "live",
+              "enabled": true
+            },
+            {
+              "kind": "video",
+              "state": "live",
+              "enabled": true
+            }
+          ]
+        },
+        {
+          "width": 640,
+          "height": 360,
+          "tracks": [
+            {
+              "kind": "audio",
+              "state": "live",
+              "enabled": true
+            },
+            {
+              "kind": "video",
+              "state": "live",
+              "enabled": true
+            }
+          ]
+        },
+        {
+          "width": 640,
+          "height": 360,
+          "tracks": [
+            {
+              "kind": "audio",
+              "state": "live",
+              "enabled": true
+            },
+            {
+              "kind": "video",
+              "state": "live",
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "user": "artist2",
+      "peers": [
+        {
+          "connection": "connected",
+          "inbound": [
+            {
+              "kind": "audio",
+              "bytes": 5328,
+              "frames": 0,
+              "packets": 100
+            },
+            {
+              "kind": "video",
+              "bytes": 46604,
+              "frames": 28,
+              "packets": 66
+            }
+          ],
+          "senders": [
+            "audio",
+            "video"
+          ]
+        },
+        {
+          "connection": "connected",
+          "inbound": [
+            {
+              "kind": "audio",
+              "bytes": 5643,
+              "frames": 0,
+              "packets": 98
+            },
+            {
+              "kind": "video",
+              "bytes": 44947,
+              "frames": 28,
+              "packets": 65
+            }
+          ],
+          "senders": [
+            "audio",
+            "video"
+          ]
+        }
+      ],
+      "video": [
+        {
+          "width": 640,
+          "height": 360,
+          "tracks": [
+            {
+              "kind": "audio",
+              "state": "live",
+              "enabled": true
+            },
+            {
+              "kind": "video",
+              "state": "live",
+              "enabled": true
+            }
+          ]
+        },
+        {
+          "width": 640,
+          "height": 360,
+          "tracks": [
+            {
+              "kind": "audio",
+              "state": "live",
+              "enabled": true
+            },
+            {
+              "kind": "video",
+              "state": "live",
+              "enabled": true
+            }
+          ]
+        },
+        {
+          "width": 640,
+          "height": 360,
+          "tracks": [
+            {
+              "kind": "audio",
+              "state": "live",
+              "enabled": true
+            },
+            {
+              "kind": "video",
+              "state": "live",
+              "enabled": true
+            }
+          ]
+        }
+      ],
+      "overflow": false
+    }
+  ],
+  "qa_session_completed": true,
+  "source_parent": "4a8b1e890549dc7b22cf487e69741892782a0c56",
+  "scope": "Local test machine, isolated Chrome contexts; synthetic direct audio/video; no model calls or physical-device acceptance"
+}

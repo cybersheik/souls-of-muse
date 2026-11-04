@@ -1,0 +1,140 @@
+{
+  "result": "OFFLINE_HTTP_ADAPTER_UI_PASS",
+  "scope": "real site/API/storage/MetaAdapter/BudgetGuard; provider replaced by in-memory HTTP fixture",
+  "private_draft_hidden_from_artist": true,
+  "maestro_layouts": [
+    {
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "width": 320,
+      "overflow": false
+    }
+  ],
+  "fixture_http_calls": 1,
+  "paid_provider_calls": 0,
+  "page_errors": [],
+  "new_server_process_restart": true,
+  "explicit_adoption_shared_fields": true,
+  "notebook_preserved": true,
+  "replay_no_revision_increment": true,
+  "artist_layouts": [
+    {
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "width": 320,
+      "overflow": false
+    }
+  ],
+  "EN_RU_labels": true,
+  "date": "2026-11-03",
+  "base_commit": "dd062ad3bbef50c51d7d799a06f1cd4a84b34706",
+  "real_wonder_tested": false,
+  "real_planning_quality_accepted": false,
+  "latency_accepted": false,
+  "cloud_deployed": false,
+  "production_merged": false,
+  "real_budget_changed": false,
+  "real_allocation_usd": 0.05,
+  "real_stop_usd": 0.0475,
+  "verified_real_local_ledger": {
+    "settled_calls": 24,
+    "settled_usd": 0.03605,
+    "unsettled": 0
+  },
+  "cloud_ledger_refreshed": false,
+  "behavior": {
+    "orchestrator_outside_hot_path": true,
+    "private_maestro_proposal": true,
+    "source_language_from_session": true,
+    "explicit_adoption_with_revision_check": true,
+    "request_alias_cache_selection": true,
+    "failed_history_explicit_retry_ui": true,
+    "no_automatic_retry": true,
+    "complete_workspace_bound_before_draft": true,
+    "interrupted_processing_failed_on_startup": true,
+    "source_change_discards_result": true
+  },
+  "adapter": {
+    "transport": "httpx.MockTransport only",
+    "endpoint": "/responses",
+    "model": "muse-wonder-1.0",
+    "max_output_tokens": 4096,
+    "reasoning_effort": "low",
+    "strict_schema_in_text_format": true,
+    "store": false,
+    "tools": false,
+    "background": false,
+    "stream": false,
+    "retained_history": false,
+    "hold_persisted_before_http": true,
+    "same_budget_guard": true,
+    "reasoning_counted_once": true,
+    "unknown_or_invalid_usage_retains_hold": true,
+    "incomplete_refusal_or_tool_output_not_delivered": true,
+    "insufficient_allocation_no_http": true,
+    "failed_reserve_persistence_no_http_hold_retained": true
+  },
+  "official_references": [
+    "https://dev.meta.ai/docs/api-reference/responses/create-response",
+    "https://dev.meta.ai/docs/api-reference/responses/schemas",
+    "https://dev.meta.ai/docs/reasoning",
+    "https://dev.meta.ai/docs/cookbook/structured-output",
+    "https://dev.meta.ai/docs/overview"
+  ],
+  "service_checks": 165,
+  "harness_checks": 65,
+  "root_checks": 37,
+  "original_heart_checks": 5,
+  "node_checks": 73,
+  "total_offline_checks": 345,
+  "independent_review": "PASS after reproduced cache selection, explicit failed-goal retry and combined workspace byte-bound fixes",
+  "independent_checks": {
+    "http_cache_selection": true,
+    "actual_input_submit_retry_handlers": true,
+    "known_failure_no_auto_post": true,
+    "smaller_retry_preserves_large_notebook": true,
+    "responses_accounting_output_variants": 15,
+    "serialized_queue_stale_snapshot": true,
+    "targeted_node_checks": 21
+  },
+  "final_form_layout": {
+    "result": "PASS",
+    "checks": [
+      {
+        "width": 1440,
+        "overflow": false,
+        "styled": true,
+        "full_field": true,
+        "font": "13px"
+      },
+      {
+        "width": 390,
+        "overflow": false,
+        "styled": true,
+        "full_field": true,
+        "font": "13px"
+      },
+      {
+        "width": 320,
+        "overflow": false,
+        "styled": true,
+        "full_field": true,
+        "font": "13px"
+      }
+    ],
+    "additional_fixture_calls": 0,
+    "provider_calls": 0
+  }
+}

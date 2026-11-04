@@ -1,0 +1,28 @@
+{
+  "en": {
+    "repo": "facebook/mms-tts-eng",
+    "revision": "c71de0fe7204c83f1c10820a7d696d0b450048ba",
+    "license": "cc-by-nc-4.0",
+    "files": {
+      "README.md": "8fee1e3884f8b7493d5c7ec8138d5af5c0b78fd11f0f142a2f08dc58de5e3d5f",
+      "config.json": "c2a93c1dfbf33b640163f2ade16345b9a5194fa54de9a04a04272b76a97fe171",
+      "model.safetensors": "69cf8b651c1493f1801dfd2311c298d694a38357bc9a1e41f410491ea6f0e1be",
+      "special_tokens_map.json": "87c02ba90dba0e0765358bd3aa2265714b2405429b069a89af51e292db9b8c3d",
+      "tokenizer_config.json": "77c74b93b1d36f29248926dbd7714bda59990159cd14cd7ba45fd0115bff905b",
+      "vocab.json": "304f7e71c40d601f9b89d81904609512eebe96b2a941f0a251fc0c9f397bcc45"
+    }
+  },
+  "vi": {
+    "repo": "facebook/mms-tts-vie",
+    "revision": "b58928d033932a49aa8e3d6cf11625b25fe928d2",
+    "license": "cc-by-nc-4.0",
+    "files": {
+      "README.md": "e4c62ee27707fda9992541a583e304edcba7964bb620e0cc7e5588c6055d3323",
+      "config.json": "70dcc60b59337b43d58c865735846a2bc5a604d2698d7dfca713904da997ca8d",
+      "model.safetensors": "55ded90c3e57dc2814fa2cdfe3f9e7a5c28e1223b06c0a260a4495b080762ffd",
+      "special_tokens_map.json": "90b6165eb6c3fe8041fb7a46fb1b7c50220b2d2cbe232d2c1dca2b3f6900f721",
+      "tokenizer_config.json": "d2272a1d3a7b5330d28dd9daa6fdd549c8bedc723764a072c5c67cc66de08f52",
+      "vocab.json": "15972d5661d06687659208574acea6b7415f70456c3b291246971c003e755bb7"
+    }
+  }
+}

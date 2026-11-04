@@ -1,0 +1,236 @@
+{
+  "scope": "paired fixed corpus, synthetic source; not human acceptance or full E2E",
+  "base_commit": "035adfe8f51514d24199aedfd00671265fcb5d18",
+  "new_paid_calls_limit": 8,
+  "requests_started": 8,
+  "cases": [
+    {
+      "id": "regression-en-rtc",
+      "language": "en",
+      "reference": "Play the A minor chord four times at sixty beats per minute. Do not speed up.",
+      "source": "existing real Chrome/RTC PCM; MMS synthetic source",
+      "sha256": "0363b36cb62a3de1d58b5db1c684b312a3b2bf3b9792cd8f6a3acfd3a73dbc09",
+      "seconds": 6.6,
+      "results": [
+        {
+          "variant": "old",
+          "keywords": 61,
+          "transcript": "playplay the minor chord four times at 60 beats per minute. Do not speed up.",
+          "latency_s": 3.212,
+          "cost_usd": 0.0003,
+          "billed_seconds": 6.64,
+          "expected_pitches": [
+            "A"
+          ],
+          "recognized_pitches": [],
+          "negation_expected": 1,
+          "negation_recognized": 1
+        },
+        {
+          "variant": "new",
+          "keywords": 97,
+          "transcript": "play the A minor chord four times at sixty beats per minute. Do not speed up.",
+          "latency_s": 1.565,
+          "cost_usd": 0.0003,
+          "billed_seconds": 6.64,
+          "expected_pitches": [
+            "A"
+          ],
+          "recognized_pitches": [
+            "A"
+          ],
+          "negation_expected": 1,
+          "negation_recognized": 1
+        }
+      ]
+    },
+    {
+      "id": "heldout-en-sharp",
+      "language": "en",
+      "reference": "Play the F sharp minor chord twice. Do not stop.",
+      "source": "fresh pinned MMS synthetic source",
+      "sha256": "8c17674a306f38135a24f58560994edbb31d6dd3454cb7249d911979de68ec60",
+      "seconds": 3.104,
+      "results": [
+        {
+          "variant": "new",
+          "keywords": 97,
+          "transcript": "wave of sharpened inner chord twice do not stop",
+          "latency_s": 1.331,
+          "cost_usd": 0.00015,
+          "billed_seconds": 3.12,
+          "expected_pitches": [
+            "F#"
+          ],
+          "recognized_pitches": [],
+          "negation_expected": 1,
+          "negation_recognized": 1
+        },
+        {
+          "variant": "old",
+          "keywords": 61,
+          "transcript": "wave of sharp sharp inner chord twice do not stop",
+          "latency_s": 1.248,
+          "cost_usd": 0.00015,
+          "billed_seconds": 3.12,
+          "expected_pitches": [
+            "F#"
+          ],
+          "recognized_pitches": [],
+          "negation_expected": 1,
+          "negation_recognized": 1
+        }
+      ]
+    },
+    {
+      "id": "heldout-vi-chord",
+      "language": "vi",
+      "reference": "Hãy chơi hợp âm Rê thứ ba lần. Đừng tăng tốc.",
+      "source": "fresh pinned MMS synthetic source",
+      "sha256": "ca26b26a1244df9599ffcae26fa6c1c4aa6ec517e2435cd26b30971892bf846e",
+      "seconds": 3.776,
+      "results": [
+        {
+          "variant": "old",
+          "keywords": 61,
+          "transcript": "hãy chơi hợp âm Re thứ ba lần đừng tăng tốc",
+          "latency_s": 1.155,
+          "cost_usd": 0.00015,
+          "billed_seconds": 3.84,
+          "expected_pitches": [
+            "D"
+          ],
+          "recognized_pitches": [
+            "D"
+          ],
+          "negation_expected": 1,
+          "negation_recognized": 1
+        },
+        {
+          "variant": "new",
+          "keywords": 93,
+          "transcript": "Hãy chơi hợp âm Rê thứ ba lần, lần, đừng tăng tốc.",
+          "latency_s": 1.464,
+          "cost_usd": 0.00015,
+          "billed_seconds": 3.84,
+          "expected_pitches": [
+            "D"
+          ],
+          "recognized_pitches": [
+            "D"
+          ],
+          "negation_expected": 1,
+          "negation_recognized": 1
+        }
+      ]
+    },
+    {
+      "id": "control-vi-no-chord",
+      "language": "vi",
+      "reference": "Em sẽ giữ nhịp ở sáu mươi nhịp mỗi phút và lặp lại bốn lần.",
+      "source": "existing real Chrome/RTC PCM; MMS synthetic source",
+      "sha256": "68aadf9619ed2b0a9d157243af083a12a4abbf0f2c5f0382b020498b8c2bb4c9",
+      "seconds": 6.58,
+      "results": [
+        {
+          "variant": "new",
+          "keywords": 93,
+          "transcript": "Anh sẽ giữ nhịp ở sáu sáu mươi nhịp mỗi phút và lặp lại bốn lần.",
+          "latency_s": 1.895,
+          "cost_usd": 0.0003,
+          "billed_seconds": 6.64,
+          "expected_pitches": [],
+          "recognized_pitches": [],
+          "negation_expected": 0,
+          "negation_recognized": 0
+        },
+        {
+          "variant": "old",
+          "keywords": 61,
+          "transcript": "Anh sẽ giữ nhịp ở sáu mươi nhịp mỗi phút và lặp lại bốn lần.",
+          "latency_s": 1.638,
+          "cost_usd": 0.0003,
+          "billed_seconds": 6.64,
+          "expected_pitches": [],
+          "recognized_pitches": [],
+          "negation_expected": 0,
+          "negation_recognized": 0
+        }
+      ]
+    }
+  ],
+  "budget_before": {
+    "total_usd": 0.05,
+    "warn_usd": 0.04,
+    "stop_usd": 0.0475,
+    "spent_usd": 0.012731,
+    "held_usd": 0.0,
+    "blocked_usd": 0.0,
+    "committed_usd": 0.012731,
+    "remaining_to_stop_usd": 0.034769,
+    "calls": 10,
+    "holds": 0,
+    "blocked_calls": 0,
+    "by_model": {
+      "muse-spark-1.3": 0.011531,
+      "muse-voice-transcribe-1.0": 0.0012
+    },
+    "state": "ok"
+  },
+  "budget_after": {
+    "total_usd": 0.05,
+    "warn_usd": 0.04,
+    "stop_usd": 0.0475,
+    "spent_usd": 0.014531,
+    "held_usd": 0.0,
+    "blocked_usd": 0.0,
+    "committed_usd": 0.014531,
+    "remaining_to_stop_usd": 0.032969,
+    "calls": 18,
+    "holds": 0,
+    "blocked_calls": 0,
+    "by_model": {
+      "muse-spark-1.3": 0.011531,
+      "muse-voice-transcribe-1.0": 0.003
+    },
+    "state": "ok"
+  },
+  "experiment_completed": "COMPLETED",
+  "result": "MIXED_NOT_ACCEPTED",
+  "method": "Four frozen synthetic recordings, same bytes for old/new hints, counterbalanced order, one request per cell, no retry. Two recordings traversed actual Chrome/RTC earlier. No human voice, no automatic correction, no translation or delivery during this experiment.",
+  "decision": "SOM_ASR_MUSIC_HINTS=1 is an operator-only experiment; default ASR hints stay unchanged. No general quality improvement, human acceptance, cause of errors or P95 target is established by this small sample.",
+  "review": [
+    {
+      "case": "regression-en-rtc",
+      "finding": "Old hints lose root A; new hints preserve A minor, 60 BPM, four repetitions and negation."
+    },
+    {
+      "case": "heldout-en-sharp",
+      "finding": "Both variants misrecognize the held-out F sharp minor instruction; neither passes pitch accuracy."
+    },
+    {
+      "case": "heldout-vi-chord",
+      "finding": "Both preserve fixed-do D minor, three repetitions and negation; new output duplicates the word lần."
+    },
+    {
+      "case": "control-vi-no-chord",
+      "finding": "Neither invents a chord. New output duplicates sáu, creating an extra numeric 6; both change Em to Anh. This is not accepted as accurate source transcription."
+    }
+  ],
+  "budget_summary": {
+    "added_usd": 0.0018,
+    "local_settled": 18,
+    "local_spent_usd": 0.014531,
+    "unsettled": 0,
+    "allocation_usd": 0.05,
+    "stop_usd": 0.0475,
+    "last_verified_cloud_only_usd": 0.003911,
+    "last_known_aggregate_usd": 0.018442,
+    "live_cloud_ledger_not_refreshed": true
+  },
+  "sources": [
+    "https://dev.meta.ai/docs/speech-to-text",
+    "https://github.com/meta-models/meta-model-cookbook/blob/main/06_muse_voice/01_voice_api_fundamentals/README.md",
+    "https://vn.yamaha.com/vi/news/2019/tu-hoc-hop-am-organ-yamaha-dem-hat-nhanh-nhat.html"
+  ]
+}

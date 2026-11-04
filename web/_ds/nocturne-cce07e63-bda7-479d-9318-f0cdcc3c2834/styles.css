@@ -58,6 +58,49 @@
   --color-section-glow: #353b80;
   --color-section-ghost: #4c5397;
 
+  /* Souls of Muse layer (Cabinet 1.3): mascot gold + beret red on the
+     accent ramp's lightness scale; gold-400/red-600 are the pinned steps. */
+  --color-gold-100: #fef5e0;
+  --color-gold-200: #fbe6bb;
+  --color-gold-300: #f2d087;
+  --color-gold-400: #edc142;
+  --color-gold-500: #bf9006;
+  --color-gold-600: #9a7400;
+  --color-gold-700: #775801;
+  --color-gold-800: #553e01;
+  --color-gold-900: #392800;
+
+  --color-red-100: #fff2f0;
+  --color-red-200: #fee0dc;
+  --color-red-300: #fec4bc;
+  --color-red-400: #ff968a;
+  --color-red-500: #ff544c;
+  --color-red-600: #e0303a;
+  --color-red-700: #ac1c1d;
+  --color-red-800: #791a17;
+  --color-red-900: #4d1613;
+
+  /* Error is NOT the brand red — a rose so "live" never reads as "broken". */
+  --color-error-100: #fef2f6;
+  --color-error-200: #ffdee9;
+  --color-error-300: #fec0d7;
+  --color-error-400: #ff8dbc;
+  --color-error-500: #e5649d;
+  --color-error-600: #c2477f;
+  --color-error-700: #983262;
+  --color-error-800: #6b2545;
+  --color-error-900: #441b2d;
+
+  --color-gold: #edc142;
+  --color-gold-hover: #f2d087;
+  --color-gold-active: #e9b949;
+  --color-on-gold: #161826;
+  --color-red: #e0303a;
+  --color-on-red: #ffffff;
+  --color-red-text: #ff544c;
+  --color-error: #ff8dbc;
+  --color-on-error: #ffffff;
+
   --font-heading: "Inter", system-ui, sans-serif;
   --font-heading-weight: 500;
   --font-body: "Inter", system-ui, sans-serif;
@@ -228,6 +271,36 @@ textarea.input { min-height: 90px; resize: vertical; }
 .tag-accent-2 { background: var(--color-accent-2-800); color: var(--color-accent-2-100); }
 .tag-neutral { background: var(--color-neutral-800); color: var(--color-neutral-100); }
 .tag-outline { border: 1px solid var(--color-accent); color: var(--color-accent); }
+
+/* Souls of Muse layer: gold action, red live, rose error */
+.btn-gold { background: var(--color-gold); color: var(--color-on-gold); border-color: var(--color-gold); font-weight: 600; }
+.btn-gold:hover { background: var(--color-gold-hover); border-color: var(--color-gold-hover); }
+.btn-gold:active { background: var(--color-gold-active); border-color: var(--color-gold-active); }
+.btn-gold:focus-visible { outline-color: var(--color-gold); }
+.btn-gold-outline { color: var(--color-gold); border-color: var(--color-gold); }
+.btn-gold-outline:hover { background: color-mix(in srgb, var(--color-gold) 12%, transparent); }
+.btn-gold-outline:active { background: color-mix(in srgb, var(--color-gold) 22%, transparent); }
+.btn-danger { color: var(--color-error); border-color: var(--color-error); }
+.btn-danger:hover { background: color-mix(in srgb, var(--color-error) 12%, transparent); }
+.tag-live { gap: 6px; background: var(--color-red); color: var(--color-on-red); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.tag-live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.tag-red { background: var(--color-red-800); color: var(--color-red-100); }
+.tag-gold { background: var(--color-gold-800); color: var(--color-gold-100); }
+.tag-gold-solid { background: var(--color-gold); color: var(--color-on-gold); font-weight: 600; }
+.tag-error { border: 1px solid var(--color-error); color: var(--color-error); }
+.text-gold { color: var(--color-gold); }
+.text-red { color: var(--color-red-text); }
+.text-error { color: var(--color-error); }
+
+/* Cabinet 1.3 accent kit (frame 8): max 2-3 accents per zone, no large gold fills */
+.rule-gold { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-400); }
+.rule-gold::before { content: ""; width: 16px; height: 2px; border-radius: 1px; background: var(--color-gold); flex: none; }
+.num-gold { color: var(--color-gold); }
+.underline-gold { text-decoration: underline; text-decoration-color: var(--color-gold); text-decoration-thickness: 1px; text-underline-offset: 8px; }
+.frame-gold { border: 1px solid var(--color-gold); color: var(--color-gold-200); background: transparent; }
+.bar-muse { border-left: 2px solid var(--color-accent); background: color-mix(in srgb, var(--color-accent-900) 45%, transparent); color: var(--color-accent-200); border-radius: 0 var(--radius-md) var(--radius-md) 0; }
+.bar-live { border: 1px solid var(--color-red-800); box-shadow: inset 2px 0 0 var(--color-red); }
+.divider-fade { height: 1px; background: linear-gradient(90deg, var(--color-neutral-700), transparent); border: 0; }
 
 /* — navigation — */
 .nav {
