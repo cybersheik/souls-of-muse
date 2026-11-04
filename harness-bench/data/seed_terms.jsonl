@@ -1,5 +1,5 @@
 {"term_id": "TEMPO", "en": "tempo", "vi": "nhịp độ", "category": "rhythm", "legacy_it": "tempo", "verification": "unverified"}
-{"term_id": "BEAT", "en": "beat", "vi": "phách", "category": "rhythm", "legacy_it": "battuta", "verification": "unverified"}
+{"term_id": "BEAT", "en": ["beat", "beats"], "vi": "phách", "category": "rhythm", "legacy_it": "battuta", "verification": "unverified"}
 {"term_id": "MEASURE", "en": ["measure", "bar", "measures", "bars"], "vi": "ô nhịp", "category": "rhythm", "legacy_it": "battuta", "verification": "unverified"}
 {"term_id": "RHYTHM", "en": "rhythm", "vi": "nhịp điệu", "category": "rhythm", "legacy_it": "ritmo", "verification": "unverified"}
 {"term_id": "MELODY", "en": "melody", "vi": "giai điệu", "category": "pitch", "legacy_it": "melodia", "verification": "unverified"}
