@@ -5,6 +5,10 @@
   "framework": null,
   "rewrites": [
     {
+      "source": "/api/harness/:path*",
+      "destination": "/api/harness?path=:path*"
+    },
+    {
       "source": "/convention",
       "destination": "/index.html"
     }

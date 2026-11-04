@@ -301,7 +301,7 @@ function session(role, mode) {
         <span class="cab-beats">${[0, 1, 2, 3].map(() => "<i></i>").join("")}</span>
         <span class="cab-bpm"><b>72</b><span>BPM</span></span><span style="flex:1"></span>
         <span style="font-size:12px;color:var(--color-neutral-500)">${cabEsc(C.metroOff)}</span></div>`;
-  const left = live ? `<div class="cab-label">${cabLang() === "ru" ? "Встреча EN ↔ VI" : "EN ↔ VI meeting"}</div><p>${CabinetHarness.state.tts ? (cabLang() === "ru" ? "Одобренный перевод можно прослушать в чате Muse. Видео ожидает подключения." : "Listen to approved translations in the Muse chat. Video is awaiting connection.") : (cabLang() === "ru" ? "Сообщения и одобрение перевода работают в чате Muse. Видео ожидает подключения." : "Use the Muse chat for messages and translation approval. Video is awaiting connection.")}</p>` : `
+  const left = live ? `<div class="cab-label">${cabLang() === "ru" ? "Встреча EN ↔ VI" : "EN ↔ VI meeting"}</div>${live.state==='active'?'<div data-live-conference></div>':''}<p>${CabinetHarness.state.tts ? (cabLang() === "ru" ? "Одобренный перевод можно прослушать в чате Muse." : "Listen to approved translations in the Muse chat.") : (cabLang() === "ru" ? "Сообщения и одобрение перевода — в чате Muse." : "Messages and translation approval are in the Muse chat.")}</p>` : `
       <div style="display:flex;flex-direction:column;gap:11px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span class="cab-label">${cabEsc(isM ? (F === "all" ? C.soundAll : C.soundPrivate) : isAd ? C.soundAdmirer : C.soundArtist)}</span><span class="cab-tag cab-tag-neutral">${cabEsc(C.exampleTag)}</span></div>
         <div class="cab-sound" aria-hidden="true"><i></i></div>
@@ -314,7 +314,7 @@ function session(role, mode) {
         ${isAd ? "" : isM ? `<button type="button" class="cab-btn" data-cab-video><i class="ph ph-video-camera"></i>${cabEsc(C.videoCheck)}</button><button type="button" class="cab-btn" data-cab-video><i class="ph ph-monitor-play"></i>${cabEsc(C.videoDemo)}</button>` : `<button type="button" class="cab-btn" data-cab-video><i class="ph ph-monitor-play"></i>${cabEsc(C.videoDemo)}</button>`}
         <p class="cab-status" role="status" data-cab-video-out></p>
       </div>`;
-  const chatLabel = live ? (cabLang() === "ru" ? "Личный чат Muse" : "Private Muse chat") : isAd ? C.circleChatRO : isM ? (F === "all" ? C.circleChat : C.privateChat(focusName)) : C.circleChat;
+  const chatLabel = live ? (cabLang() === "ru" ? "Чат встречи · Muse" : "Meeting chat · Muse") : isAd ? C.circleChatRO : isM ? (F === "all" ? C.circleChat : C.privateChat(focusName)) : C.circleChat;
   const right = `
       <div style="display:flex;align-items:center;gap:8px"><span class="cab-btn cab-btn-primary" style="cursor:default"><i class="ph ph-sparkle"></i>Muse</span><span style="flex:1"></span>
         <span class="cab-tag cab-tag-neutral"><i class="ph ph-translate"></i>${live ? (isM ? "EN → VI" : "VI → EN") : isM && F === "all" ? "PT → 4" : "PT → RU"}</span></div>
@@ -339,7 +339,7 @@ function session(role, mode) {
       <a class="cab-btn" ${live ? "data-harness-end" : ""} href="#/space/${role}"><i class="ph ph-sign-out"></i>${cabEsc(isM ? C.endSession : C.leave)}</a>
     </div>
     <p class="cab-notlive bar-muse" role="note">${cabEsc(window.CabinetHarness?.state.meeting ? (cabLang() === "ru" ? "Встречу ведёт Маэстро. План и нотная тетрадь — общие для участников." : "The Maestro leads the meeting. The plan and notebook are shared with participants.") : C.notLive)}</p>
-    ${window.CabinetHarness?.state.meeting ? `<div class="cab-live"><b>${cabEsc(CabinetHarness.state.meeting.maestro_alias)} · ${cabEsc(CabinetHarness.state.meeting.artist_alias)}</b></div>` : rosterHTML(role, mode, C)}
+    ${window.CabinetHarness?.state.meeting ? `<div class="cab-live"><b>${cabEsc(CabinetHarness.state.meeting.maestro_alias)} · ${cabEsc(CabinetHarness.state.meeting.artists?.map(a=>a.name).join(', ') || CabinetHarness.state.meeting.artist_alias)}</b></div>` : rosterHTML(role, mode, C)}
     ${window.CabinetHarness ? CabinetHarness.panel() : ""}
     <main id="main" tabindex="-1" class="cab-grid">
       <div class="cab-col">${left}</div>

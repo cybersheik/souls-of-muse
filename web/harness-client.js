@@ -32,7 +32,7 @@ window.CabinetHarness = (() => {
       catch(_){contextMismatch=true;}
     }
     if ((response.status === 401||contextMismatch) && state.user === requestedUser) {
-      cancelCapture(); stopSpeech();
+      cancelCapture(); stopSpeech(); window.SomConference?.stop();
       window.SomMedia?.disconnect(true).catch(() => {});
       Object.assign(state, { user: null, meeting: null, lesson: null, sessions: [], heart: null });
       window.SomLesson?.reset();
@@ -217,9 +217,9 @@ window.CabinetHarness = (() => {
     return `<section class="cab-live"><b>${esc(state.user.name)} · ${esc(state.user.role)}</b>
       <button class="cab-btn" data-harness-refresh${disabled}>${word("Refresh", "Обновить")}</button>
       <button class="cab-btn" data-harness-logout${disabled}>${word("Sign out", "Выйти")}</button>
-      ${home && state.user.role === "maestro" ? `<form data-harness-create><label>${word("Artist's participant ID", "ID участника-Артиста")}<input name="artist" required maxlength="100"></label>
+      ${home && state.user.role === "maestro" ? `<form data-harness-create><label>${word("Artist IDs (one or two, separated by a comma)", "ID Артистов (один или два, через запятую)")}<input name="artist" required maxlength="220"></label>
         <button class="cab-btn"${disabled}>${word("Create meeting", "Создать встречу")}</button></form>` : ""}
-      <div class="cab-live-meetings">${(home ? state.sessions : []).map(s => `<button class="cab-btn" data-harness-open="${esc(s.id)}"${disabled}>${esc(s.maestro_alias)} · ${esc(s.artist_alias)} · ${esc(s.state)}</button>`).join("")}</div>
+      <div class="cab-live-meetings">${(home ? state.sessions : []).map(s => `<button class="cab-btn" data-harness-open="${esc(s.id)}"${disabled}>${esc(s.maestro_alias)} · ${esc(s.artists?.map(a=>a.name).join(', ') || s.artist_alias)} · ${esc(s.state)}</button>`).join("")}</div>
       ${state.meeting ? `<p>${word("Meeting", "Встреча")} · ${esc(state.meeting.state)}</p>
         ${state.user.role === "maestro" && state.meeting.state === "created" ? `<button class="cab-btn" data-harness-start${disabled}>${word("Start", "Начать")}</button>` : ""}
         ${state.meeting.state === "active" ? `<button class="cab-btn" data-harness-join${disabled}>${word("Join", "Присоединиться")}</button>
@@ -227,6 +227,7 @@ window.CabinetHarness = (() => {
         ${state.meeting.state === "closing" && state.user.role === "maestro" ? `<button class="cab-btn" data-harness-complete${disabled}>${word("Finish closing", "Завершить закрытие")}</button>` : ""}
         ${state.media && state.meeting.state === "active" && !home ? `<button class="cab-btn" data-harness-media${disabled}>${window.SomMedia?.connected(state.meeting.id) ? word("Disconnect voice", "Отключить голос") : word("Connect voice", "Подключить голос")}</button><div data-harness-media-audio></div>` : ""}
         ${state.heart ? `<p>♥ ${word("Meetings", "Встречи")} ${state.heart.counters.happened} · ${word("Useful", "Полезно")} ${state.heart.counters.useful} · ${word("Progress", "Прогресс")} ${state.heart.counters.progress}</p>` : ""}` : ""}
+      ${state.heart?.accrual?.state === 'group_policy_pending' ? `<p>${word("Group heart accrual is awaiting an agreed rule.", "Правило начисления heart для группы ещё согласуется.")}</p>` : ''}
       <p role="status">${esc(state.status)}</p></section>`;
   }
   function reviewNote(message) {
@@ -257,7 +258,7 @@ window.CabinetHarness = (() => {
     return `<section class="cab-lesson-note"><b>${word("Lesson note", "Замечание к уроку")}</b><small>${esc(attribution)}</small><dl>${rows.map(([label, value]) => `<dt>${esc(label)}</dt><dd>${esc(value)}</dd>`).join("")}</dl></section>`;
   }
   function messages() {
-    return (state.meeting?.deliveries || []).map(message => `<div class="cab-msg muse"><span class="cab-msg-who">Muse · ${esc(message.speaker)} · ${esc(message.state)}</span>
+    return (state.meeting?.deliveries || []).map(message => `<div class="cab-msg muse"><span class="cab-msg-who">Muse · ${esc(message.participant_name || message.speaker)} · ${esc(message.state)}</span>
       ${message.source_text ? `<span class="cab-msg-orig">${esc(message.source_text)}</span>` : ""}<span class="cab-msg-text">${esc(message.text)}</span>
       ${lessonNote(message)}
       ${message.validation_issues?.length ? `<strong>${esc(message.validation_issues.join(", "))}</strong>` : ""}
@@ -298,22 +299,23 @@ window.CabinetHarness = (() => {
     });
     on("[data-harness-create]", "submit", event => {
       event.preventDefault();
-      const artist = new FormData(event.currentTarget).get("artist");
+      const artists = [...new Set(String(new FormData(event.currentTarget).get("artist") || '').split(/[,\s]+/).filter(Boolean))];
       action(async () => {
-        state.meeting = await call("sessions", { kind: "individual", league: "string", maestro_alias: state.user.name,
-          artist_alias: artist, artist_id: artist, source_lang: "en", target_lang: "vi" });
+        if(artists.length<1 || artists.length>2) throw new Error(word('Enter one or two registered Artist IDs.','Укажите один или два зарегистрированных ID Артистов.'));
+        state.meeting = await call("sessions", { kind: artists.length>1?'group':'individual', league: "string", maestro_alias: state.user.name,
+          artist_alias: artists.join(', '), ...(artists.length>1?{artist_ids:artists}:{artist_id:artists[0]}), source_lang: "en", target_lang: "vi" });
         await refresh();
       });
     });
     on("[data-harness-open]", "click", event => action(async () => {
-      state.lesson = null; window.SomLesson?.reset(); window.SomPrivateNotes?.reset();
+      window.SomConference?.stop(); state.lesson = null; window.SomLesson?.reset(); window.SomPrivateNotes?.reset();
       state.meeting = await call("sessions/" + event.currentTarget.dataset.harnessOpen);
       if (window.Cabinet) Cabinet.state.drawer[state.user.role] = false;
-      await refresh(); location.hash = "#/session/" + state.user.role + "/one-to-one";
+      await refresh(); location.hash = "#/session/" + state.user.role + (state.meeting.kind==='group'?"/circle":"/one-to-one");
     }));
     on("[data-harness-refresh]", "click", () => action(refresh));
     on("[data-harness-logout]", "click", () => action(async () => {
-      cancelCapture(); stopSpeech();
+      cancelCapture(); stopSpeech(); window.SomConference?.stop();
       await window.SomMedia?.disconnect(true).catch(() => {});
       try { await call("auth/logout", {}); }
       finally { sessionStorage.removeItem("som_meeting"); Object.assign(state, { user: null, meeting: null, lesson: null, sessions: [], heart: null, pending: null }); window.SomLesson?.reset(); window.SomPrivateNotes?.reset(); }
@@ -325,12 +327,13 @@ window.CabinetHarness = (() => {
     for (const verb of ["start", "join", "complete"]) on(`[data-harness-${verb}]`, "click", () => action(async () => {
       await call(`sessions/${state.meeting.id}/${verb}`, {});
       if (verb === "start") await call(`sessions/${state.meeting.id}/join`, {});
-      if (verb === "complete") await window.SomMedia?.disconnect(false);
+      if (verb === "complete") { window.SomConference?.stop(); await window.SomMedia?.disconnect(false); }
       await refresh();
     }));
     on("[data-harness-end]", "click", event => {
       event.preventDefault();
       action(async () => {
+        window.SomConference?.stop();
         if (state.user.role === "maestro" && ["active","closing"].includes(state.meeting.state)) await call(`sessions/${state.meeting.id}/complete`, {});
         await refresh(); location.hash = "#/space/" + state.user.role;
       });
@@ -339,6 +342,19 @@ window.CabinetHarness = (() => {
     if (input) input.addEventListener("input", () => { composeText = input.value; });
     bindApprovals();
     window.SomMedia?.mount();
+    const conferenceHost=document.querySelector('[data-live-conference]');
+    if(conferenceHost && state.user && state.meeting?.state==='active' && window.SomConference) {
+      const sid=state.meeting.id,conferenceUser=state.user;
+      const sameConference=()=>state.user===conferenceUser&&state.meeting?.id===sid;
+      SomConference.mount(conferenceHost,{sid,userId:state.user.id,request:async(path,body)=>{
+        if(!sameConference()) throw new Error('participant_context_changed');
+        if(path===`sessions/${sid}/conference/join`) {
+          await call(`sessions/${sid}/join`,{});
+          if(!sameConference()) throw new Error('participant_context_changed');
+        }
+        return call(path,body);
+      }});
+    } else if(state.meeting?.state==='completed') window.SomConference?.stop();
   }
   function bindApprovals() {
     document.querySelectorAll("[data-harness-review]").forEach(button => button.onclick = () => retryTranslationReview(button.dataset.harnessReview));
@@ -463,6 +479,6 @@ window.CabinetHarness = (() => {
     }
   }
   window.addEventListener("som-media-changed", redraw);
-  window.addEventListener("hashchange", () => { cancelCapture(); stopSpeech(); window.SomMedia?.disconnect(true).catch(() => {}); });
+  window.addEventListener("hashchange", () => { cancelCapture(); stopSpeech(); window.SomConference?.stop(); window.SomMedia?.disconnect(true).catch(() => {}); });
   return { state, panel, messages, send, bind, record, updateLesson, translateLessonStep, approveLessonTranslation, requestLessonPlan, applyLessonPlan, planningRetryAllowed, retryTranslationReview, savePrivateNotes, privateNotesPage };
 })();

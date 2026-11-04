@@ -81,7 +81,7 @@ def register_routes(app,db,commit,authenticate,find_session,err):
     def index(request:Request,cursor:str|None=Query(default=None,max_length=256),authorization:str=Header(default='')):
         owner,failure=identify(authorization,request)
         if failure is not None:return failure
-        after='';params=[owner,owner,owner]
+        after='';params=[owner,owner]
         if cursor:
             try:at,sid=decode_cursor(cursor)
             except ValueError:return err(422,'invalid_notes_cursor')
@@ -90,7 +90,7 @@ def register_routes(app,db,commit,authenticate,find_session,err):
         try:
             rows=c.execute('SELECT n.*,s.maestro_alias,s.artist_alias,s.state FROM participant_notes n '
                            'JOIN sessions s ON s.id=n.session_id WHERE n.participant_id=? '
-                           'AND (s.maestro_id=? OR s.artist_id=?) AND n.text<>\'\' '+after+
+                           'AND EXISTS (SELECT 1 FROM session_members m WHERE m.session_id=s.id AND m.participant_id=?) AND n.text<>\'\' '+after+
                            ' ORDER BY n.updated_at DESC,n.session_id DESC LIMIT 21',params).fetchall()
             notes=[]
             try:

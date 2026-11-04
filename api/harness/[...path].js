@@ -8,15 +8,24 @@ const routes = [
   /^sessions\/[a-zA-Z0-9_-]+\/lesson\/proposals(?:\/[a-zA-Z0-9_-]+\/apply)?$/,
   /^notes$/,
   /^sessions\/[a-zA-Z0-9_-]+\/notes$/,
+  /^sessions\/[a-zA-Z0-9_-]+\/conference\/(?:join|events|signal|leave)$/,
 ];
 
 // The browser uses its host-only HttpOnly participant cookie. Global pilot
 // credentials and model keys are never accepted from, or sent to, the browser.
 module.exports = async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
   const base = process.env.SOM_HARNESS_URL;
   if (!base) return res.status(503).json({ detail: "harness_not_configured" });
-  const parts = req.query.path;
-  const path = Array.isArray(parts) ? parts.join("/") : String(parts || "");
+  const query = req.query || {};
+  const pathname = String(req.url || "").split("?")[0];
+  // Plain Vercel Node functions do not supply Next.js catch-all parameters.
+  // Prefer the original public URL; a fixed-function rewrite supplies path
+  // only when the runtime exposes the rewritten /api/harness URL instead.
+  const parts = query.path;
+  const path = pathname.startsWith("/api/harness/")
+    ? pathname.slice("/api/harness/".length)
+    : (Array.isArray(parts) ? parts.join("/") : String(parts || ""));
   if (!routes.some(route => route.test(path))) {
     return res.status(404).json({ detail: "route_not_found" });
   }
@@ -32,7 +41,12 @@ module.exports = async function handler(req, res) {
   const timer = setTimeout(() => controller.abort(), 55000);
   try {
     const target = new URL(path, base.replace(/\/$/, "") + "/");
-    if(path==='notes'&&req.method==='GET'&&typeof req.query.cursor==='string')target.searchParams.set('cursor',req.query.cursor);
+    if((path==='notes'||path.endsWith('/conference/events'))&&req.method==='GET'&&typeof query.cursor==='string')target.searchParams.set('cursor',query.cursor);
+    if(path.endsWith('/conference/events')&&req.method==='GET') {
+      for(const name of ['connection_id','after']) {
+        if(typeof query[name]==='string') target.searchParams.set(name,query[name]);
+      }
+    }
     const upstream = await fetch(target, {
       method: req.method, headers, redirect: "error", signal: controller.signal,
       body: req.method === "POST" ? JSON.stringify(req.body || {}) : undefined,
