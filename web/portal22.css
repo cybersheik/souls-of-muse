@@ -57,3 +57,59 @@
   .p22 .p20-left{height:auto;min-height:0}
   .p22 .p20-card{overflow:visible}
 }
+
+/* ---- League 2.2: a League's own page in the portal's language ---- */
+.p22-league .p20-main{padding-bottom:56px}
+.p22-league .p22-lhero{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,380px);gap:28px;align-items:center;max-width:1100px;margin:6px 0 22px}
+.p22-lorb{position:relative;width:150px;height:150px;display:grid;place-items:center}
+.p22-lorb .p20-orb{width:112px;height:112px}
+.p22-lorb .p20-orb i{font-size:40px}
+.p22-emring{position:absolute;inset:0;border-radius:50%;border:1px dashed color-mix(in oklch,var(--c) 55%,transparent);
+  box-shadow:0 0 0 10px color-mix(in oklch,var(--c) 6%,transparent)}
+.p22-ltext{display:flex;flex-direction:column;gap:6px;min-width:0}
+.p22-lkick{display:flex;align-items:baseline;gap:10px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-neutral-200)}
+.p22-ltext h1{margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;font-size:52px;line-height:1.02;letter-spacing:-.01em;color:var(--color-neutral-100);text-shadow:0 2px 20px var(--color-bg)}
+.p22-linstr{margin:0;font-size:15px;line-height:1.5;color:var(--color-neutral-200)}
+.p22-emnote{margin:4px 0 0;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--color-neutral-300)}
+.p22-emdot{width:9px;height:9px;border-radius:50%;flex:none;border:1px dashed var(--c)}
+.p21-musebox.league{align-self:center}
+.p21-musebox.league .p21-muse{width:110px}
+.p22-lbody{max-width:1100px;display:flex;flex-direction:column;gap:6px}
+.p22-league .p22-lnav{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 8px}
+.p22-league .btn{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 16px;border-radius:999px;font:500 14px Inter,system-ui,sans-serif;text-decoration:none;cursor:pointer;
+  border:1px solid var(--color-neutral-600);background:color-mix(in oklch,var(--color-bg) 55%,transparent);color:var(--color-neutral-100) !important}
+.p22-league .btn:hover{background:var(--color-neutral-800)}
+.p22-league .btn.small{min-height:34px;padding:0 12px;font-size:13px}
+.p22-league .tabs{display:flex;gap:0;flex-wrap:nowrap;overflow-x:auto;margin:8px 0 4px;border-bottom:1px solid var(--color-neutral-700);scrollbar-width:none}
+.p22-league .tabs::-webkit-scrollbar{display:none}
+.p22-league .tabs button{flex:none;font:500 14.5px Inter,system-ui,sans-serif;padding:12px 16px 11px;border:0;border-bottom:2px solid transparent;border-radius:0;margin-bottom:-1px;
+  background:transparent;color:var(--color-neutral-300);cursor:pointer}
+.p22-league .tabs button:hover{color:var(--color-neutral-100)}
+.p22-league .tabs button[aria-selected="true"]{color:var(--color-neutral-100);border-bottom-color:var(--c)}
+.p22-league .toolbar{margin:12px 0}
+.p22-league .toolbar label{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--color-neutral-300);max-width:520px}
+.p22-league .toolbar input{min-height:42px;padding:0 14px;border-radius:10px;border:1px solid var(--color-neutral-600);
+  background:color-mix(in oklch,var(--color-surface) 80%,transparent);color:var(--color-neutral-100);font:15px Inter,system-ui,sans-serif}
+.p22-league .toolbar input:focus-visible{outline:2px solid var(--c);outline-offset:1px}
+.p22-league .list{display:grid;gap:10px}
+.p22-league .item{display:block;width:100%;text-align:left;padding:16px 18px;border-radius:14px;cursor:pointer;color:var(--color-text);font:inherit;
+  border:1px solid var(--color-neutral-700);background:color-mix(in oklch,var(--color-surface) 78%,transparent);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transition:border-color .2s}
+.p22-league .item:hover{border-color:color-mix(in oklch,var(--c) 70%,var(--color-neutral-700))}
+.p22-league .item strong{display:block;font-size:16px;font-weight:500;color:var(--color-neutral-100);margin-bottom:4px}
+.p22-league .item p{margin:2px 0 0;font-size:14px;line-height:1.5;color:var(--color-neutral-300)}
+.p22-league .item p:first-of-type{font-size:12.5px;color:var(--color-neutral-400)}
+.p22-league .badge{border-color:color-mix(in oklch,var(--c) 60%,transparent);color:var(--color-neutral-100);font-size:11.5px;padding:2px 9px;border-radius:999px;border-style:solid;border-width:1px}
+.p22-league dialog{max-width:520px;border:1px solid var(--color-neutral-700);border-radius:16px;padding:22px 24px;background:var(--color-surface);color:var(--color-text)}
+.p22-league dialog::backdrop{background:color-mix(in oklch,var(--color-bg) 70%,transparent)}
+.p22-league dialog h3{margin:0 0 8px;font-size:20px;font-weight:500}
+@media (max-width:899px){
+  .p22-league .p22-lhero{grid-template-columns:auto minmax(0,1fr);gap:16px}
+  .p22-lorb{width:96px;height:96px}
+  .p22-lorb .p20-orb{width:72px;height:72px}
+  .p22-lorb .p20-orb i{font-size:26px}
+  .p22-ltext h1{font-size:36px}
+  .p21-musebox.league{grid-column:1 / -1}
+  .p21-musebox.league .p21-muse{width:72px}
+  .p21-musebox.league .p21-bubble{max-width:none}
+}

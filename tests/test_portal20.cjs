@@ -80,3 +80,14 @@ const cab = read("cabinet.js");
 assert.match(cab, /class="cab-brand" href="#\/"/, "cabinet wordmark goes to the site home");
 assert.match(cab, /cabSiteNav\(role\)/, "cabinet header shows the site route");
 console.log("portal20: translations and cabinet navigation checks passed");
+
+// League 2.2: a League's page in the portal's language
+for (const lang of ["en", "ru"]) {
+  window.P01.state.lang = lang;
+  const lp = P.leaguePage("keys", "EMBLEM-NOTE", "<div id=tabBody></div>");
+  assert.ok(lp.includes('class="p20-route"') && lp.includes('aria-current="page"'), `league page keeps the Golden Lyre route ${lang}`);
+  assert.ok(lp.includes("--c:#86C5FA") && lp.includes("p20-orb"), `league page in the League's colour ${lang}`);
+  assert.ok(lp.includes("data-muse") && lp.includes("EMBLEM-NOTE") && lp.includes("id=tabBody"), `Muse, emblem note and body ${lang}`);
+}
+assert.match(read("app.js"), /Portal20\.leaguePage\(l\.id, u\.emblem, body\)/, "vLeague renders through the portal frame");
+console.log("portal20: League 2.2 checks passed");

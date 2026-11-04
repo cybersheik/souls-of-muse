@@ -367,6 +367,30 @@ function leagues() {
   </div>`;
 }
 
+/* League 2.2: a League's own page in the portal's language — the night sky, the
+   Golden Lyre route, the League's sphere in its colour with a ring for the emblem
+   the League will choose, Muse with that League's line. app.js supplies the body
+   (buttons, tabs, search, list, dialog) and binds it as before. */
+function leaguePage(id, emblemNote, body) {
+  const L = leagues7(), i = Math.max(0, IDS.indexOf(id)), x = L[i], c = LCOL[i];
+  return `<div class="p20 p21 p22 p22-league" style="--c:${c}">${sky("leagues")}${header()}
+    <main id="main" tabindex="-1" class="p20-main">
+      ${route(1)}
+      <section class="p22-lhero" aria-labelledby="p22LName">
+        <div class="p22-lorb" aria-hidden="true"><span class="p22-emring"></span><span class="p20-orb"><i class="ph-fill ${x.icon}" style="color:color-mix(in oklch, ${c}, var(--color-bg) 78%)"></i></span></div>
+        <div class="p22-ltext">
+          <span class="p22-lkick"><span class="p20-n">0${i + 1} / 07</span><span>${esc(x.family)}</span></span>
+          <h1 id="p22LName">${esc(x.name)}</h1>
+          <p class="p22-linstr">${esc(x.instr)}</p>
+          <p class="p22-emnote"><span class="p22-emdot" aria-hidden="true"></span>${esc(emblemNote)}</p>
+        </div>
+        ${museBox(SAY[lang()][i], "league")}
+      </section>
+      <div class="p22-lbody">${body}</div>
+    </main>
+  </div>`;
+}
+
 /* ---------- behaviour ---------- */
 function rerender() { if (typeof window.render === "function") window.render(); }
 function on(el, ev, fn, opt) { el.addEventListener(ev, fn, opt); offs.push(() => el.removeEventListener(ev, fn, opt)); }
@@ -609,5 +633,5 @@ function stop() {
   offs.forEach(f => f()); offs = [];
 }
 function reset() { st.menu = false; }
-window.Portal20 = { home, leagues, bind, stop, reset, T };
+window.Portal20 = { home, leagues, leaguePage, bind, stop, reset, T };
 })();

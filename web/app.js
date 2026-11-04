@@ -274,6 +274,13 @@ function vLeague(id, tab){
   if(resolved.idValid){ prefs.league=l.id; savePrefs(); }
   const u=LU(), lt=leagueText(l), TABS=u.tabs;
   const initial = resolved.tab;
+  const nav = `<p class="p22-lnav"><a class="btn ghost" href="#/leagues">${esc(u.back)}</a> <a class="btn ghost" href="#/space/${ROLE_SPACE[prefs.role]}">${esc(u.mySpace)}</a></p>`;
+  const body = `${nav}
+  <div class="tabs" role="tablist" aria-label="${esc(u.tabsLabel)}">${TABS.map(([k,v])=>`<button role="tab" data-tab="${k}" id="tab-${k}" aria-controls="tabBody" aria-selected="${k===initial}" tabindex="${k===initial?0:-1}">${esc(v)}</button>`).join("")}</div>
+  <div class="toolbar"><label>${esc(u.search)} <input id="lq" type="search"></label></div>
+  <div id="tabBody" class="list" role="tabpanel" aria-labelledby="tab-${initial}"></div>
+  <dialog id="dlg" aria-labelledby="dlgT"><h3 id="dlgT"></h3><p id="dlgB"></p><p id="dlgAct"></p><button class="btn" id="dlgClose" type="button">${esc(u.close)}</button></dialog>`;
+  if (window.Portal20 && Portal20.leaguePage) return Portal20.leaguePage(l.id, u.emblem, body);
   return chrome("workshop", `<p class="eyebrow">${esc(u.kicker)}</p><h1>${esc(lt.name)}</h1><p class="lede">${esc(lt.desc)}</p>
   <div class="emblem-slot">${esc(u.emblem)}</div>
   <p><a class="btn ghost" href="#/leagues">${esc(u.back)}</a> <a class="btn" href="#/space/${ROLE_SPACE[prefs.role]}">${esc(u.mySpace)}</a></p>
@@ -544,7 +551,7 @@ const routes=[[/^#?\/?$/,()=>Portal20.home(),"portal"],[/^#\/convention$/,()=>Po
  [/^#\/session\/(maestro|artist)\/(circle|one-to-one)$/,m=>Cabinet.session(m[1],m[2]==="circle"?"circle":"one"),"workshop"],
  [/^#\/session\/(admirer)\/(circle)$/,m=>Cabinet.session(m[1],"circle"),"workshop"],
  [/^#\/components$/,()=>P01.components(),"workshop"],
- [/^#\/leagues$/,()=>Portal20.leagues(),"portal"],[/^#\/league\/([^/]+)(?:\/([^/]+))?$/,m=>vLeague(decodeURIComponent(m[1]), m[2]||"topics"),"workshop"],
+ [/^#\/leagues$/,()=>Portal20.leagues(),"portal"],[/^#\/league\/([^/]+)(?:\/([^/]+))?$/,m=>vLeague(decodeURIComponent(m[1]), m[2]||"topics"),"portal"],
  [/^#\/cabinet\/(student|teacher|listener)$/,m=>vCabinet(m[1]),"workshop"],[/^#\/studio$/,vStudio,"workshop"]];
 function render(){
   cleanupPage();
@@ -557,7 +564,7 @@ function render(){
     else if(h==="#/leagues") Portal20.bind();
     else if(h==="#/welcome"||h==="#/components") P01.bind();
     else if(h.startsWith("#/space")||h.startsWith("#/session/")) Cabinet.bind();
-    else if(h.startsWith("#/league/")){ const seg=h.slice("#/league/".length).split("/"); bindLeague(seg[1]||"topics", seg[0]); }
+    else if(h.startsWith("#/league/")){ const seg=h.slice("#/league/".length).split("/"); Portal20.bind(); bindLeague(seg[1]||"topics", seg[0]); }
     else if(h==="#/studio") bindStudio();
     const sameView = h===lastView; lastView = h;
     if(sameView) return;
