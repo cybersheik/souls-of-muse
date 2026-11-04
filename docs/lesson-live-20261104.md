@@ -41,7 +41,7 @@ It has not been promoted to production.
 
 ## Observed verification
 
-CX1 ran the current site on ML1 loopback with three isolated Chrome contexts.
+CX1 ran the current site on a local test machine (loopback) with three isolated Chrome contexts.
 All three personal logins and group opening worked; six native peer connections
 exchanged inbound audio RTP bytes and decoded video frames. Mute, one Artist's
 hang up, the other pair continuing, and the Artist reconnecting passed. Desktop
@@ -75,7 +75,7 @@ The fresh local classroom signing key is not production identity/SoulID.
 For a separately approved public HTTPS classroom, allow its exact Origin in
 `SOM_WEB_ORIGINS` (comma separated) and use `SOM_COOKIE_SECURE=1`. Authenticate
 and recheck three participants on that actual HTTPS origin before calling it
-usable. ML1 must remain awake with the single writer running. The owner must
+usable. The local machine must remain awake with the single writer running. The owner must
 choose an external recording workflow; this candidate does not record children.
 
 For a later owner-approved Vercel release:

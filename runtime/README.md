@@ -154,5 +154,5 @@ Project Python tests in this workstation run (30.10.2026) use exactly:
 
 (Xcode Python 3.9.6.) Multiprocessing tests use the `spawn` start
 method explicitly and assert every child's exit code before reading
-results; do not reintroduce `fork` there (see AI3-935) and do not pipe
+results; do not reintroduce `fork` there and do not pipe
 test output through commands that mask the suite's exit status.

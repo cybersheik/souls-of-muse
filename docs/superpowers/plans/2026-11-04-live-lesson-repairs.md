@@ -5,7 +5,7 @@
 Goal: make the existing live cabinet usable and provide a guarded ENVI server-speech baseline on soulsofmuse.app.
 Architecture: preserve Vercel frontend + existing Modal single-writer backend and all data/history; isolate neural speech in a private resource-free worker. Separate explicit demo from account-bound live UI. Reuse the existing Meta MMS adapter for a noncommercial technical pilot; this is CX1's implementation choice and does not claim owner voice-quality acceptance or fine-tuning.
 Tech: vanilla JS/CSS, FastAPI, pinned CPU PyTorch/Transformers, existing Modal Volume/Queue/Secrets.
-Spec: AI3-947 critical review and latest owner direction to execute it.
+Spec: critical review and latest owner direction to execute it.
 
 ## Constraints
 - Public Portal2.1 and approved central plan/right Notebook retained; Portal2.2 design still needs owner acceptance. Compatible Notes bugfix can ship independently.

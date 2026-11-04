@@ -269,7 +269,7 @@ function bindEntrance() {
   const signBtn = document.getElementById("entSign");
   if (signBtn) signBtn.onclick = () => { const el = document.getElementById("entSignState"); if (el) el.textContent = tt.signState; };
   const pauseBtn = document.querySelector("[data-sig-pause]");
-  /* typed-name inspectable preview via the shared signature engine (AI3-916) */
+  /* typed-name inspectable preview via the shared signature engine */
   const SS = window.SoulSignature;
   let preview = null;
   const updPreview = () => {

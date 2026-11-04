@@ -82,7 +82,7 @@ class LessonAdmissionTests(unittest.TestCase):
         # fixture (one explicit operator configuration), not a product
         # limit and not a media/load benchmark; it does not claim five
         # real voice calls passed. spawn is used (never fork): forked
-        # children crashed natively in this environment (AI3-935).
+        # children crashed natively in this environment.
         _, db_path = self.make_service(capacity=5)
         ctx = multiprocessing.get_context('spawn')
         queue = ctx.Queue()

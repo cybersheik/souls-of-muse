@@ -19,7 +19,7 @@ Modal packaging uses CPU only, one writer, a persistent Volume, explicit provisi
 
 ## Delivery state
 
-The updated P0.1 interface is published at https://preview.soulsofmuse.com/#/welcome and https://preview.soulsofmuse.com/#/space/maestro. It contains demonstration data and is not a connected lesson service. Frontend deployment packaging is dd146c0; public files were compared with source and the preview headers verified.
+The updated P0.1 interface is published at https://soulsofmuse.app/#/welcome and https://soulsofmuse.app/#/space/maestro. It contains demonstration data and is not a connected lesson service. Frontend deployment packaging is dd146c0; public files were compared with source and the preview headers verified.
 
 The backend in this change has **not** been deployed. No real paid EN–VI exchange has been run. Cloud authorization, secrets, bounded budget provisioning, actual startup/restart, and a supervised live exchange remain release checks. Local fake-transport results do not establish those outcomes.
 

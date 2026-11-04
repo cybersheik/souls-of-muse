@@ -307,5 +307,5 @@
   ],
   "qa_session_completed": true,
   "source_parent": "4a8b1e890549dc7b22cf487e69741892782a0c56",
-  "scope": "Local ML1 isolated Chrome contexts; synthetic direct audio/video; no model calls or physical-device acceptance"
+  "scope": "Local test machine, isolated Chrome contexts; synthetic direct audio/video; no model calls or physical-device acceptance"
 }

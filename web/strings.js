@@ -1,6 +1,6 @@
 "use strict";
 /* Souls of Muse — Portal P0.1 strings & demo data.
-   Single strings file per DW1 brief (AI3-928): all user-facing text for
+   Single strings file per DW1 brief: all user-facing text for
    Welcome (02), Personal space (03) and Components (04) lives here so the
    role vocabulary (Maestro / Artist / Admirer, session / встреча) can be
    replaced in one place. Extracted mechanically from

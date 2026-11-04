@@ -1,6 +1,6 @@
 {
   "date": "2026-11-04",
-  "task": "AI3-947",
+  "task": "live lesson repairs",
   "base_frontend": "9c1fb006a3c442c376bc85a08df564258b4af25e",
   "reproduction": "Created authenticated meetings had no camera control. The old client also delayed local preview until conference join completed.",
   "changes": [
