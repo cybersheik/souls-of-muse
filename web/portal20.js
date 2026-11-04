@@ -174,11 +174,11 @@ function museBox(text, cls) {
 function museIdleText() { return signedRec() ? t().museDone : st.signing ? t().museForm : t().museIdle; }
 
 function convLang() { return st.conv && I18N()[st.conv] ? st.conv : null; }
-function langMenu() {
-  const tt = t(), cur = lang(), cl = convLang();
+function langMenu(uiOnly) {
+  const tt = t(), cur = lang(), cl = uiOnly ? null : convLang();
   return `<div class="p20-lang">
     <button class="p20-langbtn" data-p20-menu aria-haspopup="listbox" aria-expanded="${st.menu}"><i class="ph ph-globe-simple" aria-hidden="true"></i>${esc(cl ? I18N()[cl].name : tt.langName)}<i class="ph ph-caret-down" aria-hidden="true"></i></button>
-    ${st.menu ? `<div class="p20-langlist" role="listbox" aria-label="${esc(tt.language)}">${LANGS.map(([code, label]) => {
+    ${st.menu ? `<div class="p20-langlist" role="listbox" aria-label="${esc(tt.language)}">${LANGS.filter(([code]) => !uiOnly || code === "en" || code === "ru").map(([code, label]) => {
       const avail = code === "en" || code === "ru" || !!I18N()[code], current = cl ? code === cl : code === cur;
       return `<button role="option" aria-selected="${current}" aria-disabled="${!avail}" ${avail ? `data-p20-lang="${code}"` : "tabindex=\"-1\""} class="${avail ? "" : "soon"}"><span dir="auto">${esc(label)}</span>${avail ? "" : `<span class="p20-soon">${esc(tt.soon)}</span>`}${current ? '<i class="ph ph-check" aria-hidden="true"></i>' : ""}</button>`;
     }).join("")}</div>` : ""}
@@ -633,5 +633,5 @@ function stop() {
   offs.forEach(f => f()); offs = [];
 }
 function reset() { st.menu = false; }
-window.Portal20 = { home, leagues, leaguePage, bind, stop, reset, T };
+window.Portal20 = { home, leagues, leaguePage, langMenu: () => langMenu(true), bind, stop, reset, T };
 })();

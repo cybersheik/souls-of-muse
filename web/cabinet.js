@@ -56,7 +56,7 @@ function cabHead(role, sessTitle, sessSub) {
       <span class="cab-tag cab-tag-neutral">${cabEsc(window.CabinetHarness?.state.meeting ? (cabLang() === "ru" ? "Музыкальная встреча" : "Music meeting") : C.exampleData)}</span>
       ${role === "admirer" && sessTitle ? `<span class="cab-tag cab-tag-outline">${cabEsc(C.proposal)}</span>` : ""}
       <span class="cab-who"><span>${cabEsc(who)}</span><span aria-hidden="true">·</span><span class="soul text-gold">${cabEsc(soul)}</span></span>
-      ${cabLangSwitch()}
+      ${window.Portal20 && Portal20.langMenu ? Portal20.langMenu() : cabLangSwitch()}
     </div></header>`;
 }
 /* Site route (Portal 2.0 Golden Lyre): back to the Convention and the Leagues from any cabinet screen. */
@@ -137,7 +137,9 @@ function home(role) {
         </section>
         ${tile("02", C.tile2, C.tile2Title, C.tile2Body)}
         ${tile("03", C.tile3, C.tile3Title, C.tile3Body)}
-        ${tile("04", C.tile4, C.tile4Title, C.tile4Body, C.tile4Sub)}
+        <a class="cab-tile cab-tile-league" href="#/league/${CAB_MY_LEAGUE_IDS[cabLeagueIndex()]}" style="--c:${CAB_LCOL[cabLeagueIndex()]}">
+          <div class="cab-tile-head"><span class="cab-tile-num dim"><span class="num-gold">04</span> · ${cabEsc(C.tile4)}</span><span style="flex:1"></span><i class="ph ph-arrow-right" aria-hidden="true"></i></div>
+          <div class="cab-tile-title"><span class="cab-ldot" aria-hidden="true"></span>${cabEsc(C.tile4Title)}</div>${C.tile4Sub ? `<div class="cab-tile-sub">${cabEsc(C.tile4Sub)}</div>` : ""}<div class="cab-tile-body">${cabEsc(C.tile4Body)}</div></a>
       </div>
       <p class="cab-home-foot">${cabEsc(C.homeFoot)}</p>
     </main>
