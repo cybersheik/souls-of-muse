@@ -48,12 +48,46 @@ const DATA = {
   {id:"v-repertoire", t:"Репертуар открытого вечера", st:"Первое голосование ещё не открыто", b:"Ваша подпись — ваш голос в жизни Лиги. Когда голосование откроется, здесь можно будет принять участие."},
   {id:"v-date", t:"Дата следующего вечера", st:"Первое голосование ещё не открыто", b:"Одна подпись — один голос, в любой роли."}],
 };
-const byId = (tab,id) => (DATA[tab]||[]).find(x=>x.id===id);
+/* English League pages: same example items, same ids */
+const DATA_EN = {
+ topics:[
+  {id:"t-haydn", t:"Exploring the H-A-Y-D-N theme of 1909", a:"Example · session host", b:"How Haydn's name became the melody B–A–D–D–G, and why the letter H sounds as B."},
+  {id:"t-tempo", t:"Slow-tempo practice: metronome and breathing", a:"Example · member", b:"We share ways to practise together at a calm tempo."},
+  {id:"t-repertoire", t:"Choosing the repertoire for the open evening", a:"Example · member", b:"We discuss proposals here; the League's vote will decide once it opens."}],
+ events:[
+  {id:"e-evening", t:"Open evening of live music", w:"Saturday, 19:00 · example date", b:"A warm League evening: we play and listen together. Sign-up opens later."},
+  {id:"e-practice", t:"Practising together: session and exercises", w:"On the League schedule · example", b:"We meet, choose a tempo and an exercise, and play in turns and together."}],
+ media:[
+  {id:"m-rehearsal", t:"Recording of an open rehearsal", k:"Audio · example recording", b:"An example card from the League library. You can prepare your own recordings in the Studio."},
+  {id:"m-haydn", t:"Walkthrough: Haydn's theme at the piano", k:"Video · example recording", b:"An example card from the League library."}],
+ members:[
+  {id:"u-anna", n:"Example: Anna", r:"member"},
+  {id:"u-timur", n:"Example: Timur", r:"member"},
+  {id:"u-miya", n:"Example: Miya", r:"member"}],
+ votes:[
+  {id:"v-repertoire", t:"Repertoire for the open evening", st:"The first vote is not open yet", b:"Your signature is your voice in the life of the League. When the vote opens, you can take part here."},
+  {id:"v-date", t:"Date of the next evening", st:"The first vote is not open yet", b:"One signature, one vote, in any role."}],
+};
+const LEAGUE_UI = {
+ en:{kicker:"League space", emblem:"Each League chooses its own emblem — it will appear here.", back:"← Seven Leagues", mySpace:"My space", tabs:[["topics","Discussions"],["events","Events"],["media","Library"],["members","Members"],["votes","Votes"]],
+   tabsLabel:"League sections", search:"Search this section", close:"Close (Esc)", exampleMember:"example member", vote:"Take part", empty:"Nothing here yet.", backCat:"Back to the Leagues",
+   signUp:"Sign up", signUpMsg:"Sign-up for this event is not open yet.", mediaAct:"Your own recordings are prepared in the", studio:"Studio", topicAct:"The discussion opens together with the life of the League.", voteMsg:"The first vote is not open yet — your voice will wait for its day."},
+ ru:{kicker:"Пространство Лиги", emblem:"Эмблему каждая Лига выбирает сама — она появится здесь.", back:"← Семь Лиг", mySpace:"Моё пространство", tabs:[["topics","Обсуждения"],["events","События"],["media","Медиатека"],["members","Участники"],["votes","Голосования"]],
+   tabsLabel:"Разделы Лиги", search:"Поиск по разделу", close:"Закрыть (Esc)", exampleMember:"пример участника", vote:"Участвовать", empty:"Здесь пока пусто.", backCat:"Вернуться к Лигам",
+   signUp:"Записаться", signUpMsg:"Запись на событие ещё не открыта.", mediaAct:"Свои записи готовятся в", studio:"Студии", topicAct:"Обсуждение откроется вместе с жизнью Лиги.", voteMsg:"Первое голосование ещё не открыто — ваш голос будет ждать своего дня."},
+};
+const uiLang = () => (window.P01 && P01.state.lang === "ru") ? "ru" : "en";
+const LU = () => LEAGUE_UI[uiLang()];
+const DL = () => uiLang() === "ru" ? DATA : DATA_EN;
+const leagueText = l => { const i = LEAGUES.findIndex(x=>x.id===l.id), row = window.P01Strings && P01Strings.LEAGUES[i];
+  if(!row) return {name:l.name, desc:l.desc};
+  return uiLang()==="ru" ? {name:row[2], desc:`${row[6][0].toUpperCase()+row[6].slice(1)}: ${row[4]}.`} : {name:row[1], desc:`${row[5][0].toUpperCase()+row[5].slice(1)}: ${row[3]}.`}; };
+const byId = (tab,id) => (DL()[tab]||[]).find(x=>x.id===id);
 
 /* ---------- score SVG (render of the shared signature module; never redrawn by hand) ---------- */
 function scoreSVG(notes){
   if(!notes || !notes.length) return `<p class="score-empty">Здесь появятся ноты вашего имени.</p>`;
-  const L = S.layoutScore(notes); let s="", idx=0;
+  const L = S.layoutScore(notes); let s="", idx=0; const ruNames = !!(window.P01 && P01.state.lang==="ru");
   L.rows.forEach(r=>{
     for(let i=0;i<5;i++) s+=`<line x1="4" x2="${r.end}" y1="${r.top+i*10}" y2="${r.top+i*10}" stroke="#2a2738" opacity=".7"/>`;
     s+=`<text x="8" y="${r.top+30}" font-size="40" fill="#2a2738">\u{1D11E}</text>`;
@@ -62,10 +96,10 @@ function scoreSVG(notes){
       if(it.p>=10) g+=`<line x1="${it.x-10}" x2="${it.x+10}" y1="${r.top-10}" y2="${r.top-10}" stroke="#16141f"/>`;
       g+= it.stemUp?`<line x1="${it.x+5.6}" x2="${it.x+5.6}" y1="${it.y-1}" y2="${it.y-34}" stroke="#16141f"/>`:`<line x1="${it.x-5.6}" x2="${it.x-5.6}" y1="${it.y+1}" y2="${it.y+34}" stroke="#16141f"/>`;
       g+=`<ellipse cx="${it.x}" cy="${it.y}" rx="6" ry="4.2" transform="rotate(-20 ${it.x} ${it.y})" fill="${n.dur===2?"#fff":"#16141f"}" stroke="#16141f"/>`;
-      g+=`<text x="${it.x}" y="${r.top+72}" text-anchor="middle" font-size="11" fill="#8f6610">${esc(n.ch)}</text><text x="${it.x}" y="${r.top+84}" text-anchor="middle" font-size="8" fill="#5d5a6e">${S.RU[n.note]}</text></g>`; s+=g; });
+      g+=`<text x="${it.x}" y="${r.top+72}" text-anchor="middle" font-size="11" fill="#8f6610">${esc(n.ch)}</text><text x="${it.x}" y="${r.top+84}" text-anchor="middle" font-size="8" fill="#5d5a6e">${ruNames ? S.RU[n.note] : esc(n.note)}</text></g>`; s+=g; });
     if(r.last) s+=`<line x1="${r.end-1.5}" x2="${r.end-1.5}" y1="${r.top}" y2="${r.top+40}" stroke="#2a2738" stroke-width="3"/>`;
   });
-  return `<svg viewBox="0 0 ${L.width} ${L.height}" role="img" aria-label="Нотная подпись">${s}</svg>`;
+  return `<svg viewBox="0 0 ${L.width} ${L.height}" role="img" aria-label="${ruNames ? "Нотная подпись" : "Musical signature"}">${s}</svg>`;
 }
 window.SoulScoreSVG = scoreSVG;
 
@@ -159,7 +193,8 @@ const ROLE_SPACE={student:"artist",teacher:"maestro",listener:"admirer"};
 function chrome(mode, inner){
   const lang = (window.P01 && P01.state.lang) || "en";
   const navT = window.P01Strings ? P01Strings.T[lang] : {navConv:"Convention",navLeagues:"Leagues",navSpace:"My space"};
-  return `<a class="skip" href="#main">К содержанию</a>
+  const ruC = lang === "ru";
+  return `<a class="skip" href="#main">${ruC ? "К содержанию" : "Skip to content"}</a>
   <header class="topbar"><a class="brand" href="#/">Souls of <em>Muse</em></a>
   <nav class="main" aria-label="Souls of Muse">
     <a href="#/convention">${esc(navT.navConv)}</a><a href="#/leagues">${esc(navT.navLeagues)}</a><a href="#/space">${esc(navT.navSpace)}</a></nav>
@@ -167,7 +202,7 @@ function chrome(mode, inner){
     <button data-lang="en" aria-pressed="${lang === "en"}">EN</button>
     <button data-lang="ru" aria-pressed="${lang === "ru"}">RU</button></div></header>
   <main id="main" tabindex="-1">${inner}</main>
-  <footer class="site">Souls of Muse — сообщество хранителей живой музыки. Ваша карточка — знак участия и ваша подпись-голос в жизни Лиги. Вопросы: <a href="mailto:muse@soulsofmuse.com">muse@soulsofmuse.com</a></footer>`;
+  <footer class="site">${ruC ? "Souls of Muse — свободное объединение музыкантов, хранящих живую музыку." : "Souls of Muse is a free association of musicians keeping live music alive."} <a href="https://soulsofmuse.app/">soulsofmuse.app</a></footer>`;
 }
 
 /* ---------- views (pure HTML; binding happens after insertion, see binders) ---------- */
@@ -237,15 +272,15 @@ function vLeague(id, tab){
   const resolved = U.resolveLeague(id, tab, LEAGUES.map(l=>l.id), prefs.league);
   const l = LEAGUES.find(x=>x.id===resolved.id) || LEAGUES[0];
   if(resolved.idValid){ prefs.league=l.id; savePrefs(); }
-  const TABS=[["topics","Обсуждения"],["events","События"],["media","Медиатека"],["members","Участники"],["votes","Голосования"]];
+  const u=LU(), lt=leagueText(l), TABS=u.tabs;
   const initial = resolved.tab;
-  return chrome("workshop", `<p class="eyebrow">Пространство Лиги</p><h1>${esc(l.name)}</h1><p class="lede">${esc(l.desc)}</p>
-  <div class="emblem-slot">Эмблему каждая Лига выбирает сама — она появится здесь.</div>
-  <p><a class="btn ghost" href="#/leagues">← Каталог Лиг</a> <a class="btn ghost" href="#/welcome">Welcome</a> <a class="btn" href="#/space/${ROLE_SPACE[prefs.role]}">Моё пространство (${ROLES[prefs.role]})</a></p>
-  <div class="tabs" role="tablist" aria-label="Разделы Лиги">${TABS.map(([k,v])=>`<button role="tab" data-tab="${k}" id="tab-${k}" aria-controls="tabBody" aria-selected="${k===initial}" tabindex="${k===initial?"0":"-1"}">${v}</button>`).join("")}</div>
-  <div class="toolbar"><label>Поиск по разделу <input id="lq" type="search"></label></div>
+  return chrome("workshop", `<p class="eyebrow">${esc(u.kicker)}</p><h1>${esc(lt.name)}</h1><p class="lede">${esc(lt.desc)}</p>
+  <div class="emblem-slot">${esc(u.emblem)}</div>
+  <p><a class="btn ghost" href="#/leagues">${esc(u.back)}</a> <a class="btn" href="#/space/${ROLE_SPACE[prefs.role]}">${esc(u.mySpace)}</a></p>
+  <div class="tabs" role="tablist" aria-label="${esc(u.tabsLabel)}">${TABS.map(([k,v])=>`<button role="tab" data-tab="${k}" id="tab-${k}" aria-controls="tabBody" aria-selected="${k===initial}" tabindex="${k===initial?"0":"-1"}">${esc(v)}</button>`).join("")}</div>
+  <div class="toolbar"><label>${esc(u.search)} <input id="lq" type="search"></label></div>
   <div id="tabBody" class="list" role="tabpanel" aria-labelledby="tab-${initial}"></div>
-  <dialog id="dlg" aria-labelledby="dlgT"><h3 id="dlgT"></h3><p id="dlgB"></p><p id="dlgAct"></p><button class="btn" id="dlgClose" type="button">Закрыть (Esc)</button></dialog>`);
+  <dialog id="dlg" aria-labelledby="dlgT"><h3 id="dlgT"></h3><p id="dlgB"></p><p id="dlgAct"></p><button class="btn" id="dlgClose" type="button">${esc(u.close)}</button></dialog>`);
 }
 
 function lessonForkHTML(){
@@ -364,22 +399,22 @@ function bindLeague(initialTab, leagueId){
     const panel=$("#tabBody"); if(panel) panel.setAttribute("aria-labelledby","tab-"+tab);
     document.querySelectorAll("[data-tab]").forEach(x=>{ const on=x.dataset.tab===tab;
       x.setAttribute("aria-selected",String(on)); x.tabIndex = on?0:-1; });
-    const filt=a=>a.filter(x=>JSON.stringify(x).toLowerCase().includes(q)); let html="";
-    if(tab==="members") html=filt(DATA.members).map(m=>`<div class="item"><strong>${esc(m.n)}</strong><p>${esc(m.r)} · пример участника</p></div>`).join("");
-    else if(tab==="votes") html=filt(DATA.votes).map(v=>`<div class="item" data-id="${v.id}"><strong>${esc(v.t)}</strong> <span class="badge">${esc(v.st)}</span><p>${esc(v.b)}</p><button class="btn small" data-vote="${v.id}" type="button">Участвовать</button> <span role="status"></span></div>`).join("");
-    else html=filt(DATA[tab]).map(x=>`<button class="item" data-open="${x.id}" type="button"><strong>${esc(x.t)}</strong><p>${esc(x.w||x.k||x.a||"")}</p><p>${esc(x.b)}</p></button>`).join("");
-    $("#tabBody").innerHTML=html||`<p>Здесь пока пусто. <a href="#/leagues">Вернуться в каталог</a></p>`;
+    const filt=a=>a.filter(x=>JSON.stringify(x).toLowerCase().includes(q)); let html=""; const u=LU(), D=DL();
+    if(tab==="members") html=filt(D.members).map(m=>`<div class="item"><strong>${esc(m.n)}</strong><p>${esc(m.r)} · ${esc(u.exampleMember)}</p></div>`).join("");
+    else if(tab==="votes") html=filt(D.votes).map(v=>`<div class="item" data-id="${v.id}"><strong>${esc(v.t)}</strong> <span class="badge">${esc(v.st)}</span><p>${esc(v.b)}</p><button class="btn small" data-vote="${v.id}" type="button">${esc(u.vote)}</button> <span role="status"></span></div>`).join("");
+    else html=filt(D[tab]).map(x=>`<button class="item" data-open="${x.id}" type="button"><strong>${esc(x.t)}</strong><p>${esc(x.w||x.k||x.a||"")}</p><p>${esc(x.b)}</p></button>`).join("");
+    $("#tabBody").innerHTML=html||`<p>${esc(u.empty)} <a href="#/leagues">${esc(u.backCat)}</a></p>`;
     document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{
       const x=byId(tab, b.dataset.open); if(!x) return;
       $("#dlgT").textContent=x.t; $("#dlgB").textContent=x.b;
       $("#dlgAct").innerHTML = tab==="events"
-        ? `<button class="btn small" id="dlgReg" type="button">Записаться</button> <span role="status" id="dlgRegMsg"></span>`
-        : tab==="media" ? `Свои записи готовятся в <a href="#/studio">Студии</a>.` : `Обсуждение откроется вместе с жизнью Лиги.`;
+        ? `<button class="btn small" id="dlgReg" type="button">${esc(u.signUp)}</button> <span role="status" id="dlgRegMsg"></span>`
+        : tab==="media" ? `${esc(u.mediaAct)} <a href="#/studio">${esc(u.studio)}</a>.` : esc(u.topicAct);
       $("#dlg").showModal();
-      const reg=$("#dlgReg"); if(reg) reg.onclick=()=>{ $("#dlgRegMsg").textContent="Запись на событие ещё не открыта."; };
+      const reg=$("#dlgReg"); if(reg) reg.onclick=()=>{ $("#dlgRegMsg").textContent=u.signUpMsg; };
     });
     document.querySelectorAll("[data-vote]").forEach(b=>b.onclick=()=>{
-      b.nextElementSibling.textContent="Первое голосование ещё не открыто — ваш голос будет ждать своего дня.";
+      b.nextElementSibling.textContent=u.voteMsg;
     }); };
   const tabBtns=[...document.querySelectorAll("[data-tab]")];
   const activate=(btn)=>{ if(!btn) return;
