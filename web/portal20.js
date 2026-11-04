@@ -311,16 +311,19 @@ function shutter(kind) {
 
 function home() {
   const tt = t();
-  return `<div class="p20 p21 p20-home${st.shut.how ? " shut" : ""}">${sky("home")}${header()}
+  /* Portal 2.2: the promise runs across the top; the card and the two small arches
+     share the left column (the arches always show in full, the card scrolls inside
+     itself on short screens); Muse stands in the scene on the right. */
+  return `<div class="p20 p21 p22 p20-home${st.shut.how ? " shut" : ""}">${sky("home")}${header()}
     <main id="main" tabindex="-1" class="p20-main">
       ${route(0)}
+      <h1 class="p20-promise">${esc(tt.promise)}</h1>
       <div class="p20-homegrid">
-        <div class="p20-left"><h1 class="p20-promise">${esc(tt.promise)}</h1>${convCard()}</div>
-        <div class="p21-right">
-          ${museBox(museIdleText(), "home")}
+        <div class="p20-left">${convCard()}
           <div class="p21-stagewrap"><span class="p21-plinth" aria-hidden="true"></span>
             <div class="p20-doors p21-doors">${door("leagues", "02")}${door("space", "03")}</div></div>
         </div>
+        <div class="p21-right">${museBox(museIdleText(), "home")}</div>
       </div>
       <details class="p20-mnotes"><summary>${esc(tt.howTitle)}<i class="ph ph-caret-down" aria-hidden="true"></i></summary><div class="p20-shutbody">${howBody()}</div></details>
       <p class="p20-about">${esc(tt.about)}</p>
@@ -393,11 +396,13 @@ function bind() {
   });
   document.querySelectorAll("[data-door]").forEach(a => {
     const say = () => document.querySelector("[data-muse-say]");
-    const inn = () => { const s = say(); if (s) s.textContent = a.dataset.door === "leagues" ? t().museDoorL : t().museDoorS; mz.lean = a.dataset.door === "leagues" ? 0.6 : 1; };
+    const inn = () => { const s = say(); if (s) s.textContent = a.dataset.door === "leagues" ? t().museDoorL : t().museDoorS; mz.lean = a.dataset.door === "leagues" ? -1 : -0.6; };
     const out = () => { const s = say(); if (s) s.textContent = museIdleText(); mz.lean = 0; };
     on(a, "mouseenter", inn); on(a, "focus", inn); on(a, "mouseleave", out); on(a, "blur", out);
   });
   document.querySelectorAll("[data-muse]").forEach(m => on(m, "click", () => { mz.joy = performance.now() / 1000; }));
+  const sb = document.getElementById("p20Sign");
+  if (sb) { on(sb, "mouseenter", () => { mz.lean = -0.8; }); on(sb, "mouseleave", () => { mz.lean = 0; }); }
   document.querySelectorAll("[data-lsel]").forEach(b => b.onclick = () => { const v = b.dataset.lsel; select(v === "none" ? null : +v, true); });
   document.querySelectorAll("[data-auto]").forEach(b => b.onclick = e => { e.stopPropagation(); st.auto = !st.auto; ss.set("som_p21_auto", st.auto);
     b.setAttribute("aria-pressed", String(st.auto)); b.classList.toggle("on", st.auto); });
