@@ -6,6 +6,8 @@ Music education is one part of this broader mission. The current prototype focus
 
 This public repository contains the site served at https://soulsofmuse.app and the model test bench prepared for the Meta Global AI Developer Hackathon 2026.
 
+**Reviewers:** start at [`docs/FOR_REVIEWERS.md`](docs/FOR_REVIEWERS.md). It maps each judging criterion to evidence across all seven [workstreams](docs/workstreams/README.md). Machine-readable index: [`llms.txt`](llms.txt). Publication rules for this repository: [`docs/DISCLOSURE_POLICY.md`](docs/DISCLOSURE_POLICY.md).
+
 ## Current state
 
 - `web/`: the site served at https://soulsofmuse.app — the Convention portal (sign with your name written as music; the signature is kept on the visitor's device), the seven Leagues as a 3D circle, League pages, My space and the lesson interface. The lesson connects to the Muse service in `service/`; its verified scope and open items are recorded in `service/README.md`.
