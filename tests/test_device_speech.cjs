@@ -26,7 +26,7 @@ function fixture({ lang = "en", voices = [{ name: "Linh", lang: "vi-VN", localSe
     },
     speechSynthesis: { getVoices: () => voices, cancel: () => { cancels++; }, speak: utterance => { spoken.push(utterance); }, addEventListener() {} },
     SpeechSynthesisUtterance: class { constructor(text) { this.text = text; } },
-    AbortController, Uint8Array, Blob, atob: value => Buffer.from(value, "base64").toString("binary"),
+    AbortController, setTimeout, clearTimeout, Uint8Array, Blob, atob: value => Buffer.from(value, "base64").toString("binary"),
     URL: { createObjectURL: () => "blob:fixture", revokeObjectURL() {} },
     Audio: class { constructor(url) { this.url = url; this.style = {}; } setAttribute() {} play() { return Promise.resolve(); } pause() {} removeAttribute() {} load() {} remove() {} },
     render() {}, scrollX: 0, scrollY: 0, scrollTo() {}, P01: { state: { lang } } };

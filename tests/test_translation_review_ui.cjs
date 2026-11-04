@@ -9,7 +9,7 @@ function client(lang='en') {
   crypto:{randomUUID:()=>require('node:crypto').randomUUID()},
   setInterval:()=>0, addEventListener:()=>{}, P01:{state:{lang}},
   fetch:async()=>({status:401,ok:false,json:async()=>({detail:'unauthorized'})})};
- context.window=context;vm.createContext(context);
+ Object.assign(context,{AbortController,setTimeout,clearTimeout});context.window=context;vm.createContext(context);
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../web/harness-client.js'),'utf8'),context);
  const api=context.CabinetHarness;
  api.state.user={id:'M',role:'maestro'};

@@ -1,7 +1,8 @@
 "use strict";
 
 window.CabinetHarness = (() => {
-  const state = { user: null, meeting: null, lesson: null, sessions: [], heart: null, busy: false, status: "", pending: null, recording: false, asr: false, tts: false, media: false };
+  const state = { user: null, meeting: null, lesson: null, sessions: [], heart: null, busy: false, status: "", pending: null, recording: false, asr: false, tts: false, media: false, authChecking: true, authCheckFailed: false };
+  let initialAuthAttempt = null;
   let capture = null, captureAbort = null, composeText = "", focusCompose = false;
   let materialPending = null, planningPending = null, planningRetry = null;
   const reviewPending = new WeakMap();
@@ -222,6 +223,8 @@ window.CabinetHarness = (() => {
   function panel() {
     const disabled = state.busy ? " disabled" : "";
     const home = !location.hash.startsWith("#/session/");
+    if (!state.user && state.authChecking) return `<section class="cab-live" aria-busy="true"><p role="status">${word("Checking sign-in…", "Проверяем вход…")}</p></section>`;
+    if (!state.user && state.authCheckFailed) return `<section class="cab-live"><p role="status">${word("Could not check sign-in. Please retry.", "Не удалось проверить вход. Повторите проверку.")}</p><button type="button" class="cab-btn" data-harness-auth-retry${disabled}>${word("Retry sign-in check", "Повторить проверку входа")}</button></section>`;
     if (!state.user) return `<section class="cab-live"><b>${word("Join your meeting", "Войти на встречу")}</b>
       <form data-harness-login><label>${word("Participant", "Участник")}<input name="username" autocomplete="username" required maxlength="100"></label>
       <label>${word("Password", "Пароль")}<input name="password" type="password" autocomplete="current-password" required maxlength="256"></label>
@@ -311,6 +314,7 @@ window.CabinetHarness = (() => {
 
   function bind() {
     const on = (selector, event, fn) => document.querySelectorAll(selector).forEach(el => el.addEventListener(event, fn));
+    on("[data-harness-auth-retry]", "click", restoreInitialAuth);
     on("[data-harness-language]", "change", event => {
       const language = event.currentTarget.value;
       if (!state.user || state.busy || state.recording || !["en", "vi"].includes(language)) return;
@@ -453,25 +457,57 @@ window.CabinetHarness = (() => {
       await speechAudio.play().catch(() => {});
     });
   }
-  call("auth/me").then(async user => {
-    if (state.user) return; // An explicit login may have won this race.
-    state.user = user;
-    const initialMeeting = state.meeting;
-    const current = () => state.user === user && state.meeting === initialMeeting;
-    await capabilities();
-    if (!current()) return;
-    const saved = sessionStorage.getItem("som_meeting");
-    if (saved) {
-      try {
-        const meeting = await call("sessions/" + encodeURIComponent(saved));
-        if (!current()) return;
-        state.meeting = meeting;
-        if (window.Cabinet) Cabinet.state.drawer[user.role] = false;
+  async function restoreInitialAuth() {
+    if (state.user) return;
+    if (initialAuthAttempt) initialAuthAttempt.controller.abort();
+    const attempt = { controller: new AbortController() };
+    initialAuthAttempt = attempt;
+    state.authChecking = true; state.authCheckFailed = false; redraw();
+    let timer = null;
+    try {
+      const deadline = new Promise((_, reject) => {
+        timer = setTimeout(() => { attempt.controller.abort(); reject(new Error("auth_check_timeout")); }, 20000);
+        timer?.unref?.();
+      });
+      const lookup = (async () => {
+        const response = await fetch("/api/harness/auth/me", { credentials: "same-origin", signal: attempt.controller.signal });
+        const data = await response.json();
+        if (response.status === 401) return null;
+        if (!response.ok || typeof data?.id !== "string" || !["maestro", "artist"].includes(data.role)) throw new Error("auth_check_failed");
+        return data;
+      })();
+      const user = await Promise.race([lookup, deadline]);
+      clearTimeout(timer); timer = null;
+      if (initialAuthAttempt !== attempt || attempt.controller.signal.aborted || state.user) return;
+      state.authChecking = false;
+      if (!user) { redraw(); return; }
+      state.user = user; redraw();
+      const initialMeeting = state.meeting;
+      const current = () => state.user === user && state.meeting === initialMeeting;
+      await capabilities();
+      if (!current()) return;
+      const saved = sessionStorage.getItem("som_meeting");
+      if (saved) {
+        try {
+          const meeting = await call("sessions/" + encodeURIComponent(saved));
+          if (!current()) return;
+          state.meeting = meeting;
+          if (window.Cabinet) Cabinet.state.drawer[user.role] = false;
+        }
+        catch (_) { if (!current()) return; sessionStorage.removeItem("som_meeting"); }
       }
-      catch (_) { if (!current()) return; sessionStorage.removeItem("som_meeting"); }
+      if (await refresh()) redraw();
+    } catch (_) {
+      if (initialAuthAttempt === attempt && !state.user) {
+        state.authChecking = false; state.authCheckFailed = true; redraw();
+      }
+    } finally {
+      if (timer !== null) clearTimeout(timer);
+      if (initialAuthAttempt === attempt) initialAuthAttempt = null;
+      if (state.user) state.authChecking = false;
     }
-    if (await refresh()) redraw();
-  }).catch(() => {});
+  }
+  restoreInitialAuth();
   setInterval(async () => {
     if (!state.user || !state.meeting || state.busy || document.visibilityState !== "visible" || !location.hash.startsWith("#/session/")) return;
     if (document.activeElement?.matches("input,textarea")) return;

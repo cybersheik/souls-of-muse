@@ -3,7 +3,7 @@
 > Agentic workers: execute the already-approved947review plan with systematic debugging, targeted RED/GREEN tests and independent review. Owner's direct Go follows published review c2c3a982-78e4-47c8-a9a2-579a4d4ce7ee.
 
 Goal: make the existing live cabinet usable and provide a guarded ENVI server-speech baseline on soulsofmuse.app.
-Architecture: preserve Vercel frontend + existing Modal single-writer backend and all data/history. Separate explicit demo from account-bound live UI. Reuse the existing Meta MMS adapter for a noncommercial technical pilot; this is CX1's implementation choice and does not claim owner voice-quality acceptance or fine-tuning.
+Architecture: preserve Vercel frontend + existing Modal single-writer backend and all data/history; isolate neural speech in a private resource-free worker. Separate explicit demo from account-bound live UI. Reuse the existing Meta MMS adapter for a noncommercial technical pilot; this is CX1's implementation choice and does not claim owner voice-quality acceptance or fine-tuning.
 Tech: vanilla JS/CSS, FastAPI, pinned CPU PyTorch/Transformers, existing Modal Volume/Queue/Secrets.
 Spec: AI3-947 critical review and latest owner direction to execute it.
 
@@ -22,7 +22,7 @@ Spec: AI3-947 critical review and latest owner direction to execute it.
 - Late audio after accountA→B→A, meeting change or navigation must never play.
 - Live home cannot render fake participants/time/metrics or select another role.
 - Mobile source review, send and speech controls must be reachable without empty planning blocks above them.
-- CPU-only TTS image must be tested with both pinned checkpoints before enabling it; memory must fit measured peak.
+- CPU-only TTS image must be tested with both pinned checkpoints and dense Vietnamese before enabling it; worker peak must fit2816MiB with3072MiB allocation.
 - Recreate must preserve original single-writer permit and full ledger; no retry of ambiguous queue mutation.
 
 ## Tasks
@@ -30,9 +30,9 @@ Spec: AI3-947 critical review and latest owner direction to execute it.
 2. Notes worker: scoped hidden CSS and computed-style regression on1440/1179/390. No Portal2.2 redesign.
 3. Root frontend: failing server-audio account/race tests, guarded request/response path, disable rejected device fallback; participant speaking-language setting independent ofrole.
 4. TTS worker: bounded music-token normalization and cache revision with false-positive regressions; no downloads/cloud.
-5. Root cloud packaging: explicit Linux CPU torch pins, public pinned weights image,2GiB requested memory only for MMS-enabled image, clean Linux synthesis verification and source metadata. Do not touch storage/caps/identity.
+5. Root cloud packaging: explicit Linux CPU torch pins, public pinned weights image,3072MiB isolated private MMS worker; existing writer remains512MiB, clean Linux synthesis verification and source metadata. Do not touch storage/caps/identity.
 6. Root acceptance: targeted tests then full relevant Node/Python + clean Linux runtime. Own isolated browser1440/390 on local candidate before release.
 7. Root release: fresh cloud ledger/noHOLD snapshot, review exact source and deployment patch, one substantive existing-app recreate, main frontend exact SHA. No cosmetic-only redeploy.
 8. Root hosted check: health/source/files, roles, fresh canonical server audio, preserved ledger/history, actual user-visible fixes. Then concise947/920 checkpoint and update quiet monitor baseline.
 
-Status: implementation started; review is published. No task is complete solely because a worker reports GREEN.
+Status: review published first; frontend8835c59 is public after CI and own1440/390 verification. Real stress disproved2GiB combined deployment; private speech worker isolation replaces it. Linux/image/hosted speech gates remain before cloud release.

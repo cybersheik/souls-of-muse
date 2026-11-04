@@ -13,7 +13,7 @@ function fixture(storage=new Map()){
    else if(/\/sessions\/one$/.test(url))data={id:'one',state:'active',deliveries:[]};
    return{ok:true,status:200,json:async()=>data,headers:{get:()=>api.state.user.id}};},
   SomAudio:{start:async()=>({result:Promise.resolve('wav-fixture'),stop(){}})},
-  setInterval(){},addEventListener(){},render(){},scrollX:0,scrollY:0,scrollTo(){},AbortController,P01:{state:{lang:'en'}}};
+  setInterval(){},addEventListener(){},render(){},scrollX:0,scrollY:0,scrollTo(){},AbortController,setTimeout,clearTimeout,P01:{state:{lang:'en'}}};
  c.window=c;vm.createContext(c);vm.runInContext(fs.readFileSync(require.resolve('../web/harness-client.js'),'utf8'),c);api=c.CabinetHarness;
  Object.assign(api.state,{user:{id:'M',role:'maestro'},meeting:{id:'one',state:'active',deliveries:[]},asr:true});api.bind();return{api,c,calls,select,input,storage};
 }

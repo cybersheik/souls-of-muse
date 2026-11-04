@@ -45,7 +45,7 @@ function cabRole(role, demo = false) {
   const actual = !demo && window.CabinetHarness?.state.user?.role;
   return ["maestro", "artist"].includes(actual) ? actual : (["maestro", "artist", "admirer"].includes(role) ? role : "artist");
 }
-function cabHead(role, sessTitle, sessSub, demo = !window.CabinetHarness) {
+function cabHead(role, sessTitle, sessSub, demo = false) {
   const C = cabT();
   const user = !demo && window.CabinetHarness?.state.user;
   const [who, soul] = user ? [user.name, user.id] : demo ? (CabPS.CAB.people[role] || CabPS.CAB.people.artist) : ["", ""];
@@ -90,16 +90,21 @@ function liveHome(role) {
       ${user ? `<div><span class="rule-gold">${ru ? "Моя роль" : "My role"}</span><div class="cab-roles"><button type="button" class="cab-role frame-gold" data-cab-role="${role}" aria-pressed="true" disabled>${cabEsc(roleName)}</button></div><p>${cabEsc(user.id)}</p></div>` : ""}
       <nav class="cab-sidenav"><a href="#/convention">${ru ? "Конвенция" : "Convention"}</a>${user ? `<a href="#/space/${role}" data-private-notes-index>${ru ? "Мои заметки" : "My notes"}</a>` : ""}</nav>
     </aside><main id="main" tabindex="-1" class="cab-main">
-      <div><h1>${ru ? "Мои встречи" : "My meetings"}</h1><p class="cab-sub">${!user ? (ru ? "Войдите, чтобы увидеть свои встречи." : "Sign in to see your meetings.") : sessions.length ? (ru ? "Выберите встречу, чтобы подготовить или открыть урок." : "Choose a meeting to prepare or open your lesson.") : (ru ? "Пока нет встреч." : "No meetings yet.")}</p></div>
+      <div><h1>${ru ? "Мои встречи" : "My meetings"}</h1><p class="cab-sub">${!user ? H.state.authChecking ? (ru ? "Проверяем вход…" : "Checking sign-in…") : H.state.authCheckFailed ? (ru ? "Повторите проверку входа, чтобы открыть свои встречи." : "Retry the sign-in check to open your meetings.") : (ru ? "Войдите, чтобы увидеть свои встречи." : "Sign in to see your meetings.") : sessions.length ? (ru ? "Выберите встречу, чтобы подготовить или открыть урок." : "Choose a meeting to prepare or open your lesson.") : (ru ? "Пока нет встреч." : "No meetings yet.")}</p></div>
       ${sessions.length ? `<div class="cab-meeting-list">${sessions.map(meeting => `<section class="cab-meeting-card"><h2>${cabEsc(meeting.maestro_alias)} · ${cabEsc(meeting.artists?.map(artist => artist.name).join(", ") || meeting.artist_alias)}</h2><span class="cab-tag cab-tag-neutral">${cabEsc(states[meeting.state] || meeting.state)}</span><button type="button" class="cab-btn cab-btn-primary cab-meeting-open" data-harness-open="${cabEsc(meeting.id)}">${meeting.state === "created" ? (ru ? "Подготовить встречу" : "Prepare meeting") : (ru ? "Открыть встречу" : "Open meeting")}</button></section>`).join("")}</div>` : user ? `<p>${role === "maestro" ? (ru ? "Создайте встречу с зарегистрированными ID Артистов ниже." : "Create a meeting with registered Artist IDs below.") : (ru ? "Попросите Маэстро добавить ваш ID участника во встречу." : "Ask your Maestro to add your participant ID to a meeting.")}</p>` : ""}
       <section class="cab-home-controls">${H.panel()}</section>
       ${user && window.SomPrivateNotes ? SomPrivateNotes.indexHTML() : ""}
       <a class="cab-demo-link" href="#/demo/space/${role}">${ru ? "Посмотреть отдельный пример интерфейса" : "View a separate interface example"}</a>
     </main></div></div>`;
 }
+function serviceUnavailable(role) {
+  const ru = cabLang() === "ru";
+  return `<div class="cab cab-live-home" data-cab-screen="unavailable-${role}">${cabHead(role, "", "", false)}<main id="main" tabindex="-1" class="cab-main"><h1>${ru ? "Сервис недоступен" : "Service unavailable"}</h1><p role="status">${ru ? "Не удалось загрузить подключение к вашим встречам. Перезагрузите страницу." : "The connection to your meetings did not load. Reload the page."}</p><a class="cab-btn" data-cab-reload href="">${ru ? "Перезагрузить страницу" : "Reload page"}</a></main></div>`;
+}
 function home(role, options = {}) {
-  const demo = options.demo === true || !window.CabinetHarness;
+  const demo = options.demo === true;
   role = cabRole(role, demo);
+  if (!demo && !window.CabinetHarness) return serviceUnavailable(role);
   if (!demo) return liveHome(role);
   const C = cabT();
   const isA = role === "artist", isM = role === "maestro", isAd = role === "admirer";
@@ -280,8 +285,9 @@ function livePanels(meeting) {
   return cabState.livePanels;
 }
 function session(role, mode, options = {}) {
-  const demo = options.demo === true || !window.CabinetHarness;
+  const demo = options.demo === true;
   role = cabRole(role, demo);
+  if (!demo && !window.CabinetHarness) return serviceUnavailable(role);
   if (!demo && (!window.CabinetHarness.state.user || !window.CabinetHarness.state.meeting)) return home(role);
   const C = cabT();
   const isM = role === "maestro", isA = role === "artist", isAd = role === "admirer";
@@ -404,7 +410,7 @@ function leagues() {
         : `<button type="button" class="cab-btn" data-cab-join="${CAB_LEAGUE_IDS[i]}" aria-label="${cabEsc(C.joinLeague(name))}">${cabEsc(C.join)}</button>`}
     </section>`;
   }).join("");
-  return `<div class="cab" data-cab-screen="leagues">${cabHead("artist")}
+  return `<div class="cab" data-cab-screen="leagues">${cabHead("artist", "", "", true)}
   <main id="main" tabindex="-1" class="cab-main cab-leagues-main">
     <div><span class="rule-gold">${cabEsc(C.leaguesKicker)}</span><h1>${cabEsc(C.chooseLeague)}</h1><p class="cab-leagues-sub">${cabEsc(C.leaguesSub)}</p></div>
     <div class="cab-league-grid">${cards}
@@ -448,9 +454,13 @@ function cabRerender() { if (typeof render === "function") render(); }
 function bind() {
   const scr = document.querySelector("[data-cab-screen]");
   const demoScreen = scr?.dataset.cabDemo === "true";
-  if (!demoScreen && window.CabinetHarness) CabinetHarness.bind();
-  if (!demoScreen && window.SomLesson) SomLesson.bind();
-  if (!demoScreen && window.SomPrivateNotes) SomPrivateNotes.bind();
+  if (!demoScreen && window.CabinetHarness) {
+    CabinetHarness.bind();
+    if (window.SomLesson) SomLesson.bind();
+    if (window.SomPrivateNotes) SomPrivateNotes.bind();
+  }
+  const reload = document.querySelector("[data-cab-reload]");
+  if (reload) reload.addEventListener("click", event => { event.preventDefault(); location.reload(); });
   for (const [selector, field] of [["[data-cab-live-plan]", "plan"], ["[data-cab-live-controls]", "controls"]]) {
     const disclosure = document.querySelector(selector);
     if (disclosure && window.CabinetHarness?.state.meeting) {

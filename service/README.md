@@ -550,19 +550,15 @@ For a private technical evaluation, install `service/requirements-tts.txt` into 
 
 On 3 November, real CPU synthesis produced four EN/VI WAVs. The first request took 5.98 seconds including imports/load; subsequent samples took 0.25–0.56 seconds. Peak macOS process RSS reached 1364 MiB with both languages loaded, so the existing 512 MiB Modal configuration is insufficient for this implementation. It has not been increased or deployed. Production resource sizing, listening review and genuine microphone → ASR → translation → approval → speech acceptance are still open. The two-profile browser test used fixture translations and real MMS output; it confirmed EN and VI playback, no draft audio, no overflow at 390 px and cleanup on logout. It does not establish real ASR or translation quality.
 
-## Browser device voice when server speech is unavailable
+## Server voice and participant language
 
-When `/health` reports `tts: false`, an approved message offers **Device voice**
-only if browser SpeechSynthesis exposes an installed (`localService: true`)
-English or Vietnamese voice matching its target language. Playback requires a
-click and a fresh authenticated meeting read; only that response's approved
-canonical text is spoken. Drafts, cached browser replacements and mismatched
-account/meeting replies are refused. Missing voices are labelled unavailable;
-another language or network voice is never substituted. The stop control,
-logout, navigation and a current-account 401 cancel device speech. This does
-not enable ASR/translation or add a server speech provider, and is not an
-automatic fallback after a configured server TTS error. Browser/device voice
-availability and musical pronunciation still require a listening check.
+The owner rejected browser/device voices. The live cabinet offers server audio only when its capability is connected; a failed or unavailable server never falls back to `SpeechSynthesis`. Playback is guarded by the same participant request/response marker and captured account/meeting object, including late A→B→A replies, logout and navigation.
+
+Each participant selects their own EN or VI speaking language independently of their role or interface language. Dictation uses that choice and puts the transcript in an editable field. Only an explicit Send requests interpretation; source review, the reviewer and Maestro approval remain required.
+
+The 4 November cloud candidate isolates MMS in a private Modal CPU worker with 3072 MiB, no Volume, writer Queue, account/model Secrets or public HTTP endpoint. The existing writer remains 512 MiB. Opt in at deployment with `SOM_DEPLOY_MMS_TTS=1` and an operator-selected `SOM_DEPLOY_MMS_TTS_DIR` containing the exact pinned assets. The worker image uses `requirements-tts-cpu.txt`; build and Linux CI must pass actual EN/VI synthesis, dense Vietnamese stress and a 2816 MiB peak-RSS gate before release. Runtime has no model downloads. Worker failures return a sanitized speech error; they do not own or release the writer permit.
+
+Speech normalization is bounded to 240 characters after expansion, without truncation. Longer approved messages remain readable as text; unsupported notation/length is refused before inference. Audio remains bounded to 30 seconds of mono 16 kHz PCM16. Normalization revision v4 invalidates older audio-cache entries. This is a noncommercial technical evaluation of the existing MMS checkpoints, not fine-tuning or owner acceptance of their voice quality.
 
 ## Optional private RTC voice transport
 

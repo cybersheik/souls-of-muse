@@ -11,7 +11,7 @@ function fixture(){
     URL:{createObjectURL:b=>{blobs.push(b);return'blob:approved';},revokeObjectURL(){}},
     Audio:class{constructor(){this.style={};}setAttribute(){}play(){played.push(this);return Promise.resolve();}pause(){}removeAttribute(){}load(){}remove(){}},
     speechSynthesis:{getVoices:()=>[{lang:'vi-VN',localService:true}],speak(){throw Error('native voice rejected by owner');},cancel(){},addEventListener(){}},SpeechSynthesisUtterance:class{},
-    AbortController,Uint8Array,Blob,atob:s=>Buffer.from(s,'base64').toString('binary'),render(){},scrollX:0,scrollY:0,scrollTo(){},P01:{state:{lang:'en'}}};
+    AbortController,setTimeout,clearTimeout,Uint8Array,Blob,atob:s=>Buffer.from(s,'base64').toString('binary'),render(){},scrollX:0,scrollY:0,scrollTo(){},P01:{state:{lang:'en'}}};
   c.window=c;vm.createContext(c);vm.runInContext(fs.readFileSync(require.resolve('../web/harness-client.js'),'utf8'),c);
   Object.assign(c.CabinetHarness.state,{tts:true,user:{id:'A',role:'artist'},meeting:{id:'one',state:'active',deliveries:[{id:'m1',state:'approved',text:'Chơi chậm.',target_lang:'vi'}]}});
   c.CabinetHarness.bind();

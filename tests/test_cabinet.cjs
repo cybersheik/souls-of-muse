@@ -29,7 +29,7 @@ for (const lang of ["en", "ru"]) {
   for (const role of ["maestro", "artist", "admirer"]) {
     // route patterns in app.js accept these hashes
     assert.ok(new RegExp("^#/space(?:\\/(artist|maestro|admirer))?$").test("#/space/" + role), `#/space/${role}`);
-    const h = Cabinet.home(role);
+    const h = Cabinet.home(role, { demo: true });
     assert.ok(h.includes(`data-cab-screen="home-${role}"`), `home ${role} ${lang}`);
     assert.equal(gold(h), 1, `home ${role} ${lang}: exactly one filled gold button`);
     screens.push([`home-${role}-${lang}`, h]);
@@ -40,7 +40,7 @@ for (const lang of ["en", "ru"]) {
       || new RegExp("^#/session/(admirer)/(circle)$").test(`#/session/${role}/${rmode}`);
     assert.ok(ok, `#/session/${role}/${rmode}`);
     const mode = rmode === "circle" ? "circle" : "one";
-    const s = Cabinet.session(role, mode);
+    const s = Cabinet.session(role, mode, { demo: true });
     assert.ok(s.includes(`data-cab-screen="session-${role}-${mode}"`), `session ${role} ${mode} ${lang}`);
     // gold-button rule: Maestro screens carry the filled metronome button;
     // Artist/Admirer session screens have none (lead owns the metronome),
@@ -53,7 +53,7 @@ for (const lang of ["en", "ru"]) {
 
 // --- role switch works ---
 window.P01.state.lang = "en";
-const homeEn = Cabinet.home("artist");
+const homeEn = Cabinet.home("artist", { demo: true });
 for (const role of ["maestro", "artist", "admirer"]) assert.ok(homeEn.includes(`data-cab-role="${role}"`), `role button ${role}`);
 assert.equal((homeEn.match(/aria-pressed="true"/g) || []).length >= 1, true);
 assert.ok(homeEn.includes('data-cab-role="artist" aria-pressed="true"'), "active role pressed");
@@ -66,22 +66,22 @@ assert.ok(fs.existsSync(path.join(web, "assets", "baton-v2.svg")), "assets/baton
 
 // --- EN and RU strings present (1.4 texts) ---
 window.P01.state.lang = "en";
-const hEn = Cabinet.home("artist");
+const hEn = Cabinet.home("artist", { demo: true });
 for (const t of ["League of the String", "plucked strings · my instrument: guitar", "What shall we play today?", "plucked strings · chat, topics, decisions", "Session 3 · Guitar"])
   assert.ok(hEn.includes(t), "EN home: " + t);
-assert.ok(Cabinet.home("admirer").includes("Sessions open to listen · League of the String"), "EN admirer subtitle");
+assert.ok(Cabinet.home("admirer", { demo: true }).includes("Sessions open to listen · League of the String"), "EN admirer subtitle");
 for (const mode of ["circle", "one"]) {
-  const ms = Cabinet.session("maestro", mode);
+  const ms = Cabinet.session("maestro", mode, { demo: true });
   assert.ok(ms.includes("Video check"), `EN maestro ${mode} Video check`);
   assert.ok(ms.includes("Video demo"), `EN maestro ${mode} Video demo`);
   assert.ok(!ms.includes("Video demonstration"), "EN: old Video demonstration gone");
 }
 window.P01.state.lang = "ru";
-const hRu = Cabinet.home("artist");
+const hRu = Cabinet.home("artist", { demo: true });
 for (const t of ["Лига струны · гитара", "щипковые струнные", "Что сыграем сегодня?", "щипковые струнные · чат, топики, решения", "Встреча 3 · Гитара"])
   assert.ok(hRu.includes(t), "RU home: " + t);
-assert.ok(Cabinet.home("admirer").includes("Лига струны"), "RU admirer subtitle");
-const msRu = Cabinet.session("maestro", "circle");
+assert.ok(Cabinet.home("admirer", { demo: true }).includes("Лига струны"), "RU admirer subtitle");
+const msRu = Cabinet.session("maestro", "circle", { demo: true });
 assert.ok(msRu.includes("Видео контроль"), "RU maestro: Видео контроль");
 assert.ok(msRu.includes("Показ"), "RU maestro: Показ (Video demo in the 1.4 RU frame)");
 for (const key of Object.keys(S.CAB.en)) assert.ok(key in S.CAB.ru, "CAB.ru has " + key);

@@ -118,3 +118,23 @@ test("live conversation uses the account language controls and pair instead of a
   const demo = c.Cabinet.session("maestro", "one", { demo: true });
   assert.equal(calls, liveCalls); assert.doesNotMatch(demo, /data-harness-language/);
 });
+
+test("missing Harness module fails closed on real home and session routes", () => {
+  const c = client(); delete c.CabinetHarness;
+  for (const html of [c.Cabinet.home("maestro"), c.Cabinet.session("maestro", "circle")]) {
+    assert.match(html, /Service unavailable/);
+    assert.match(html, /data-cab-reload/);
+    assert.doesNotMatch(html, /18:30|Amara|Kenji|55%|12:34|data-harness-|data-cab-demo="true"|example data/i);
+  }
+  let reloads = 0, protectedCalls = 0, click;
+  c.location.reload = () => { reloads++; }; c.SomLesson.bind = () => { protectedCalls++; };
+  c.document.querySelector = selector => selector === "[data-cab-reload]" ? { addEventListener: (type, handler) => { click = handler; } } : null;
+  c.Cabinet.bind(); click({ preventDefault() {} });
+  assert.equal(reloads, 1); assert.equal(protectedCalls, 0);
+});
+
+test("explicit demo still works when the Harness module is missing", () => {
+  const c = client(); delete c.CabinetHarness;
+  assert.match(c.Cabinet.home("artist", { demo: true }), /data-cab-demo="true"/);
+  assert.match(c.Cabinet.session("artist", "one", { demo: true }), /data-cab-demo="true"/);
+});
