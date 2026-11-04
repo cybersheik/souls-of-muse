@@ -38,23 +38,24 @@ function fixture({ deferMedia = false, lang = "en" } = {}) {
   const stream = { getTracks: () => tracks, getAudioTracks: () => tracks.filter(t => t.kind === "audio"), getVideoTracks: () => tracks.filter(t => t.kind === "video") };
   let release;
   const media = deferMedia ? new Promise(resolve => { release = () => resolve(stream); }) : Promise.resolve(stream);
-  const window = { P01: { state: { lang } }, addEventListener() {}, dispatchEvent() {} };
+  state.windowEvents = {};
+  const window = { P01: { state: { lang } }, addEventListener: (name, handler) => { state.windowEvents[name] = handler; }, dispatchEvent() {} };
   const context = { window, document: { createElement: tag => new Element(tag) }, navigator: { mediaDevices: {
     enumerateDevices: async () => state.devices,
     getUserMedia: constraints => { state.mediaCalls++; state.mediaRequests.push(constraints); if (state.mediaCalls > 1) state.onNextMedia?.(); return state.mediaCalls === 1 ? media : state.nextMedia; }
   } },
     RTCPeerConnection: PC, MediaStream: class { constructor(t = []) { this.tracks = t; } addTrack(t) { this.tracks.push(t); } getTracks() { return this.tracks; } getAudioTracks() { return this.tracks.filter(t => t.kind === "audio"); } getVideoTracks() { return this.tracks.filter(t => t.kind === "video"); } },
-    setTimeout: fn => { state.timers.push(fn); return state.timers.length; }, clearTimeout() {}, Event: class {}, console, URLSearchParams };
+    setTimeout: (fn, delay) => { fn.delay = delay; state.timers.push(fn); return fn; }, clearTimeout: fn => { state.timers = state.timers.filter(timer => timer !== fn); }, Event: class {}, console, URLSearchParams, AbortController };
   vm.runInNewContext(fs.readFileSync(require.resolve("../web/conference-client.js"), "utf8"), context);
-  const request = async (path, body) => {
-    state.requests.push({ path, body });
-    if (path.endsWith("/join")) return { self: "M", connection_id: "m-current", peers: state.peers, cursor: 0 };
+  const request = async (path, body, options) => {
+    state.requests.push({ path, body, options });
+    if (path.endsWith("/join")) { state.onJoin?.(); if (state.joinReply) return state.joinReply; return { self: "M", connection_id: "m-current", peers: state.peers, cursor: 0 }; }
     if (path.endsWith("/signal") && state.failSignal) throw new Error(state.failSignal);
     if (path.includes("/events?")) { const events = state.events; state.events = []; return { self: "M", peers: state.peers, events, cursor: events.at(-1)?.id || 0 }; }
     return { ok: true };
   };
   const root = new Element("div");
-  return { conference: window.SomConference, state, root, request, release };
+  return { conference: window.SomConference, state, root, request, release, context };
 }
 
 test("mount never requests devices; start adds both tracks and stop releases every resource", async () => {
@@ -66,6 +67,7 @@ test("mount never requests devices; start adds both tracks and stop releases eve
   assert.equal(f.state.pcs.length, 2);
   for (const pc of f.state.pcs) assert.deepEqual(pc.tracks.map(t => t.kind), ["audio", "video"]);
   await f.conference.stop();
+  assert.equal(f.state.requests.find(r => r.path.endsWith("/join")).options.signal.aborted, true);
   assert.ok(f.state.tracks.every(t => t.stopped));
   assert.ok(f.state.pcs.every(pc => pc.closed));
   assert.equal(f.state.requests.filter(r => r.path.endsWith("/leave")).length, 1);
@@ -142,6 +144,135 @@ test("replaceTrack failure rolls back changed peers and keeps the current call a
   assert.ok(f.state.pcs.every(pc => !pc.closed));
   assert.ok(walk(f.root).some(e => /Camera change failed/i.test(e.textContent)));
   await f.conference.stop();
+});
+
+test("created meeting captures local preview without any HTTP, peer connection or send", async () => {
+  const f = fixture(); f.state.peers = [{ id: "A", connection_id: "a" }];
+  f.context.RTCPeerConnection = undefined; // Local checks do not need WebRTC signalling.
+  f.conference.mount(f.root, { sid: "lesson", userId: "M", state: "created", request: f.request });
+  assert.equal(f.state.mediaCalls, 0); await f.conference.start();
+  assert.equal(f.state.requests.length, 0); assert.equal(f.state.pcs.length, 0);
+  assert.ok(walk(f.root).some(e => e.tagName === "video" && e.srcObject));
+  assert.ok(walk(f.root).some(e => /Local preview only/i.test(e.textContent)));
+  assert.equal(f.conference.connected(), false); await f.conference.stop();
+});
+
+test("join deadline stops capture and cleans a late capability without creating peers", async () => {
+  const f = fixture(); let resolveJoin;
+  f.state.joinReply = new Promise(resolve => { resolveJoin = resolve; });
+  const joining = new Promise(resolve => { f.state.onJoin = resolve; });
+  f.conference.mount(f.root, { sid: "lesson", userId: "M", request: f.request }); const starting = f.conference.start(); await joining;
+  f.state.timers.find(fn => fn.delay >= 10000)(); await starting;
+  assert.equal(f.state.requests.find(r => r.path.endsWith("/join")).options.signal.aborted, true);
+  assert.ok(f.state.tracks.every(t => t.stopped)); assert.equal(f.state.pcs.length, 0);
+  resolveJoin({ self: "M", connection_id: "late", peers: [{ id: "A", connection_id: "a" }], cursor: 0 });
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(f.state.requests.filter(r => r.path.endsWith("/leave")).length, 1);
+  assert.equal(f.state.requests.find(r => r.path.endsWith("/leave")).options, undefined);
+  assert.equal(f.state.pcs.length, 0);
+});
+
+test("stop aborts a pending logical join before retry and never sends the stale conference POST", async () => {
+  const f = fixture(); let releaseLogical, announceLogical, first = true;
+  const logicalPending = new Promise(resolve => { releaseLogical = resolve; });
+  const entered = new Promise(resolve => { announceLogical = resolve; });
+  const conferencePosts = [], cancelledOptions = [];
+  const adapter = async (path, body, options) => {
+    if (path.endsWith("/join")) {
+      if (first) {
+        first = false; cancelledOptions.push(options); announceLogical(); await logicalPending;
+        if (options?.signal?.aborted || !options?.isCurrent?.()) throw new Error("cancelled_logical_join");
+      }
+      conferencePosts.push(path);
+      return { self: "M", connection_id: "new-connection", peers: [], cursor: 0 };
+    }
+    return { ok: true };
+  };
+  f.conference.mount(f.root, { sid: "lesson", userId: "M", request: adapter });
+  const old = f.conference.start(); await entered;
+  await f.conference.stop();
+  assert.equal(cancelledOptions[0]?.signal?.aborted, true);
+  assert.equal(cancelledOptions[0]?.isCurrent?.(), false);
+  const fresh = ["audio", "video"].map(kind => ({ kind, enabled: true, stop() { this.stopped = true; } }));
+  f.state.nextMedia = Promise.resolve({ getTracks: () => fresh, getVideoTracks: () => fresh.filter(t => t.kind === "video"), getAudioTracks: () => fresh.filter(t => t.kind === "audio") });
+  await f.conference.start();
+  releaseLogical(); await old;
+  assert.equal(conferencePosts.length, 1);
+  assert.equal(f.conference.connected(), true); await f.conference.stop();
+});
+
+test("local mic meter has no destination route; explicit speaker tone is bounded and stop closes checks", async () => {
+  const f = fixture(), edges = [], contexts = [];
+  class AudioContext {
+    constructor() { this.state = "running"; this.currentTime = 0; this.destination = { kind: "destination" }; contexts.push(this); }
+    createMediaStreamSource() { this.source = { kind: "microphone", connect: target => edges.push(["microphone", target.kind]), disconnect() {} }; return this.source; }
+    createAnalyser() { return { kind: "analyser", fftSize: 0, getByteTimeDomainData: values => values.fill(160), disconnect() {} }; }
+    createGain() { return { kind: "gain", gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect: target => edges.push(["gain", target.kind]), disconnect() {} }; }
+    createOscillator() { const oscillator = { kind: "tone", frequency: { value: 0 }, connect: target => edges.push(["tone", target.kind]), start: () => { oscillator.started = true; }, stop: when => { oscillator.stopAt = when; }, disconnect() {} }; this.oscillator = oscillator; return oscillator; }
+    resume() { return Promise.resolve(); } close() { this.closed = true; return Promise.resolve(); }
+  }
+  f.context.window.AudioContext = AudioContext;
+  f.conference.mount(f.root, { sid: "lesson", userId: "M", state: "created", request: f.request }); await f.conference.start();
+  assert.deepEqual(edges, [["microphone", "analyser"]]);
+  assert.ok(walk(f.root).find(e => e.tagName === "meter").value > 0);
+  await walk(f.root).find(e => e.textContent === "Test speaker").listeners.click();
+  assert.equal(contexts[0].oscillator.started, true);
+  assert.ok(contexts[0].oscillator.stopAt > 0 && contexts[0].oscillator.stopAt <= 1);
+  assert.ok(!edges.some(([from, to]) => from === "microphone" && to === "destination"));
+  f.state.windowEvents.hashchange(); assert.equal(contexts[0].closed, true); assert.equal(f.state.timers.length, 0);
+  assert.ok(f.state.tracks.every(track => track.stopped));
+});
+
+test("created to active mount never autojoins; explicit second click reuses capture", async () => {
+  const f = fixture();
+  f.conference.mount(f.root, { sid: "lesson", userId: "M", state: "created", request: f.request }); await f.conference.start();
+  f.conference.mount(f.root, { sid: "lesson", userId: "M", state: "active", request: f.request });
+  assert.equal(f.state.requests.length, 0); assert.equal(f.state.mediaCalls, 1);
+  await f.conference.start();
+  assert.equal(f.state.mediaCalls, 1); assert.equal(f.state.requests.filter(r => r.path.endsWith("/join")).length, 1);
+  assert.equal(f.conference.connected(), true); await f.conference.stop();
+});
+
+test("created capture intent stays local when lesson becomes active before permission grant", async () => {
+  const f = fixture({ deferMedia: true }); f.state.peers = [{ id: "A", connection_id: "a" }];
+  f.conference.mount(f.root, { sid: "lesson", userId: "M", state: "created", request: f.request });
+  const checking = f.conference.start();
+  f.conference.mount(f.root, { sid: "lesson", userId: "M", state: "active", request: f.request });
+  f.release(); await checking;
+  assert.equal(f.state.requests.length, 0); assert.equal(f.state.pcs.length, 0);
+  assert.equal(f.conference.connected(), false); assert.equal(f.state.mediaCalls, 1);
+  await f.conference.start();
+  assert.equal(f.state.requests.filter(r => r.path.endsWith("/join")).length, 1);
+  assert.equal(f.state.pcs.length, 1); assert.equal(f.state.mediaCalls, 1);
+  await f.conference.stop();
+});
+
+test("local preview is visible before a pending lesson join resolves", async () => {
+  const f = fixture(); let resolveJoin;
+  f.state.joinReply = new Promise(resolve => { resolveJoin = resolve; });
+  const joining = new Promise(resolve => { f.state.onJoin = resolve; });
+  f.conference.mount(f.root, { sid: "lesson", userId: "M", request: f.request }); const starting = f.conference.start();
+  await joining;
+  assert.ok(walk(f.root).some(e => e.tagName === "video" && e.srcObject));
+  resolveJoin({ self: "M", connection_id: "m-current", peers: [], cursor: 0 }); await starting; await f.conference.stop();
+});
+
+test("capture deadline ends waiting and a late permission grant is stopped", async () => {
+  const f = fixture({ deferMedia: true });
+  f.conference.mount(f.root, { sid: "lesson", userId: "M", state: "created", request: f.request }); const starting = f.conference.start();
+  assert.ok(f.state.timers.some(fn => fn.delay >= 10000));
+  f.state.timers.find(fn => fn.delay >= 10000)(); await starting;
+  assert.ok(walk(f.root).some(e => /permission.*timed out/i.test(e.textContent)));
+  f.release(); await Promise.resolve(); await Promise.resolve();
+  assert.ok(f.state.tracks.every(t => t.stopped)); assert.equal(f.state.requests.length, 0);
+});
+
+test("device absence and denied permission have distinct actionable messages", async () => {
+  for (const [name, expected] of [["NotFoundError", /camera or microphone.*not found/i], ["NotAllowedError", /permission.*denied/i]]) {
+    const f = fixture(); f.context.navigator.mediaDevices.getUserMedia = async () => { const error = new Error(name); error.name = name; throw error; };
+    f.conference.mount(f.root, { sid: "lesson", userId: "M", state: "created", request: f.request }); await f.conference.start();
+    assert.ok(walk(f.root).some(e => expected.test(e.textContent))); assert.equal(f.state.requests.length, 0);
+  }
 });
 
 test("hangup during permission prompt stops late tracks and never joins", async () => {

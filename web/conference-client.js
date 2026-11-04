@@ -33,7 +33,12 @@ window.SomConference = (() => {
   function play(video) { const result = video.play(); if (result?.catch) result.catch(() => status(word("Press Enable sound to hear the lesson.", "Нажмите «Включить звук», чтобы слышать урок."))); }
   function controls() {
     if (!view) return;
-    view.start.disabled = !!active;
+    const busy = active && ["capturing", "joining"].includes(active.phase);
+    const created = (active?.config || binding)?.state === "created";
+    view.start.disabled = !!busy || !!active?.connectionId || (!!active?.stream && created);
+    view.start.textContent = active?.stream && !active.connectionId && !created
+      ? word("Connect to lesson", "Подключиться к уроку")
+      : created ? word("Check camera & microphone", "Проверить камеру и микрофон") : word("Connect camera & microphone", "Подключить камеру и микрофон");
     view.hangup.disabled = !active;
     view.mute.disabled = !active?.stream;
     view.camera.disabled = !active?.stream;
@@ -50,7 +55,9 @@ window.SomConference = (() => {
     if (options) {
       if (!options.sid || !options.userId || typeof options.request !== "function") throw new Error("conference_context_required");
       if (binding && (binding.sid !== options.sid || binding.userId !== options.userId)) stop();
-      binding = { ...options };
+      binding = { ...options, state: options.state === undefined ? "active" : options.state };
+      if (!["created", "active"].includes(binding.state)) { stop(); throw new Error("conference_state_invalid"); }
+      if (active) active.config = { ...binding };
     }
     if (!binding) return;
     if (!panel) {
@@ -72,21 +79,27 @@ window.SomConference = (() => {
         active.stream.getVideoTracks().forEach(track => { track.enabled = !active.cameraOff; }); controls();
       });
       const switchCameraButton = button(word("Switch camera", "Сменить камеру"), switchCamera);
+      const speaker = button(word("Test speaker", "Проверить динамик"), testSpeaker);
       const sound = button(word("Enable sound", "Включить звук"), () => {
         if (active) for (const peer of active.peers.values()) play(peer.tile.video);
       });
-      [startButton, mute, camera, switchCameraButton, sound, hangup].forEach(child => toolbar.appendChild(child));
+      [startButton, mute, camera, switchCameraButton, speaker, sound, hangup].forEach(child => toolbar.appendChild(child));
+      const micCheck = node("label", "som-conference-mic-check", word("Microphone input · local only ", "Уровень микрофона · локально "));
+      const micMeter = node("meter", "som-conference-mic-meter"); micMeter.min = 0; micMeter.max = 1; micMeter.value = 0;
+      micMeter.setAttribute("aria-label", word("Local microphone input level", "Локальный уровень микрофона"));
+      const micNote = node("span", "som-conference-mic-note", word("Connect local devices to check input.", "Подключите локальные устройства для проверки."));
+      micCheck.appendChild(micMeter); micCheck.appendChild(micNote);
       const statusNode = node("p", "som-conference-status"); statusNode.setAttribute("role", "status");
       const note = node("p", "som-conference-note", word(
         "Direct connection for up to three participants. Use headphones. Some networks cannot connect without a relay.",
         "Прямой звонок до трёх участников. Используйте наушники. В некоторых сетях без ретранслятора соединение невозможно."));
-      panel.appendChild(grid); panel.appendChild(toolbar); panel.appendChild(statusNode); panel.appendChild(note);
-      view = { grid, start: startButton, hangup, mute, camera, switchCamera: switchCameraButton, status: statusNode };
+      panel.appendChild(grid); panel.appendChild(toolbar); panel.appendChild(micCheck); panel.appendChild(statusNode); panel.appendChild(note);
+      view = { grid, start: startButton, hangup, mute, camera, speaker, micMeter, micNote, switchCamera: switchCameraButton, status: statusNode };
     }
     element.appendChild(panel); controls(); status(message);
   }
-  function request(session, path, body) {
-    return session.config.request(`sessions/${encodeURIComponent(session.config.sid)}/conference/${path}`, body);
+  function request(session, path, body, options) {
+    return session.config.request(`sessions/${encodeURIComponent(session.config.sid)}/conference/${path}`, body, options);
   }
   function closePeer(session, id) {
     const peer = session.peers.get(id);
@@ -99,6 +112,9 @@ window.SomConference = (() => {
     const session = active;
     if (!session) return;
     active = null; session.closed = true; clearTimeout(session.timer);
+    session.joinController?.abort();
+    closeChecks(session);
+    for (const cancel of session.pending || []) cancel();
     if (session.stream) session.stream.getTracks().forEach(track => track.stop());
     if (session.cameraCapture) session.cameraCapture.getTracks().forEach(track => track.stop());
     for (const id of Array.from(session.peers.keys())) closePeer(session, id);
@@ -108,6 +124,76 @@ window.SomConference = (() => {
       try { await request(session, "leave", { connection_id: session.connectionId }); }
       catch (_) { /* The server's short lease expires even if the page was lost. */ }
     }
+  }
+  function closeChecks(session) {
+    clearTimeout(session.meterTimer);
+    try { session.speakerTone?.stop(); } catch (_) {}
+    try { session.micSource?.disconnect(); session.micAnalyser?.disconnect(); } catch (_) {}
+    if (session.audioContext) session.audioContext.close().catch(() => {});
+    session.audioContext = null;
+    if (view) { view.micMeter.value = 0; view.micNote.textContent = word("Local input check stopped.", "Локальная проверка остановлена."); }
+  }
+  function localChecks(session) {
+    const Context = window.AudioContext || window.webkitAudioContext;
+    if (!Context) { view.micNote.textContent = word("Input meter unavailable in this browser.", "Измеритель недоступен в этом браузере."); return; }
+    try {
+      const context = new Context(); session.audioContext = context;
+      const analyser = context.createAnalyser(); analyser.fftSize = 1024; session.micAnalyser = analyser;
+      const source = context.createMediaStreamSource(session.stream); session.micSource = source;
+      source.connect(analyser); // Intentionally never connected to an audio destination.
+      if (context.state === "suspended") context.resume().catch(() => {});
+      const values = new Uint8Array(analyser.fftSize);
+      const sample = () => {
+        if (!alive(session)) return;
+        analyser.getByteTimeDomainData(values);
+        const mean = values.reduce((sum, value) => sum + ((value - 128) / 128) ** 2, 0) / values.length;
+        view.micMeter.value = session.muted ? 0 : Math.min(1, Math.sqrt(mean) * 4);
+        view.micNote.textContent = context.state === "suspended"
+          ? word("Audio check paused. Click Test speaker.", "Проверка приостановлена. Нажмите «Проверить динамик».")
+          : session.muted ? word("Microphone muted.", "Микрофон выключен.") : session.phase === "connected"
+            ? word("Lesson microphone input level.", "Уровень микрофона урока.") : word("Local input only; not sent.", "Только локальный вход; не передаётся.");
+        session.meterTimer = setTimeout(sample, 100);
+      };
+      sample();
+    } catch (_) { closeChecks(session); view.micNote.textContent = word("Input meter unavailable in this browser.", "Измеритель недоступен в этом браузере."); }
+  }
+  async function testSpeaker() {
+    const session = active;
+    if (!session?.stream) { status(word("Check local camera and microphone first, then test the speaker.", "Сначала проверьте локальные камеру и микрофон, затем динамик.")); return; }
+    const context = session.audioContext;
+    if (!context) { status(word("Speaker check unavailable in this browser.", "Проверка динамика недоступна в этом браузере.")); return; }
+    try {
+      if (context.state === "suspended") await bounded(session, context.resume(), "speaker_timeout");
+      if (!alive(session)) return;
+      try { session.speakerTone?.stop(); } catch (_) {}
+      const tone = context.createOscillator(), gain = context.createGain();
+      tone.frequency.value = 440; gain.gain.setValueAtTime(0.05, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.25);
+      tone.connect(gain); gain.connect(context.destination);
+      session.speakerTone = tone;
+      tone.onended = () => { tone.disconnect(); gain.disconnect(); };
+      tone.start(); tone.stop(context.currentTime + 0.3);
+      status(word("Short local test tone. If silent, check device volume and output.", "Короткий локальный тестовый сигнал. Если его не слышно, проверьте громкость и устройство вывода."));
+    } catch (_) { if (alive(session)) status(word("Speaker check failed. Check browser audio permissions and output.", "Проверка динамика не удалась. Проверьте разрешения браузера и вывод звука.")); }
+  }
+  function bounded(session, promise, code, expired = () => {}) {
+    let timer, cancel;
+    const deadline = new Promise((_, reject) => {
+      cancel = () => reject(new Error("media_operation_cancelled"));
+      session.pending.add(cancel);
+      timer = setTimeout(() => { expired(); reject(new Error(code)); }, 20000);
+    });
+    return Promise.race([promise, deadline]).finally(() => { clearTimeout(timer); session.pending.delete(cancel); });
+  }
+  function mediaError(error) {
+    if (error?.message === "capture_timeout") return word("Camera/microphone permission timed out. Check the browser permission prompt and retry.", "Ожидание разрешения камеры и микрофона истекло. Проверьте запрос браузера и повторите.");
+    if (error?.message === "join_timeout") return word("Lesson connection timed out. Camera and microphone were stopped. Retry the connection.", "Подключение к уроку не завершилось вовремя. Камера и микрофон выключены. Повторите подключение.");
+    if (["NotAllowedError", "PermissionDeniedError", "SecurityError"].includes(error?.name)) return word("Camera/microphone permission denied. Allow both for this site in browser settings, then retry.", "Нет разрешения камеры или микрофона. Разрешите оба устройства для этого сайта в настройках браузера и повторите.");
+    if (["NotFoundError", "DevicesNotFoundError"].includes(error?.name)) return word("Camera or microphone was not found. Connect both devices and retry.", "Камера или микрофон не найдены. Подключите оба устройства и повторите.");
+    if (["NotReadableError", "TrackStartError"].includes(error?.name)) return word("Camera or microphone is unavailable or used by another app. Close that app and retry.", "Камера или микрофон недоступны либо заняты другим приложением. Закройте его и повторите.");
+    if (error?.name === "OverconstrainedError") return word("The selected camera cannot provide the requested video. Choose another camera and retry.", "Камера не поддерживает выбранные параметры. Выберите другую камеру и повторите.");
+    if (["AbortError", "InvalidStateError"].includes(error?.name)) return word("Device access was interrupted. Keep this page active and retry the camera/microphone check.", "Доступ к устройствам прерван. Оставьте страницу активной и повторите проверку камеры и микрофона.");
+    return error?.message || "connection_failed";
   }
   async function switchCamera() {
     const session = active;
@@ -172,7 +258,7 @@ window.SomConference = (() => {
   function fail(session, error) {
     if (!alive(session)) return;
     // Stop devices immediately; a failed HTTP leave must not keep them running.
-    stop(); status(word("Call stopped: ", "Звонок остановлен: ") + (error?.message || "connection_failed"));
+    stop(); status(word("Call stopped: ", "Звонок остановлен: ") + mediaError(error));
   }
   function serial(session, peer, work) {
     const result = peer.operation.then(async () => {
@@ -298,30 +384,64 @@ window.SomConference = (() => {
     if (alive(session)) session.timer = setTimeout(() => poll(session), 750);
   }
   async function start() {
-    if (active) return;
     if (!binding || !view) throw new Error("conference_context_required");
-    if (!navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection !== "function") {
+    if (!navigator.mediaDevices?.getUserMedia) {
       status(word("Camera access requires HTTPS (or localhost) and a supported browser.", "Для камеры нужны HTTPS (или localhost) и поддерживаемый браузер.")); return;
     }
-    const session = { config: { ...binding }, connectionId: null, stream: null, peers: new Map(), cursor: 0, failures: 0, closed: false };
+    if (active) {
+      if (active.phase === "preview" && active.config.state === "active") return join(active);
+      return;
+    }
+    const captureStartedCreated = binding.state === "created";
+    const session = { config: { ...binding }, connectionId: null, stream: null, peers: new Map(), pending: new Set(), phase: "capturing", cursor: 0, failures: 0, closed: false };
     active = session; controls(); status(word("Allow camera and microphone…", "Разрешите камеру и микрофон…"));
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 15, max: 24 } } });
+      const capture = navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 15, max: 24 } } });
+      capture.then(stream => { if (session.captureExpired || !alive(session)) stream.getTracks().forEach(track => track.stop()); }, () => {});
+      const stream = await bounded(session, capture, "capture_timeout", () => { session.captureExpired = true; });
       if (!alive(session)) { stream.getTracks().forEach(track => track.stop()); return; }
       session.stream = stream;
-      const joined = await request(session, "join", {});
+      if (!stream.getVideoTracks().length || !stream.getAudioTracks().length) { const error = new Error("incomplete_capture"); error.name = "NotFoundError"; throw error; }
+      session.local = tile(word("You · local preview", "Вы · локальная проверка"), true); session.local.video.srcObject = stream;
+      view.grid.appendChild(session.local.card); play(session.local.video);
+      localChecks(session);
+      session.phase = "preview"; controls();
+      if (captureStartedCreated) {
+        status(word("Local preview only. Camera and microphone are not sent. When the lesson starts, click Connect to lesson.", "Только локальная проверка. Камера и микрофон никому не передаются. После начала урока нажмите «Подключиться к уроку»."));
+        return;
+      }
+      await join(session);
+    } catch (error) { if (alive(session)) fail(session, error); }
+  }
+  async function join(session) {
+    if (!alive(session) || session.config.state !== "active" || session.phase !== "preview") return;
+    session.phase = "joining"; controls(); status(word("Local devices ready. Connecting to lesson…", "Локальные устройства готовы. Подключаемся к уроку…"));
+    const controller = new AbortController(); session.joinController = controller;
+    const attempt = { expired: false, left: false };
+    const cleanup = result => {
+      if (!result?.connection_id || attempt.left) return;
+      attempt.left = true;
+      try { Promise.resolve(request(session, "leave", { connection_id: result.connection_id })).catch(() => {}); } catch (_) {}
+    };
+    try {
+      if (typeof RTCPeerConnection !== "function") throw new Error(word("This browser can preview devices but cannot connect a WebRTC lesson.", "Браузер позволяет локальную проверку, но не поддерживает WebRTC-подключение урока."));
+      const pending = request(session, "join", {}, { signal: controller.signal,
+        isCurrent: () => alive(session) && !attempt.expired && !controller.signal.aborted });
+      pending.then(result => { if (attempt.expired || !alive(session)) cleanup(result); }, () => {});
+      const joined = await bounded(session, pending, "join_timeout", () => { attempt.expired = true; controller.abort(); });
+      if (!alive(session)) { cleanup(joined); return; }
       session.connectionId = joined.connection_id;
-      if (!alive(session)) { await request(session, "leave", { connection_id: session.connectionId }); return; }
       if (joined.self !== session.config.userId) throw new Error("participant_context_changed");
       session.cursor = joined.cursor || 0;
-      session.local = tile(word("You", "Вы"), true); session.local.video.srcObject = stream;
-      view.grid.appendChild(session.local.card); play(session.local.video);
+      session.phase = "connected";
       reconcile(session, joined.peers); controls();
       status(word("Connected to lesson. Waiting for peer video…", "Вы в уроке. Ожидание видео участников…"));
       session.timer = setTimeout(() => poll(session), 750);
     } catch (error) { if (alive(session)) fail(session, error); }
+    finally { if (session.joinController === controller && !session.connectionId) session.joinController = null; }
   }
   window.addEventListener("pagehide", () => { stop(); });
+  window.addEventListener("hashchange", () => { stop(); });
   window.addEventListener("som-logout", () => { stop(); });
   return { mount, start, stop, connected: () => !!active?.connectionId };
 })();

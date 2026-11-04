@@ -290,6 +290,7 @@ button.cab-chord{cursor:pointer}
 .cab-live-session .cab-chat-col{grid-area:chat}
 .cab-live-session .cab-media-col{grid-area:media}
 .cab-live-session .cab-plan-col{grid-area:plan}
+.cab-equipment-note{font-size:13px;color:var(--color-neutral-300);line-height:1.5;margin:0}
 .cab-live-plan>summary{display:none}
 .cab-live-plan-body{display:flex;flex-direction:column;gap:16px;min-width:0}
 .cab-live-session .cab-chat{order:3}
@@ -310,6 +311,7 @@ button.cab-chord{cursor:pointer}
   .cab-live-controls{margin:8px 46px 0 14px;padding:4px 10px}
   .cab-live-status{margin:8px 46px 0 14px}
   .cab-live-session .cab-grid{grid-template-areas:"chat" "media" "plan";gap:16px}
+  .cab-live-session[data-cab-phase="created"] .cab-grid{grid-template-areas:"media" "chat" "plan"}
   .cab-live-session .cab-chat-col{border-top:0;padding-top:0;gap:8px}
   .cab-live-session .cab-chat-form{order:2}
   .cab-live-session .cab-dictate-action{order:1;align-self:flex-start}

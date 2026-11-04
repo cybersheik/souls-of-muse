@@ -160,3 +160,16 @@ test("created lesson has one prominent Maestro start and an Artist waiting messa
     assert.doesNotMatch(active, /data-harness-start|Waiting for your Maestro/);
   }
 });
+
+test("created lesson exposes local equipment checks for both roles without starting the meeting", () => {
+  for (const role of ["maestro", "artist"]) {
+    const c = client({ role, narrow: true });
+    c.CabinetHarness.state.meeting = { id: "one", state: "created", maestro_alias: "Real Maestro", artist_alias: "Actual Artist" };
+    const html = c.Cabinet.session(role, "circle");
+    assert.match(html, /data-cab-phase="created"/);
+    assert.match(html, /data-live-conference/);
+    assert.match(html, /Only you can see and hear this check/);
+    assert.doesNotMatch(html.match(/<details[^>]*data-cab-live-controls[^>]*>/)[0], /\bopen\b/);
+    assert.match(html, /data-cab-chat-input[^>]*disabled/);
+  }
+});

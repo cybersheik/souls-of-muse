@@ -382,16 +382,22 @@ window.CabinetHarness = (() => {
     bindApprovals();
     window.SomMedia?.mount();
     const conferenceHost=document.querySelector('[data-live-conference]');
-    if(conferenceHost && state.user && state.meeting?.state==='active' && window.SomConference) {
+    if(conferenceHost && state.user && ['created','active'].includes(state.meeting?.state) && window.SomConference) {
       const sid=state.meeting.id,conferenceUser=state.user;
       const sameConference=()=>state.user===conferenceUser&&state.meeting?.id===sid;
-      SomConference.mount(conferenceHost,{sid,userId:state.user.id,request:async(path,body)=>{
+      SomConference.mount(conferenceHost,{sid,userId:state.user.id,state:state.meeting.state,request:async(path,body,options={})=>{
+        const assertAttempt=()=>{
+          if(options.signal?.aborted || (options.isCurrent && !options.isCurrent())) throw new Error('media_operation_cancelled');
+        };
         if(!sameConference()) throw new Error('participant_context_changed');
+        if(state.meeting.state!=='active') throw new Error('session_not_active');
+        assertAttempt();
         if(path===`sessions/${sid}/conference/join`) {
-          await call(`sessions/${sid}/join`,{});
+          await call(`sessions/${sid}/join`,{}, {signal:options.signal});
           if(!sameConference()) throw new Error('participant_context_changed');
+          assertAttempt();
         }
-        return call(path,body);
+        return call(path,body,{signal:options.signal});
       }});
     } else if(state.meeting?.state==='completed') window.SomConference?.stop();
   }
