@@ -18,6 +18,8 @@ function cabLang() { return (window.P01 && P01.state.lang) || "en"; }
 /* The member's League follows the League they entered (#/league/<id> saves it in som_ui_prefs).
    League of the String stays the example default (guitarist). */
 const CAB_MY_LEAGUE_IDS = ["string", "bow", "keys", "winds", "drums", "electronic", "vocal"];
+/* League colours from the Portal 2.1 legend (same order) */
+const CAB_LCOL = ["#3ED0C8", "#DF86D7", "#86C5FA", "#6FDEA7", "#F6AB6B", "#AD8DFD", "#CCE170"];
 function cabLeagueIndex() {
   try { const p = JSON.parse(localStorage.getItem("som_ui_prefs") || "{}"); const i = CAB_MY_LEAGUE_IDS.indexOf(p.league); return i < 0 ? 0 : i; } catch (e) { return 0; }
 }
@@ -47,6 +49,7 @@ function cabHead(role, sessTitle, sessSub) {
   const [who, soul] = window.CabinetHarness?.state.user ? [CabinetHarness.state.user.name, CabinetHarness.state.user.id] : (CabPS.CAB.people[role] || CabPS.CAB.people.artist);
   return `<header class="cab-head">
     <a class="cab-brand" href="#/"><img src="assets/lyre.png" alt="Golden Lyre"><span>${cabEsc(C.brand)}</span></a>
+    <img class="cab-muse-sign" src="assets/muse-cut.png" alt="Muse" width="26" height="32">
     ${cabSiteNav(role)}
     ${sessTitle ? `<span class="cab-sess-title">${cabEsc(sessTitle)} <span>${cabEsc(sessSub || "")}</span></span>` : ""}
     <div class="cab-head-right">
@@ -109,7 +112,7 @@ function home(role) {
   return `<div class="cab" data-cab-screen="home-${role}">${cabHead(role)}
   <div class="cab-home">
     <aside class="cab-side">
-      <div><span class="rule-gold">${cabEsc(C.myLeague)}</span><div class="cab-league-name">${cabEsc(C.leagueName)}</div><div class="cab-league-fam">${cabEsc(C.leagueFamily)}</div></div>
+      <div class="cab-myleague" style="--c:${CAB_LCOL[cabLeagueIndex()]}"><span class="rule-gold">${cabEsc(C.myLeague)}</span><div class="cab-league-name"><span class="cab-ldot" aria-hidden="true"></span>${cabEsc(C.leagueName)}</div><div class="cab-league-fam">${cabEsc(C.leagueFamily)}</div></div>
       <div class="divider-fade"></div>
       <div><span class="rule-gold">${cabEsc(C.myRole)}</span><div class="cab-roles" role="group" aria-label="${cabEsc(C.myRole)}">${roleButtons(role)}</div></div>
       <div class="divider-fade"></div>

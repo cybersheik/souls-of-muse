@@ -113,3 +113,11 @@
   .p21-musebox.league .p21-muse{width:72px}
   .p21-musebox.league .p21-bubble{max-width:none}
 }
+
+/* ---- My space (Muse Cabinet 1.4 layout kept): night air behind, Muse sign in the header, My League in its colour ---- */
+.cab{background:radial-gradient(110% 60% at 85% -8%,color-mix(in oklch,var(--color-section) 60%,transparent),transparent 62%),
+  radial-gradient(80% 50% at 0% 110%,color-mix(in oklch,var(--color-section-glow,#353b80) 30%,transparent),transparent 70%),var(--color-bg);background-attachment:fixed}
+.cab-muse-sign{width:26px;height:auto;flex:none;margin-left:-4px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+.cab-myleague .cab-league-name{display:flex;align-items:center;gap:10px}
+.cab-ldot{width:14px;height:14px;border-radius:50%;flex:none;background:radial-gradient(circle at 35% 30%,var(--color-neutral-100),var(--c) 55%);box-shadow:0 0 10px var(--c)}
+.cab-myleague{border-left:2px solid var(--c);padding-left:12px;margin-left:-14px}
