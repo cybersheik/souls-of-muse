@@ -42,6 +42,10 @@
 .p20-brand img{height:30px}
 .p20-brand span{font-family:'Cormorant Garamond',Georgia,serif;font-size:23px;font-weight:500;white-space:nowrap}
 .p20-grow{flex:1}
+.p20-sci{display:flex;align-items:center;border:1px solid var(--color-neutral-600);border-radius:999px;padding:6px 12px;min-height:36px;
+  background:color-mix(in srgb,var(--color-bg) 55%,transparent);color:var(--color-text);font:500 13px/1 Inter,system-ui,sans-serif;text-decoration:none;white-space:nowrap}
+.p20-sci:hover{background:var(--color-neutral-800)}
+.p20-sci-short{display:none}
 .p20-lang{position:relative}
 .p20-langbtn{display:flex;align-items:center;gap:6px;border:1px solid var(--color-neutral-600);border-radius:999px;padding:6px 11px 6px 12px;min-height:36px;
   background:color-mix(in srgb,var(--color-bg) 55%,transparent);color:var(--color-text);font:500 13px/1 Inter,system-ui,sans-serif;cursor:pointer}
@@ -279,10 +283,18 @@
   .p20-leagues .p20-mnotes{width:auto}
 }
 @media (max-width:420px){
+  .p20-head{gap:8px}
   .p20-brand span{font-size:20px}
+  .p20-sci{padding-inline:8px}
+  .p20-sci-long{display:none}
+  .p20-sci-short{display:inline}
   .p20-promise{font-size:30px}
   .p20-signrow{gap:10px}
   .p20-sign{width:100%}
+}
+@media (max-width:360px){
+  .p20-head{gap:6px;padding:0 max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px))}
+  .p20-brand span{font-size:18px}
 }
 @media (prefers-reduced-motion:reduce){
   .p20 *,.p20 *::before,.p20 *::after{transition:none !important;animation:none !important}
