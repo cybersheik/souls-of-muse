@@ -1,16 +1,20 @@
 # Souls of Muse
 
-Music education with teacher-led lessons, a Muse AI mediator and bilingual musical instruction. This public repository contains the current prototype and the model test bench prepared for the Meta Global AI Developer Hackathon 2026.
+Souls of Muse is a service for the international community of musicians, dedicated to keeping the human skills of playing musical instruments and singing alive.
+
+Music education is one part of this broader mission. The current prototype focuses on teacher-led lessons, a Muse AI mediator and bilingual musical instruction.
+
+This public repository contains the site served at https://soulsofmuse.app and the model test bench prepared for the Meta Global AI Developer Hackathon 2026.
 
 ## Current state
 
-- `web/`: interactive Muse Lesson 2.0 design prototype. Student indicators, messages, video and lesson metrics are simulated. It is not a live lesson service.
+- `web/`: the site served at https://soulsofmuse.app — the Convention portal (sign with your name written as music; the signature is kept on the visitor's device), the seven Leagues as a 3D circle, League pages, My space and the lesson interface. The lesson connects to the Muse service in `service/`; its verified scope and open items are recorded in `service/README.md`.
 - `harness-bench/`: Python terminology validator, event schema, model adapters and budget reservation guard. 19 offline tests pass.
 - `deploy/godaddy/`: dependency-free Node 22 wrapper and HTTP checks for uploading the existing design preview to GoDaddy Web Hosting. This is deployment tooling, not the live lesson backend.
 - `runtime/`: durable single-VM admission and lifecycle control for a bounded number of own-media lesson slots, with the positive capacity explicitly selected by an operator (no product-wide maximum; some tests use five slots purely as a fixture). Counts include starting and closing rooms; restart does not free occupied slots. This bounds only our own media workers — participant matching, chats and agent jobs are separate and do not consume these slots. See `runtime/README.md` for the internal integration contract and future scaling boundary. Admission concurrency tests are not a media benchmark.
 - Real EN/VI audio, Meta voice delivery, live media rooms, real watch integration, tactile metronome and production load capacity are pending integration and verification. They remain project requirements.
 
-Preview: https://preview.soulsofmuse.com/
+Live site: https://soulsofmuse.app/
 
 ## Run offline checks
 
