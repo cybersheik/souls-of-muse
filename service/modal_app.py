@@ -36,15 +36,15 @@ writer_queue = modal.Queue.from_name("som-writer-permit", create_if_missing=Fals
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install_from_requirements("service/requirements.txt")
-    .add_local_dir("service", "/app/service")
-    .add_local_dir("harness-bench", "/app/harness-bench")
-    .add_local_dir("runtime", "/app/runtime")
 )
 release_sha = os.environ.get("SOM_DEPLOY_SOURCE_SHA", "")
 if release_sha:
     if not re.fullmatch(r"[a-f0-9]{40}", release_sha):
         raise ValueError("SOM_DEPLOY_SOURCE_SHA must be an exact commit")
     image = image.env({"SOM_RELEASE_SHA": release_sha})
+image = (image.add_local_dir("service", "/app/service")
+         .add_local_dir("harness-bench", "/app/harness-bench")
+         .add_local_dir("runtime", "/app/runtime"))
 
 
 class WriterPermitApp:
