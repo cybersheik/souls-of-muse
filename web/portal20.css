@@ -293,8 +293,17 @@
   .p20-sign{width:100%}
 }
 @media (max-width:360px){
-  .p20-head{gap:6px;padding:0 max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px))}
-  .p20-brand span{font-size:18px}
+  /* Two-row header: brand on its own row so its nowrap wordmark is never
+     shrunk under the Labs/language pills (a long language name such as
+     "Bahasa Indonesia" cannot share one 320px row with the full brand). */
+  .p20-head{flex-wrap:wrap;height:auto;min-height:64px;column-gap:6px;row-gap:8px;
+    padding:10px max(12px,env(safe-area-inset-right,0px)) 10px max(12px,env(safe-area-inset-left,0px))}
+  .p20-brand{flex:1 0 100%;gap:8px}
+  .p20-brand img{height:26px;flex:none}
+  .p20-brand span{font-size:20px}
+  .p20-sci{flex:none;margin-left:auto}
+  .p20-lang{flex:none}
+  .p20-langbtn{padding-inline:9px;gap:5px;white-space:nowrap}
 }
 @media (prefers-reduced-motion:reduce){
   .p20 *,.p20 *::before,.p20 *::after{transition:none !important;animation:none !important}
