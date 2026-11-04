@@ -26,6 +26,8 @@ factory startup fails after the permit was acquired (reload / DB /
 create_app), startup fails closed: the permit is intentionally NOT
 returned and operator reconciliation is required.
 """
+import os
+import re
 import modal
 
 app = modal.App("souls-of-muse-harness")
@@ -38,6 +40,11 @@ image = (
     .add_local_dir("harness-bench", "/app/harness-bench")
     .add_local_dir("runtime", "/app/runtime")
 )
+release_sha = os.environ.get("SOM_DEPLOY_SOURCE_SHA", "")
+if release_sha:
+    if not re.fullmatch(r"[a-f0-9]{40}", release_sha):
+        raise ValueError("SOM_DEPLOY_SOURCE_SHA must be an exact commit")
+    image = image.env({"SOM_RELEASE_SHA": release_sha})
 
 
 class WriterPermitApp:

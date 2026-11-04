@@ -421,6 +421,10 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         heart_key = serialization.load_pem_private_key(key_bytes, password=None)
     bridge = HeartBridge(db, _commit, data_dir, heart_key)
     bridge.drain()
+    # Public source files only: verify the deployed bytes without exposing
+    # runtime paths, participant data, model credentials or signing material.
+    source_sha256 = {name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
+                     for name in ("app.py", "identity.py", "membership.py", "conference.py")}
 
     @app.middleware("http")
     async def bounds(request: Request, call_next):
@@ -561,7 +565,9 @@ def create_app(data_dir=None, pilot_token=None, adapter=None, environ=None, max_
         durable = not durability_failed.is_set()
         pilot_ready = bool(auth_ready and model_ready and glossary and durable)
         planning_ready = bool(pilot_ready and getattr(adapter, "cfg", {}).get("roles", {}).get("orchestrator", {}).get("endpoint") == "/responses")
-        return {"status": "ok" if durable else "degraded", "durability_ready": durable, "version": VERSION, "model_ready": bool(model_ready),
+        return {"status": "ok" if durable else "degraded", "durability_ready": durable, "version": VERSION,
+                "source_commit": env.get("SOM_RELEASE_SHA") or None, "source_sha256": source_sha256,
+                "model_ready": bool(model_ready),
                 "auth_ready": auth_ready, "role_ready": auth_ready,
                 "roles_ready": auth_ready, "pilot_ready": pilot_ready,
                 "production_ready": False, "full_participant_identity": False,

@@ -5,7 +5,7 @@ window.CabinetHarness = (() => {
   let capture = null, captureAbort = null, composeText = "", focusCompose = false;
   let materialPending = null, planningPending = null, planningRetry = null;
   const reviewPending = new WeakMap();
-  let speechAudio = null, speechURL = null, speechAbort = null, speechMessage = null;
+  let speechAudio = null, speechURL = null, speechAbort = null, speechMessage = null, deviceUtterance = null;
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const ru = () => window.P01?.state.lang === "ru";
   const word = (en, local) => ru() ? local : en;
@@ -265,7 +265,21 @@ window.CabinetHarness = (() => {
       ${reviewNote(message)}
       ${state.user?.role === "maestro" && state.meeting.state === "active" && message.state === "flagged" && !["processing","complete"].includes(message.review?.state) ? `<button type="button" class="cab-btn" data-harness-review="${esc(message.id)}"${state.busy ? " disabled" : ""}>${word("Retry translation check", "Повторить проверку перевода")}</button>` : ""}
       ${state.user?.role === "maestro" && ["draft", "flagged"].includes(message.state) ? `<button class="cab-btn" data-harness-approve="${esc(message.id)}" data-flagged="${message.state === "flagged"}"${state.busy || message.approval_allowed === false || (message.state === "flagged" && message.review?.state !== "complete") ? " disabled" : ""}>${word("Approve translation", "Одобрить перевод")}</button>` : ""}
-      ${state.tts && message.state === "approved" ? `<button class="cab-btn" data-harness-speak="${esc(message.id)}" ${state.busy ? "disabled" : ""}>${word("Listen to translation", "Прослушать перевод")}</button><span data-harness-audio="${esc(message.id)}"></span>` : ""}</div>`).join("") || `<p>${word("Approved messages will appear here", "Здесь появятся одобренные сообщения")}</p>`;
+      ${speechControls(message)}</div>`).join("") || `<p>${word("Approved messages will appear here", "Здесь появятся одобренные сообщения")}</p>`;
+  }
+  function deviceVoice(language) {
+    if (!["en", "vi"].includes(language) || !window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== "function") return null;
+    try {
+      return window.speechSynthesis.getVoices().find(voice => voice.localService === true
+        && String(voice.lang).toLowerCase().replace(/_/g, "-").split("-")[0] === language) || null;
+    } catch (_) { return null; }
+  }
+  function speechControls(message) {
+    if (!state.user || message.state !== "approved") return "";
+    if (!state.tts && !deviceVoice(message.target_lang)) return `<span class="cab-msg-check">${word("Device voice unavailable for this language.", "Голос устройства для этого языка недоступен.")}</span>`;
+    const label = state.tts ? word("Listen to translation", "Прослушать перевод") : word("Device voice", "Голос устройства");
+    return `<button class="cab-btn" data-harness-speak="${esc(message.id)}" ${state.busy ? "disabled" : ""}>${label}</button><span data-harness-audio="${esc(message.id)}"></span>`
+      + (deviceUtterance && speechMessage === message.id ? `<button class="cab-btn" data-harness-stop-speech>${word("Stop device voice", "Остановить голос устройства")}</button>` : "");
   }
   async function send(text, role) {
     if (!state.user || !state.meeting || state.user.role !== role) {
@@ -365,6 +379,7 @@ window.CabinetHarness = (() => {
       action(async () => { await call(`sessions/${state.meeting.id}/messages/${id}/approve`, { confirm_flagged: flagged }); await refresh(); });
     });
     document.querySelectorAll("[data-harness-speak]").forEach(button => button.onclick = () => playSpeech(button.dataset.harnessSpeak));
+    document.querySelectorAll("[data-harness-stop-speech]").forEach(button => button.onclick = () => { stopSpeech(); redraw(); });
     if (speechAudio && speechMessage) {
       const slot = Array.from(document.querySelectorAll("[data-harness-audio]")).find(el => el.dataset.harnessAudio === speechMessage);
       if (slot) slot.appendChild(speechAudio);
@@ -378,13 +393,51 @@ window.CabinetHarness = (() => {
   }
   function stopSpeech() {
     if (speechAbort) speechAbort.abort();
+    const utterance = deviceUtterance; deviceUtterance = null;
+    if (utterance) window.speechSynthesis?.cancel();
     if (speechAudio) { speechAudio.pause(); speechAudio.removeAttribute("src"); speechAudio.load(); speechAudio.remove(); }
     if (speechURL) URL.revokeObjectURL(speechURL);
     speechAudio = null; speechURL = null; speechAbort = null; speechMessage = null;
   }
   async function playSpeech(mid) {
-    if (state.busy || !state.meeting || !state.tts) return;
+    if (state.busy || !state.user || !state.meeting) return;
     stopSpeech();
+    if (!state.tts) {
+      const user = state.user, meeting = state.meeting.id;
+      const controller = new AbortController(); speechAbort = controller;
+      const current = () => !controller.signal.aborted && state.user === user && state.meeting?.id === meeting;
+      await action(async () => {
+        // Never synthesize a cached UI draft or caller-supplied replacement.
+        // call() applies the ordinary cookie and account-context precondition.
+        const fresh = await call(`sessions/${encodeURIComponent(meeting)}`);
+        if (!current()) return;
+        if (fresh.id !== meeting) throw new Error("speech_meeting_changed");
+        const message = fresh.deliveries?.find(item => item.id === mid);
+        if (!message || message.state !== "approved" || typeof message.text !== "string" || !message.text.trim() || message.text.length > 400) {
+          throw new Error(word("An approved translation is required.", "Нужен одобренный перевод."));
+        }
+        const voice = deviceVoice(message.target_lang);
+        if (!voice) throw new Error(word("Device voice unavailable for this language.", "Голос устройства для этого языка недоступен."));
+        if (state.tts || !current()) return;
+        const utterance = new window.SpeechSynthesisUtterance(message.text);
+        utterance.voice = voice; utterance.lang = voice.lang;
+        deviceUtterance = utterance; speechMessage = mid;
+        utterance.onend = () => {
+          if (deviceUtterance !== utterance) return;
+          deviceUtterance = null; speechMessage = null;
+          if (speechAbort === controller) speechAbort = null;
+          if (current()) redraw();
+        };
+        utterance.onerror = () => {
+          if (deviceUtterance !== utterance || !current()) return;
+          deviceUtterance = null; speechMessage = null;
+          state.status = word("Device voice could not play. Check the device voice settings and try again.", "Голос устройства не воспроизведён. Проверьте настройки голоса и повторите.");
+          redraw();
+        };
+        window.speechSynthesis.speak(utterance);
+      });
+      return;
+    }
     if (window.SomMedia?.connected(state.meeting.id)) {
       await action(() => SomMedia.say(mid));
       return;
@@ -479,6 +532,8 @@ window.CabinetHarness = (() => {
     }
   }
   window.addEventListener("som-media-changed", redraw);
+  window.addEventListener("pagehide", stopSpeech);
+  window.speechSynthesis?.addEventListener?.("voiceschanged", () => { if (state.user) redraw(); });
   window.addEventListener("hashchange", () => { cancelCapture(); stopSpeech(); window.SomConference?.stop(); window.SomMedia?.disconnect(true).catch(() => {}); });
   return { state, panel, messages, send, bind, record, updateLesson, translateLessonStep, approveLessonTranslation, requestLessonPlan, applyLessonPlan, planningRetryAllowed, retryTranslationReview, savePrivateNotes, privateNotesPage };
 })();

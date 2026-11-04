@@ -550,6 +550,20 @@ For a private technical evaluation, install `service/requirements-tts.txt` into 
 
 On 3 November, real CPU synthesis produced four EN/VI WAVs. The first request took 5.98 seconds including imports/load; subsequent samples took 0.25–0.56 seconds. Peak macOS process RSS reached 1364 MiB with both languages loaded, so the existing 512 MiB Modal configuration is insufficient for this implementation. It has not been increased or deployed. Production resource sizing, listening review and genuine microphone → ASR → translation → approval → speech acceptance are still open. The two-profile browser test used fixture translations and real MMS output; it confirmed EN and VI playback, no draft audio, no overflow at 390 px and cleanup on logout. It does not establish real ASR or translation quality.
 
+## Browser device voice when server speech is unavailable
+
+When `/health` reports `tts: false`, an approved message offers **Device voice**
+only if browser SpeechSynthesis exposes an installed (`localService: true`)
+English or Vietnamese voice matching its target language. Playback requires a
+click and a fresh authenticated meeting read; only that response's approved
+canonical text is spoken. Drafts, cached browser replacements and mismatched
+account/meeting replies are refused. Missing voices are labelled unavailable;
+another language or network voice is never substituted. The stop control,
+logout, navigation and a current-account 401 cancel device speech. This does
+not enable ASR/translation or add a server speech provider, and is not an
+automatic fallback after a configured server TTS error. Browser/device voice
+availability and musical pronunciation still require a listening check.
+
 ## Optional private RTC voice transport
 
 Install `service/requirements-media.txt` in the backend environment and provision a dedicated admission database explicitly with `python -m service.prepare_media --database /absolute/operator/path/admission.sqlite3 --capacity 5`. Capacity is an operator choice for concurrent hosted lessons, not a product-wide participant limit. Existing valid databases are verified without reset; a capacity mismatch fails closed. The existing Modal writer permit or a single local orchestrator must own all related SQLite stores before app construction.

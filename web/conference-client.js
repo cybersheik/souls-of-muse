@@ -15,7 +15,7 @@ window.SomConference = (() => {
   function button(text, action) {
     const element = node("button", "som-conference-button", text);
     element.type = "button";
-    element.addEventListener("click", () => { Promise.resolve(action()).catch(error => status(error.message)); });
+    element.addEventListener("click", () => Promise.resolve(action()).catch(error => status(error.message)));
     return element;
   }
   function status(text) { message = text || ""; if (view) view.status.textContent = message; }
@@ -37,6 +37,7 @@ window.SomConference = (() => {
     view.hangup.disabled = !active;
     view.mute.disabled = !active?.stream;
     view.camera.disabled = !active?.stream;
+    view.switchCamera.disabled = !active?.stream || !!active?.switching;
     view.mute.textContent = active?.muted ? word("Unmute", "Включить микрофон") : word("Mute", "Выключить микрофон");
     view.camera.textContent = active?.cameraOff ? word("Camera on", "Включить камеру") : word("Camera off", "Выключить камеру");
     view.mute.setAttribute("aria-label", view.mute.textContent);
@@ -70,16 +71,17 @@ window.SomConference = (() => {
         active.cameraOff = !active.cameraOff;
         active.stream.getVideoTracks().forEach(track => { track.enabled = !active.cameraOff; }); controls();
       });
+      const switchCameraButton = button(word("Switch camera", "Сменить камеру"), switchCamera);
       const sound = button(word("Enable sound", "Включить звук"), () => {
         if (active) for (const peer of active.peers.values()) play(peer.tile.video);
       });
-      [startButton, mute, camera, sound, hangup].forEach(child => toolbar.appendChild(child));
+      [startButton, mute, camera, switchCameraButton, sound, hangup].forEach(child => toolbar.appendChild(child));
       const statusNode = node("p", "som-conference-status"); statusNode.setAttribute("role", "status");
       const note = node("p", "som-conference-note", word(
         "Direct connection for up to three participants. Use headphones. Some networks cannot connect without a relay.",
         "Прямой звонок до трёх участников. Используйте наушники. В некоторых сетях без ретранслятора соединение невозможно."));
       panel.appendChild(grid); panel.appendChild(toolbar); panel.appendChild(statusNode); panel.appendChild(note);
-      view = { grid, start: startButton, hangup, mute, camera, status: statusNode };
+      view = { grid, start: startButton, hangup, mute, camera, switchCamera: switchCameraButton, status: statusNode };
     }
     element.appendChild(panel); controls(); status(message);
   }
@@ -98,12 +100,73 @@ window.SomConference = (() => {
     if (!session) return;
     active = null; session.closed = true; clearTimeout(session.timer);
     if (session.stream) session.stream.getTracks().forEach(track => track.stop());
+    if (session.cameraCapture) session.cameraCapture.getTracks().forEach(track => track.stop());
     for (const id of Array.from(session.peers.keys())) closePeer(session, id);
     if (session.local) { session.local.video.pause(); session.local.video.srcObject = null; session.local.card.remove(); }
     controls(); status(word("Call ended. Camera and microphone are off.", "Звонок завершён. Камера и микрофон выключены."));
     if (session.connectionId) {
       try { await request(session, "leave", { connection_id: session.connectionId }); }
       catch (_) { /* The server's short lease expires even if the page was lost. */ }
+    }
+  }
+  async function switchCamera() {
+    const session = active;
+    if (!session?.stream || session.switching) return;
+    const oldVideo = session.stream.getVideoTracks()[0];
+    if (!oldVideo) return;
+    let capture = null, newVideo = null, accepted = false;
+    session.switching = true; controls();
+    const videoSenders = () => Array.from(session.peers.values()).flatMap(peer => peer.pc.getSenders())
+      .filter(sender => sender.track?.kind === "video");
+    try {
+      if (!navigator.mediaDevices?.enumerateDevices) throw new Error("camera_selection_unavailable");
+      const devices = (await navigator.mediaDevices.enumerateDevices()).filter(device => device.kind === "videoinput" && device.deviceId);
+      if (!alive(session)) return;
+      if (devices.length < 2) { status(word("No other camera is available.", "Другой камеры нет.")); return; }
+      const currentId = oldVideo.getSettings?.().deviceId || session.cameraDeviceId;
+      let index = devices.findIndex(device => device.deviceId === currentId);
+      if (index < 0 && oldVideo.label) index = devices.findIndex(device => device.label === oldVideo.label);
+      const next = devices[(index + 1) % devices.length];
+      capture = await navigator.mediaDevices.getUserMedia({ audio: false, video: { deviceId: { exact: next.deviceId } } });
+      if (!alive(session)) return;
+      session.cameraCapture = capture;
+      newVideo = capture.getVideoTracks()[0];
+      if (!newVideo) throw new Error("camera_capture_unavailable");
+      capture.getTracks().filter(track => track !== newVideo).forEach(track => track.stop());
+      newVideo.enabled = !session.cameraOff;
+      // Recheck peers while replacing: a peer may join during a permission or
+      // replaceTrack await. Audio senders and the old capture stay untouched.
+      for (let round = 0; round < 3; round++) {
+        const remaining = videoSenders().filter(sender => sender.track !== newVideo);
+        if (!remaining.length) break;
+        for (const sender of remaining) {
+          await sender.replaceTrack(newVideo);
+          if (!alive(session)) return;
+        }
+      }
+      if (videoSenders().some(sender => sender.track !== newVideo)) throw new Error("camera_peers_changed");
+      newVideo.enabled = !session.cameraOff;
+      session.stream = new MediaStream([...session.stream.getAudioTracks(), newVideo]);
+      session.local.video.srcObject = session.stream; play(session.local.video);
+      session.cameraDeviceId = next.deviceId;
+      accepted = true; oldVideo.stop();
+      status(word("Camera selected: ", "Выбрана камера: ") + (next.label || word("next camera", "следующая камера")));
+    } catch (_) {
+      if (alive(session)) {
+        let rollbackFailed = oldVideo.readyState === "ended";
+        for (const sender of videoSenders().filter(sender => sender.track === newVideo)) {
+          try { await sender.replaceTrack(oldVideo); } catch (_) { rollbackFailed = true; }
+          if (!alive(session)) return;
+        }
+        status(rollbackFailed
+          ? word("Camera change failed. Some video connections need reconnecting; audio remains connected.", "Смена камеры не удалась. Часть видео нужно переподключить; звук остаётся подключённым.")
+          : word("Camera change failed. The current camera and call are retained.", "Смена камеры не удалась. Текущая камера и звонок сохранены."));
+      }
+    } finally {
+      if (capture && !accepted) capture.getTracks().forEach(track => track.stop());
+      if (session.cameraCapture === capture) session.cameraCapture = null;
+      session.switching = false;
+      if (alive(session)) controls();
     }
   }
   function fail(session, error) {

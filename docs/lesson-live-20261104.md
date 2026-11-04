@@ -13,6 +13,8 @@ It has not been promoted to production.
   to the actual sending account; the shared chat shows that person's name.
 - An explicit camera/microphone action starts a three-person native WebRTC mesh.
   Camera, mute, hang up and reconnect operate on the participant's own tracks.
+  Switch camera selects another installed camera without replacing the audio
+  track, allowing a phone camera to show hands and an instrument.
   Direct speech and video are retained per Aidar's existing decision. Muse's
   translation path is separate. The older Kimi mediated-only description does
   not override the owner's later decision.
@@ -22,6 +24,10 @@ It has not been promoted to production.
 - The local macOS site can opt into installed Daniel/Linh voices with
   `SOM_NATIVE_TTS=1`. This uses the existing approved-translation speech route;
   it does not download MMS models or make provider calls. It is not Linux TTS.
+  When server TTS is unavailable, the client can offer an installed EN/VI
+  **Device voice**, explicitly clicked and bound to a fresh approved message.
+  Missing local-language voices fail clearly. Availability and listening on the
+  actual three devices still need acceptance.
 - Vercel's plain Node entry point now has an explicit rewrite and derives the
   public route from `req.url`, with a fixed-function query fallback. The gateway
   passes personal cookies and the participant marker, never model/pilot keys.
@@ -46,8 +52,13 @@ WAVs. The offline adapters in unit tests are not live model acceptance.
 
 Offline verification: 224 service tests passed (two macOS voice integration
 checks skipped in the ordinary suite), 65 Harness, 37 root, five unchanged
-original Kimi heart tests and 102 Node tests passed. The two opt-in macOS voice
+original Kimi heart tests and 119 Node tests passed. The two opt-in macOS voice
 checks also passed separately. This is not cloud E2E acceptance.
+
+Deployment verification also exposes the supplied exact release SHA and hashes
+of four public backend source files through `/health`. No runtime path or secret
+is included. Supply `SOM_DEPLOY_SOURCE_SHA` with the reviewed commit when building
+the Modal image, then compare the returned hashes with that commit's Git blobs.
 
 At this checkpoint the operator's local process deliberately has no model key:
 `model_ready=false`. Real translation/ASR and reviewed spoken delivery therefore
