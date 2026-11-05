@@ -1,0 +1,440 @@
+<title>Отчёт Souls of Muse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: шапка-полоса, оглавление слева на ноутбуке и лентой на телефоне, текст в одну колонку до 78rem.
+   Токены Nocturne: тёмная тема основная, светлая на бумаге #f4f1ea. Золото и красный только тонкими линиями и цифрами. */
+:root {
+  --bg: #161826;
+  --surface: #232532;
+  --section: #262a60;
+  --text: #e9e9ed;
+  --muted: #b9bac6;
+  --accent: #9184d9;
+  --accent-2: #c6bdf0;
+  --gold: #edc142;
+  --red: #e0303a;
+  --line: rgba(233, 233, 237, 0.16);
+  --code-bg: rgba(145, 132, 217, 0.14);
+  --font-display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f4f1ea;
+    --surface: #fcfbf7;
+    --section: #e1e0f1;
+    --text: #161826;
+    --muted: #4a4c5e;
+    --accent: #5646b0;
+    --accent-2: #43379a;
+    --gold: #856000;
+    --red: #b01e28;
+    --line: rgba(22, 24, 38, 0.18);
+    --code-bg: rgba(86, 70, 176, 0.1);
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f4f1ea;
+  --surface: #fcfbf7;
+  --section: #e1e0f1;
+  --text: #161826;
+  --muted: #4a4c5e;
+  --accent: #5646b0;
+  --accent-2: #43379a;
+  --gold: #856000;
+  --red: #b01e28;
+  --line: rgba(22, 24, 38, 0.18);
+  --code-bg: rgba(86, 70, 176, 0.1);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 4.5rem; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.62;
+  -webkit-text-size-adjust: 100%;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  background: var(--bg); z-index: 20;
+}
+.pad {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.inner { max-width: 78rem; margin-inline: auto; }
+a { color: var(--accent-2); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+code {
+  font-family: var(--font-mono); font-size: 0.82em; background: var(--code-bg);
+  padding: 0.08em 0.38em; border-radius: 4px; overflow-wrap: anywhere;
+}
+strong { font-weight: 600; }
+
+/* ---- шапка ---- */
+.masthead { background: var(--section); border-bottom: 1px solid var(--line); }
+.masthead .inner { padding-block: 2.4rem 2.2rem; }
+.eyebrow {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 0.6rem;
+}
+h1 {
+  font-family: var(--font-display); font-weight: 600; font-size: clamp(2.6rem, 7vw, 4.4rem);
+  line-height: 1; margin: 0; letter-spacing: -0.01em; text-wrap: balance;
+}
+.sub { font-family: var(--font-display); font-style: italic; font-weight: 500; font-size: clamp(1.25rem, 3vw, 1.7rem); color: var(--accent-2); margin: 0.4rem 0 1.6rem; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem 2rem; margin: 0; }
+.facts div { border-top: 1px solid var(--line); padding-top: 0.55rem; min-width: 0; }
+.facts dt { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.facts dd { margin: 0.15rem 0 0; font-size: 0.9rem; }
+.facts .wide { grid-column: 1 / -1; }
+
+/* ---- каркас: оглавление + текст ---- */
+.layout { display: block; }
+nav.toc {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 15;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+  display: flex; gap: 0.25rem; overflow-x: auto; padding-block: 0.4rem;
+  scrollbar-width: thin;
+}
+nav.toc a {
+  flex: none; font-size: 0.82rem; color: var(--muted); text-decoration: none;
+  padding: 0.35rem 0.7rem; border-radius: 999px; border: 1px solid transparent;
+}
+nav.toc a:hover { color: var(--text); border-color: var(--line); }
+main { min-width: 0; padding-block: 1rem 3rem; }
+@media (min-width: 1000px) {
+  .layout { display: grid; grid-template-columns: 11.5rem minmax(0, 1fr); gap: 2.6rem; align-items: start; }
+  nav.toc {
+    flex-direction: column; overflow: visible; border-bottom: 0; gap: 0.1rem;
+    top: calc(env(safe-area-inset-top, 0px) + 1.2rem); padding-block: 1.6rem 0; background: transparent;
+    border-right: 1px solid var(--line); padding-right: 1rem;
+  }
+  nav.toc::before { content: "Оглавление"; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem; }
+  nav.toc a { border-radius: 4px; padding: 0.3rem 0.5rem; }
+}
+
+section.part { padding-block: 2.2rem 0.4rem; }
+h2 {
+  font-family: var(--font-display); font-weight: 600; font-size: clamp(1.9rem, 4.5vw, 2.7rem);
+  line-height: 1.08; margin: 0 0 0.9rem; text-wrap: balance; border-top: 1px solid var(--line); padding-top: 1.1rem;
+}
+h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.7rem; line-height: 1.12; margin: 0; text-wrap: balance; }
+h4 { font-family: var(--font-mono); font-weight: 500; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.5rem; }
+p { margin: 0 0 0.8rem; max-width: 70ch; }
+.lead { font-size: 1rem; }
+.legend { font-size: 0.86rem; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; padding: 0.7rem 0.9rem; max-width: 76ch; }
+ul { margin: 0; padding-left: 1.1rem; }
+li { margin-bottom: 0.45rem; max-width: 70ch; }
+li::marker { color: var(--accent); }
+
+/* ---- пометки ---- */
+.tag {
+  display: inline-block; font-family: var(--font-mono); font-size: 0.7rem; line-height: 1.5;
+  padding: 0 0.5rem; border: 1px solid var(--muted); border-radius: 999px; color: var(--muted);
+  white-space: nowrap; vertical-align: 0.05em;
+}
+.tag.s-ok, .tag.s-chk { color: var(--accent-2); border-color: var(--accent); }
+.tag.s-wait, .tag.s-part { color: var(--gold); border-color: var(--gold); }
+.tag.s-no { color: var(--red); border-color: var(--red); }
+.tag.guess { font-style: italic; border-style: dashed; }
+
+/* ---- карточки сервисов ---- */
+.cards { display: grid; gap: 1.4rem; margin-top: 1.4rem; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.2rem 1.2rem 1rem; min-width: 0; }
+.card-head { margin-bottom: 1rem; padding-bottom: 0.9rem; border-bottom: 1px solid var(--line); }
+.card-head .eyebrow { margin-bottom: 0.3rem; }
+.alias { display: inline-block; font-family: var(--font-mono); font-weight: 400; font-size: 0.8rem; color: var(--accent-2); letter-spacing: 0.02em; margin-left: 0.4rem; vertical-align: 0.25em; }
+.tagline { color: var(--muted); margin: 0.4rem 0 0; }
+.card-grid { display: grid; gap: 1.2rem 2rem; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 820px) { .card-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); } }
+.blk { min-width: 0; }
+.blk li { font-size: 0.9rem; }
+.blk.open { border-top: 1px solid var(--red); padding-top: 0.7rem; }
+.blk.open h4 { color: var(--red); }
+dl.nums { margin: 0; }
+.num { display: grid; grid-template-columns: minmax(6.2rem, 7.6rem) minmax(0, 1fr); gap: 0.6rem; padding-block: 0.38rem; border-bottom: 1px solid var(--line); align-items: baseline; }
+.num:last-child { border-bottom: 0; }
+.num dt { font-family: var(--font-mono); font-size: 0.86rem; color: var(--gold); font-variant-numeric: tabular-nums; }
+.num dd { margin: 0; font-size: 0.85rem; color: var(--muted); }
+
+/* ---- таблицы ---- */
+.scroll { overflow-x: auto; margin-block: 0.4rem 1.2rem; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+th { text-align: left; font-family: var(--font-mono); font-weight: 500; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; background: var(--section); padding: 0.55rem 0.75rem; }
+td { padding: 0.6rem 0.75rem; border-top: 1px solid var(--line); vertical-align: top; min-width: 0; }
+td:first-child { font-weight: 600; }
+table.crit td:first-child { font-family: var(--font-mono); color: var(--gold); font-weight: 500; white-space: nowrap; }
+table.crit td:nth-child(3) { white-space: nowrap; }
+td strong { font-variant-numeric: tabular-nums; }
+@media (max-width: 680px) {
+  .scroll { border: 0; }
+  table, thead, tbody, tr, td { display: block; width: 100%; }
+  thead { position: absolute; left: -9999px; }
+  tr { border: 1px solid var(--line); border-radius: 8px; margin-bottom: 0.7rem; background: var(--surface); padding: 0.2rem 0; }
+  td { border-top: 0; padding: 0.35rem 0.8rem; }
+  td::before { content: attr(data-label); display: block; font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  td:first-child { font-size: 0.95rem; }
+}
+
+/* ---- журнал ---- */
+.day { margin-top: 1.8rem; }
+.dayhead { margin-bottom: 0.9rem; }
+.date { font-family: var(--font-mono); font-weight: 500; font-size: 1.15rem; color: var(--gold); margin-right: 0.5rem; vertical-align: 0.1em; }
+.daynote { font-size: 0.8rem; color: var(--muted); margin: 0.5rem 0 0; }
+.entries { border-left: 1px solid var(--line); margin-left: 0.3rem; padding-left: 1.1rem; display: grid; gap: 1.05rem; }
+.entry { display: grid; grid-template-columns: 6.4rem minmax(0, 1fr); gap: 0.4rem 1rem; min-width: 0; }
+.entry .meta { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+.time { font-family: var(--font-mono); font-size: 0.82rem; color: var(--text); font-variant-numeric: tabular-nums; }
+.kind { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.05em; padding: 0 0.45rem; border: 1px solid var(--muted); border-radius: 999px; color: var(--muted); }
+.k-ok .kind { color: var(--accent-2); border-color: var(--accent); }
+.k-fail .kind { color: var(--red); border-color: var(--red); }
+.k-dec .kind { color: var(--gold); border-color: var(--gold); }
+.entry .body p { margin: 0; font-size: 0.92rem; }
+blockquote {
+  margin: 0.55rem 0 0; padding-left: 0.9rem; border-left: 1px solid var(--accent);
+  font-family: var(--font-display); font-style: italic; font-weight: 500; font-size: 1.15rem; line-height: 1.35; color: var(--accent-2); max-width: 62ch;
+}
+@media (max-width: 560px) {
+  .entry { grid-template-columns: minmax(0, 1fr); }
+  .entry .meta { flex-direction: row; align-items: center; gap: 0.6rem; }
+}
+
+.caveats li { font-size: 0.9rem; }
+.mock { display: inline-block; margin-top: 0.4rem; }
+footer.sign { border-top: 1px solid var(--line); margin-top: 2.6rem; padding-top: 1.1rem; font-family: var(--font-display); font-style: italic; font-size: 1.3rem; color: var(--accent-2); }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+
+<header class="masthead pad">
+  <div class="inner">
+    <p class="eyebrow">Meta Hackathon · трек Startup · очки Ray-Ban Meta</p>
+    <h1>Souls of Muse</h1>
+    <p class="sub">Отчёт о разработке: результаты трёх сервисов и журнал работы</p>
+    <dl class="facts"><div><dt>Дата</dt><dd>05.11.2026. Журнал охватывает 30.10 – 05.11.</dd></div><div><dt>Для кого</dt><dd>Жюри Meta Hackathon (трек Startup) и команда: что собрано, что проверено, что нет.</dd></div><div><dt>Сдача</dt><dd>05.11.2026 09:00 по Сайгону (04.11 21:00 ET).</dd></div><div class="wide"><dt>Команда</dt><dd>Айдар Кожахметов (руководитель проекта); агентные роли: DC1Fable (Claude Code, координатор), DZ1 (LiDAR: исследование, cookbook, модуль глубины, живой прогон), DW1 (дизайн и кликабельный прототип очков), субагенты; пианистка и помощник на съёмках.</dd></div></dl>
+  </div>
+</header>
+
+<div class="pad">
+  <div class="inner layout">
+    <nav class="toc" aria-label="Оглавление"><a href="#results">Что получилось</a><a href="#keys">Стенд клавиш</a><a href="#journal">Журнал</a><a href="#rejected">Не вошло</a><a href="#next">Что дальше</a><a href="#sources">Источники</a></nav>
+    <main>
+
+      <section class="part" id="results">
+        <h2>Что получилось</h2>
+        <p class="lead">Три сервиса собраны в одно локальное приложение (<code>glasses/app/server.py</code>, адрес <code>127.0.0.1:8765</code>, страницы <code>/keys</code>, <code>/council</code>, <code>/notebook</code>). С 04.11 Айдар переименовал сервисы: «Клавиши» стали <strong>MuseEveryThings</strong>, «Консилиум» стал <strong>Museon</strong>, «Тетрадь» стала <strong>MuseAudioNotes</strong> (DW1 собрал кликабельный прототип Glasses 1.0, внутренний). Ниже старые названия, как в коде и журнале. Каждый сервис прогнан на реальных вызовах, но ни один не подтверждён целиком «в очках, от начала до конца» без оговорок: оговорки в каждой карточке.</p>
+        <p class="legend">Как читать пометки: <span class="tag s-chk">проверено</span> значит, что число или факт подтверждён прогоном или записью в журнале. <span class="tag s-nm">не измерено</span> значит, что в источниках измерения нет. <span class="tag guess">предположение</span> стоит у выводов, сделанных по кадрам и видео: это интерпретация, а не измерение. Числа взяты из рабочих журналов потоков «очки» и LiDAR, карточек в <code>glasses/keys</code>, <code>glasses/council</code>, <code>glasses/lidar</code>, <code>glasses/app</code> и cookbook LiDAR; ничего не пересчитывалось. Статусы по политике раскрытия: «Клавиши» — Prototype (проверено на записи очков и на живом звонке, «нажата» против «лежит» с очков не различается); «Консилиум» — Prototype (демо-договор вымышленный, страницы синтетические, вызовы Meta Model API реальные); «Тетрадь» — Prototype (тестовая сетка, звук в очках не проверен); канал LiDAR — Working как транспорт (30 fps, 75+ с), Prototype как определение нажатия.</p>
+        <div class="cards">
+<article class="card" id="card-1">
+  <header class="card-head">
+    <p class="eyebrow">/keys</p>
+    <h3>Клавиши <span class="alias">MuseEveryThings</span></h3>
+    <p class="tagline">Тренер на клавиатуре: стенд ведёт по партитуре и подтверждает «палец лёг на ожидаемую клавишу».</p>
+  </header>
+  <div class="card-grid">
+    <section class="blk"><h4>Суть</h4><ul><li>Камера очков (звонок WhatsApp «Музе», окно на Mac) смотрит на клавиатуру: настоящее пианино или картонную клавиатуру-«чертёж» с MIDI-раскладкой.</li><li>SAM 3.1 локально (<code>mlx-community/sam3.1-bf16</code>) находит чёрные клавиши и пальцы, чертёж ложится гомографией, для пианино работает одномерная модель <code>fit_piano</code>. DINOv2 small проверяет, что вид ожидаемой клавиши изменился.</li><li>Партитура «К Элизе»: ожидаемая клавиша подсвечена, подтверждение озвучивается GM-пианино. Все ноты одинаковой силы и длины (100, 0,5 с), решение Айдара.</li><li>С 04.11 второй канал: LiDAR iPhone (Record3D по USB, <code>keys/depth_receiver.py</code>), подробности в следующем разделе.</li></ul></section>
+    <section class="blk"><h4>Числа</h4><dl class="nums"><div class='num'><dt>9 / 9</dt><dd>нот по порядку на записи пианино (замок +12)</dd></div><div class='num'><dt>12 / 12</dt><dd>палец на ожидаемой клавише, медленный проход (10 нот, 24,7–35 с)</dd></div><div class='num'><dt>11 / 12</dt><dd>ожидаемая подтверждена порогом DINO</dd></div><div class='num'><dt>0,94 / 0,88</dt><dd>AUC DINO: спокойные клавиши / все ненажатые</dd></div><div class='num'><dt>1597 / 1610</dt><dd>кадров, на которых легла модель пианино (4 мс/кадр в слежении)</dd></div><div class='num'><dt>14 / 17</dt><dd>чёрных клавиш картонки легло (ошибка до 7 px, 36 клавиш)</dd></div><div class='num'><dt>100–130 мс</dt><dd>задержка GM-пианино; свой синтезатор 25 мс; любой Bluetooth 250–400 мс</dd></div><div class='num'><dt>0,08–0,12 с</dt><dd>локальный SAM 3.1 на кадр при 336 px (облако 1,1–2,2 с)</dd></div></dl></section>
+    <section class="blk"><h4>Что проверено</h4><ul><li>Запись очков с настоящего пианино 02.11: замок октавы по первой ноте (E4 → +12), затем E5 D#5 E5 D#5 E5 B4 D5 C5 A4, 9 из 9 по порядку, лишних нет (<code>out/air_keys_score_test11.log</code>). Это прогон по записи, не живая игра.</li><li>Живой прогон 03.11, 23:00–23:40, картонка на звонке WhatsApp: чертёж держится (28–37 клавиш в кадре), в лучшем дубле засчитано 10 нот подряд.</li><li>Звук: путь от подтверждения до динамика проверен субагентом, найден и исправлен вывод GM в посторонний Bluetooth-выход.</li></ul></section>
+    <section class="blk open"><h4>Что не доделано</h4><ul><li>«Нажата» против «лежит» с очков не различается. DINO отличает «палец на клавише» от «клавиша спокойна»; среди клавиш «палец лежит, но не нажата» 75 % ложных. В живом дубле 03.11 при посадке кисти звучали все лежащие пальцы.</li><li>Обычный темп двумя руками с движущейся головой не решён: метки уходят за 10–20 с; лучший результат на полном клипе 53 из 187 (с якорем, который позже выключили как ломающий эталон).</li><li>Боковой вид iPhone на SAM (<code>side_sam.py</code>) проверен на клипе IMG_1692, живого дубля с ним нет; порог касания и перекрытие пальцев с торца не проверены на игре.</li><li>Ансамбль-сопровождение исправлен на синтетике (−838 → +3 мс при 60 восьмых/мин), на живой игре пианистки не проверен и по умолчанию выключен.</li><li>Стенд не распознаёт ноты на лету: партитура известна заранее, он отвечает «да/нет» на одну ожидаемую клавишу.</li></ul></section>
+  </div>
+</article>
+<article class="card" id="card-2">
+  <header class="card-head">
+    <p class="eyebrow">/council</p>
+    <h3>Консилиум <span class="alias">Museon</span></h3>
+    <p class="tagline">Фото страниц договора → разбор пунктов светофором → пакет переговоров; Муза озвучивает выжимку.</p>
+  </header>
+  <div class="card-grid">
+    <section class="blk"><h4>Суть</h4><ul><li>Фото страниц (кнопка на дужке) читает Muse Spark 1.3 с картинки, отдельный OCR не нужен.</li><li>Консилиум: пресет Hermes MoA <code>muse-council</code>, три референса (<code>muse-wonder-1.0</code>, <code>muse-spark-1.3</code>, <code>muse-spark-1.2</code>), агрегатор <code>muse-wonder-1.0</code>, плейбук договоров музыканта v0 (английское право, 18 типов пунктов: стандарт, уступка, красная линия).</li><li>Выход: минутная выжимка в ухо («Не подписывай как есть. Вычеркнуть… Обсудить… Цифра…»), пункты красный/жёлтый/зелёный, пакет переговоров по приоритетам, дисклеймер на двух языках. Кнопка «Произнести» читает выжимку голосом macOS, очки слышат её как Bluetooth-гарнитуру.</li><li>В составе три адвайзера в прототипе DW1: юрист, менеджер, ментор, кнопка «К переговорам».</li></ul></section>
+    <section class="blk"><h4>Числа</h4><dl class="nums"><div class='num'><dt>18 / 18</dt><dd>заложенных ловушек найдено (прогон 30.10)</dd></div><div class='num'><dt>160 с</dt><dd>полный разбор 30.10; 206 с в приложении 03.11</dd></div><div class='num'><dt>14 + 1</dt><dd>красных пунктов и один жёлтый (п. 12) из 15, прогон 03.11</dd></div><div class='num'><dt>62 слова</dt><dd>выжимка в ухо, прогон 30.10</dd></div><div class='num'><dt>10,8 с</dt><dd>чтение одной страницы Muse Spark, ≈1 цент (≈30 центов за 30 страниц, оценка DC1)</dd></div><div class='num'><dt>≈ единицы $</dt><dd>ориентир за договор; точнее после прогонов, в источниках точной суммы нет</dd></div></dl></section>
+    <section class="blk"><h4>Что проверено</h4><ul><li>30.10: тестовый договор Northstar Sound Ltd ↔ «ARU» (17 статей, английское право, 18 заложенных ловушек) прочитан за 160 с, найдены все 18 ловушек; по каждой названы вред и честная альтернатива, даны ссылки на дела и CDPA 1988.</li><li>03.11 21:27: тот же договор через кнопку страницы <code>/council</code>, 206 с, страница сама разобрала ответ на 15 пунктов с цветом.</li><li>Чтение страницы: синтетический лист с наклоном 3° и размытием, транскрипция без единой ошибки.</li></ul></section>
+    <section class="blk open"><h4>Что не доделано</h4><ul><li>Реальные снимки договора с дужки не проверены: папка <code>clips/contract</code> пуста, чтение проверено на синтетической странице. Блики и тень руки не тестировались.</li><li>Ссылки на дела модель берёт из плейбука и вторичных источников и сама об этом пишет; перед сдачей нужна проверка цитат человеком.</li><li>Трассы MoA в рабочем профиле Hermes были выключены (<code>moa.save_traces</code>): «четыре модели Meta» видны по разделу о разногласиях, трассой не доказаны. Включены ли они сейчас, в источниках нет.</li><li>Базы права через MCP (legislation.gov.uk, Find Case Law) остались планом; экран согласия и удаление снимков после разбора тоже план.</li><li>Результат ответа: мнение нескольких ИИ-моделей, не юридическая консультация, это звучит в самом ответе.</li></ul></section>
+  </div>
+</article>
+<article class="card" id="card-3">
+  <header class="card-head">
+    <p class="eyebrow">/notebook</p>
+    <h3>Тетрадь <span class="alias">MuseAudioNotes</span></h3>
+    <p class="tagline">Сетка песни по тактам с аккордами, голос в ухо: такт, аккорд, следующий, к чему готовиться.</p>
+  </header>
+  <div class="card-grid">
+    <section class="blk"><h4>Суть</h4><ul><li>Веб-страница <code>/notebook</code> (Web Audio + Web Speech): темп 40–140, голоса RU/EN, метроном с акцентом, отсчёт, «назови такт», подсказка за долю до смены аккорда, «готовь ми семь» перед E7.</li><li>«Сетка с фото»: фото пюпитра → Muse Spark 1.3 → JSON песни (<code>audionotebook/read_chart.py</code>) → страница ведёт по тактам.</li><li>Режим «по темпу»: чистая арифметика, планировщик на часах Web Audio. Только аккорды, без текста песни и без фонограмм.</li><li>В прототипе DW1 у сервиса золотая кнопка «● Запись».</li></ul></section>
+    <section class="blk"><h4>Числа</h4><dl class="nums"><div class='num'><dt>48 тактов</dt><dd>прочитано с тестовой сетки Hallelujah</dd></div><div class='num'><dt>15 с</dt><dd>время чтения сетки Muse Spark</dd></div><div class='num'><dt>40–140</dt><dd>диапазон темпа</dd></div></dl></section>
+    <section class="blk"><h4>Что проверено</h4><ul><li>«Hallelujah» (Леонард Коэн), сетка аккордов: Muse Spark прочитал тестовую сетку за 15 с, 48 тактов, форма верна (03.11).</li><li>Страница в браузере при 375 px: голоса RU/EN находятся, такты идут, ошибок нет (30.10).</li></ul></section>
+    <section class="blk open"><h4>Что не доделано</h4><ul><li>Звук и голос в очках по Bluetooth живьём не проверены: в журнале 30.10 «живой звук в очках ещё не слушали», 03.11 повторено.</li><li>Проверено на тестовой сетке, не на фото живого пюпитра с дужки.</li><li>Режим «за игроком» (слежение по микрофону) в источниках только в плане, второй очереди.</li><li>Работа кнопки «Запись» в приложении источниками не подтверждена: она описана в прототипе DW1.</li></ul></section>
+  </div>
+</article></div>
+      </section>
+
+      <section class="part" id="keys">
+        <h2>Стенд клавиш: от картонки к LiDAR</h2>
+        <p class="lead">Стенд прошёл четыре ступени. <strong>Картонка-чертёж</strong> (31.10): ноты заданы навсегда, SAM ищет только чёрные, чертёж ложится гомографией. <strong>Настоящее пианино</strong> (02–03.11): гомография на очках не держится, написана одномерная модель, октаву запирает первая нота партитуры. <strong>Второй взгляд</strong> (04.11): iPhone с торца картонки, потому что сверху «лежит» и «нажата» неразличимы. <strong>LiDAR</strong> (04–05.11): третья координата, то есть высота пальца над клавишей, которой нет ни у одного RGB-метода. Сквозная идея Айдара: картонка не объект для распознавания, а устройство с чертежом.</p>
+        <h3>Критерии S0–S5</h3>
+        <p>Критерии и пороги из cookbook LiDAR (поток LiDAR). Статусы по состоянию на ночь 05.11.</p>
+        <div class="scroll"><table class="crit"><thead><tr><th scope='col'>ID</th><th scope='col'>Критерий и порог (cookbook)</th><th scope='col'>Статус</th><th scope='col'>Что измерено</th><th scope='col'>Источник</th></tr></thead><tbody><tr><td data-label='ID'>S0</td><td data-label='Критерий и порог (cookbook)'>Go/no-go: на 40–60 см пальцы различимы в Night Vision</td><td data-label='Статус'><span class="tag s-ok">закрыто</span></td><td data-label='Что измерено'>DZ1 отметил «давно». Протокола осмотра в Night Vision в читаемых источниках нет: <span class="tag s-nm">не измерено</span> как отдельная запись.</td><td data-label='Источник'>поток LiDAR (DZ1, 05.11)</td></tr><tr><td data-label='ID'>S1</td><td data-label='Критерий и порог (cookbook)'>Транспорт: ≥15 fps, 60 с без обрыва</td><td data-label='Статус'><span class="tag s-ok">закрыто</span></td><td data-label='Что измерено'><strong>30 fps, 75+ с, 2261 кадр, 0 обрывов</strong>, живой USB-поток Record3D, iPhone 16 Pro (USB-C). Первый бурст показывал 60 fps, устоявшаяся скорость с RGB-синхроном 30. Задержка кадр→событие ≤50 мс: <span class="tag s-nm">не измерено</span>.</td><td data-label='Источник'>поток LiDAR (DZ1, 05.11)</td></tr><tr><td data-label='ID'>S2</td><td data-label='Критерий и порог (cookbook)'>Маска руки: IoU ≥0,7 против ручной разметки на 20 кадрах</td><td data-label='Статус'><span class="tag s-ok">закрыто</span></td><td data-label='Что измерено'>Закрыт по физике, а не по IoU: ложных пятен руки на пустой клавиатуре 0 из 300 кадров (τ = 10 мм), шум опоры 1,7–1,9 мм. Сравнения с ручной разметкой в источниках нет: <span class="tag s-nm">не измерено</span>.</td><td data-label='Источник'>LiDAR REPORT 04.11; поток LiDAR</td></tr><tr><td data-label='ID'>S3</td><td data-label='Критерий и порог (cookbook)'>Touch, медленная игра, 1 рука: precision/recall ≥0,9</td><td data-label='Статус'><span class="tag s-wait">ждёт</span></td><td data-label='Что измерено'>Нет наземной правды (звук или MIDI не синхронизированы). Нужен дубль 2: медленные одиночные нажатия с голосовой меткой.</td><td data-label='Источник'>поток LiDAR (DC1, DZ1)</td></tr><tr><td data-label='ID'>S4</td><td data-label='Критерий и порог (cookbook)'>Touch, обычный темп двумя руками: честная фиксация</td><td data-label='Статус'><span class="tag s-wait">ждёт</span></td><td data-label='Что измерено'>Не снят. Прямой признак нажатия (клавиша ушла вниз на 6–20 мм) во время игры виден, но без правды это не точность.</td><td data-label='Источник'>LiDAR REPORT 04.11</td></tr><tr><td data-label='ID'>S5</td><td data-label='Критерий и порог (cookbook)'>Латентность end-to-end ≤100 мс тап→звук</td><td data-label='Статус'><span class="tag s-nm">не измерено</span></td><td data-label='Что измерено'>Не измерена. Отдельно известна задержка звука после подтверждения: GM-пианино 100–130 мс (измерение 03.11, это не тап→звук).</td><td data-label='Источник'>поток «очки» (03.11)</td></tr></tbody></table></div>
+        <h3>Числа: разбор записи PLY, 04.11</h3>
+        <div class="scroll"><table class="plain"><thead><tr><th scope='col'>Что измерено</th><th scope='col'>Значение</th><th scope='col'>Откуда</th></tr></thead><tbody><tr><td data-label='Что измерено'>Запись Record3D на пианино</td><td data-label='Значение'>1:25 @ 60 fps, 5 160 кадров PLY, ≈246 000 точек/кадр, 19 ГБ (удалены, выжимка осталась)</td><td data-label='Откуда'>REPORT 04.11</td></tr><tr><td data-label='Что измерено'>Дистанция до клавиш</td><td data-label='Значение'>63 см (ближняя точка) – ≈90 см (дальняя); cookbook просил 40–60 см</td><td data-label='Откуда'>REPORT 04.11</td></tr><tr><td data-label='Что измерено'>Шум плоскости клавиш после поправки (std)</td><td data-label='Значение'>1,7–1,9 мм</td><td data-label='Откуда'>REPORT 04.11</td></tr><tr><td data-label='Что измерено'>Дрейф мира ARKit за 85 с</td><td data-label='Значение'>от +8 до −4 до +9 мм (сдвиг и наклон); без покадровой поправки порог 6 мм не работает</td><td data-label='Откуда'>REPORT 04.11</td></tr><tr><td data-label='Что измерено'>Ложные пятна руки на пустой клавиатуре</td><td data-label='Значение'>0 из 300 при τ = 10 мм; 11 из 300 при τ = 5 мм</td><td data-label='Откуда'>REPORT 04.11</td></tr><tr><td data-label='Что измерено'>Кадров с рукой во время игры</td><td data-label='Значение'>1 062 из 1 241</td><td data-label='Откуда'>REPORT 04.11</td></tr><tr><td data-label='Что измерено'>Самая низкая точка руки над клавишами (p5 / p50 / p95)</td><td data-label='Значение'>5,9 / 10,3 / 23,9 мм</td><td data-label='Откуда'>REPORT 04.11</td></tr><tr><td data-label='Что измерено'>«Утопленные» клетки (−6…−20 мм): пустая клавиатура</td><td data-label='Значение'>0 после первой секунды (первую секунду ARKit выбрасывать)</td><td data-label='Откуда'>REPORT 04.11</td></tr><tr><td data-label='Что измерено'>«Утопленные» клетки во время игры (p50 / p90)</td><td data-label='Значение'>32 / 187 клеток, глубина p50 −18,6 мм</td><td data-label='Откуда'>REPORT 04.11</td></tr></tbody></table></div>
+        <h3>Числа: живой поток и модуль глубины, 04–05.11</h3>
+        <div class="scroll"><table class="plain"><thead><tr><th scope='col'>Что измерено</th><th scope='col'>Значение</th><th scope='col'>Откуда</th></tr></thead><tbody><tr><td data-label='Что измерено'>Живой поток (iPhone 16 Pro, USB-C, ночь 05.11)</td><td data-label='Значение'>30 fps, 75+ с, 2261 кадр, 0 обрывов</td><td data-label='Откуда'>поток LiDAR (DZ1)</td></tr><tr><td data-label='Что измерено'>Автокалибровка опоры</td><td data-label='Значение'>с первого раза; 33 771 клетка с данными из 54 868; опора сохраняется в <code>out/lidar/ref_live.npz</code></td><td data-label='Откуда'>поток LiDAR (DZ1)</td></tr><tr><td data-label='Что измерено'>Шум опоры в живом потоке</td><td data-label='Значение'>3,25 мм (грубее экспорта PLY 1,7–1,9 мм: сырые 256×192 против апскейленного экспорта)</td><td data-label='Откуда'>поток LiDAR (DZ1)</td></tr><tr><td data-label='Что измерено'>Поправка дрейфа ARKit в реальном времени</td><td data-label='Значение'>±2,3 мм за сессию</td><td data-label='Откуда'>поток LiDAR (DZ1)</td></tr><tr><td data-label='Что измерено'>Верх пальца над опорой (<code>low_mm</code>)</td><td data-label='Значение'>6–14 мм на касании; 35+ мм на висе</td><td data-label='Откуда'>поток LiDAR (DZ1)</td></tr><tr><td data-label='Что измерено'>Утопленные клетки</td><td data-label='Значение'>палец: десятки клеток; целая ладонь на столе: 2 564</td><td data-label='Откуда'>поток LiDAR (DZ1)</td></tr><tr><td data-label='Что измерено'>Модуль <code>depth_receiver.py</code>, <code>--selftest</code></td><td data-label='Значение'>PASS: синтетика с дрейфом 6 мм и наклоном</td><td data-label='Откуда'>поток LiDAR (DZ1, 04.11)</td></tr><tr><td data-label='Что измерено'><code>--replay</code> по <code>frames.csv</code></td><td data-label='Значение'>PASS: 1 700 кадров, 0 ложных press до 16-й секунды, 24 press-отрезка, первый на 16,75 с</td><td data-label='Откуда'>поток LiDAR (DZ1, 04.11)</td></tr></tbody></table></div>
+        <h3>Оговорки</h3>
+        <ul class="caveats"><li>Критерии S3, S4, S5 открыты. «Физика есть» (S2) не равно «нажатие определяется точно».</li><li>Живой S1 снят на <strong>iPhone 16 Pro с USB-C</strong>, не на iPhone 13 Pro: на 13 Pro разъём Lightning залит («жидкость в разъёме», данные отключены).</li><li>Пороги стенда для настоящего пианино: PRESS по верху пальца &lt;12 мм над опорой, HOVER &gt;18 мм (или клавиша ниже опоры на 6 мм ≥50 мс). Кукбучные 6/12 мм относились к картонке. DZ1 отметил, что <code>low_mm</code> на крутой кромке руки демпфируется примерно вдвое, поэтому пороги тюнятся флагами.</li><li>Сопоставление пятна с клавишей (<code>key/midi</code>) математически готово и проверено геометрически; живого кадра с <code>keys_piano.json</code> от того же телефона ещё нет.</li><li>Стенд <code>air_keys.py</code> может читать <code>out/live/depth.json</code> как второй канал (поле <code>state</code>). В источниках нет подтверждения, что он уже подключён.</li><li>SAM остаётся основным трекером, глубина только второй канал подтверждения. Apple Vision из приложения убран.</li><li>Первый вывод LiDAR-линии: x,y пальцев LiDAR не улучшает (палец 5–8 px при 256×192 на 40–60 см); он даёт маску руки вычитанием плоскости, высоту кончика и скорость спуска.</li></ul>
+      </section>
+
+      <section class="part" id="journal">
+        <h2>Журнал разработки</h2>
+        <p class="lead">Хронология с 30.10 по 05.11: что пробовали, что вышло, что нет. Цитаты короткие, из комментариев Linear и карточек съёмки; пометка «в пересказе» значит, что слова Айдара записал DC1Fable.</p>
+        <section class="day" id="d3010">
+  <header class="dayhead"><h3><span class="date">30.10</span> План, облако против локального SAM, первый звонок</h3><p class='daynote'>Подписи времени в комментариях Linear за 30.10 местами идут как «31.10» (автор писал так, дата создания комментария 30.10). Дни здесь даны по дате создания в Linear (Сайгон, UTC+7), подпись автора в скобках.</p></header>
+  <div class="entries"><article class="entry k-info">
+  <div class="meta"><span class="time">08:00</span><span class="kind">ход</span></div>
+  <div class="body"><p>поток «очки» создан как план на ревью. Три линии (тренер пальцев, консилиум, аудиотетрадь) и резервная кульминация «картонные клавиши». Сказано сразу: Meta AI в очках из-за региона недоступен, камера, звонки и музыка по Bluetooth работают.</p><blockquote>Мы показываем, как ИИ помогает сохранять живую музыку, а не забирает её, генерируя произведения сам. (структура ролика Айдара, в записи DC1Fable)</blockquote></div>
+</article><article class="entry k-ok">
+  <div class="meta"><span class="time">09:56</span><span class="kind">вышло</span></div>
+  <div class="body"><p>Ночной прогон по реальным вызовам API (подпись «30→31.10»). Облачный SAM 3.1: 1,4–5,3 с на кадр, медиана ≈2,5 с, в горячем контуре ему не место. Muse Spark читает страницу договора с наклоном 3° без ошибок за 10,8 с. Консилиум за 160 с находит 18 из 18 ловушек. Аудиотетрадь «Hallelujah» готова к пробе на телефоне.</p><blockquote>Всё ниже — реальные вызовы Meta Model API и Hermes, не планы. (DC1Fable)</blockquote></div>
+</article><article class="entry k-fail">
+  <div class="meta"><span class="time">10:32</span><span class="kind">не вышло</span></div>
+  <div class="body"><p>Первые клипы Айдара от первого лица (подпись «31.10 утро»; 18,6 с и 45,9 с, 1344×1792 и 1552×2064). SAM видит гриф одной маской и каждый палец отдельно, это лучший результат ночи. Правило «квадрат/треугольник» не различается: медиана угла 70° против 60°, признаки «палец на полосе грифа» равны нулю. Muse Spark как судья отвечает «curled» на оба клипа. Причина по кадрам: в проекции от первого лица пальцы уходят выше дальнего края грифа <span class="tag guess">предположение</span>.</p><blockquote>Правило «квадрат/треугольник» — правило бокового вида вдоль грифа. (DC1Fable)</blockquote></div>
+</article><article class="entry k-mix">
+  <div class="meta"><span class="time">11:42</span><span class="kind">частично</span></div>
+  <div class="body"><p>SAM на видео (подпись «31.10 день»): 120 кадров за 30,6 с, около 4 кадров в секунду, зато каждый палец отдельным объектом со стабильным номером. Для живого контура не годится, для разметки записи отлично. Калибровка клавиш по рисунку от руки работает: на кривой «картонке» маркером найдено 10 белых и 7 чёрных. Собран <code>air_keys.py</code>.</p></div>
+</article><article class="entry k-ok">
+  <div class="meta"><span class="time">12:12</span><span class="kind">вышло</span></div>
+  <div class="body"><p>SAM 3.1 поставлен локально на рабочей станции (<code>mlx-community/sam3.1-bf16</code>, 3,3 ГБ). Задержка на кадр: 0,65–0,70 с при 1008 px, 0,20–0,26 с при 504, 0,08–0,12 с при 336. Облако: 1,1–2,2 с. Живой цикл можно держать на самом SAM.</p></div>
+</article><article class="entry k-ok">
+  <div class="meta"><span class="time">13:15</span><span class="kind">вышло</span></div>
+  <div class="body"><p>Первый живой звонок: очки → WhatsApp → окно на Mac → локальный SAM → ноты. Стенд сам дождался пианино и откалибровался (43 клавиши). Айдар нот не слышал, на Mac был выключен звук; очки разрядились.</p></div>
+</article><article class="entry k-dec">
+  <div class="meta"><span class="time">13:27</span><span class="kind">решение</span></div>
+  <div class="body"><p>Звук: штатный GM-банк Apple (<code>gm_synth.py</code>). Решение Айдара: главная сцена — нарисованная клавиатура на картоне, пианино — дополнительный номер для вопросов жюри.</p></div>
+</article><article class="entry k-mix">
+  <div class="meta"><span class="time">14:19</span><span class="kind">частично</span></div>
+  <div class="body"><p>Следящий ансамбль на «К Элизе» (идея Айдара из банка банк идей). Обучается с одного прогона солиста (85 из 85 нот). «Плывёт»: партитура снята в 3/8, запись идёт в 4/4 при 148 bpm; после исправления ровность долей выросла вдвое (MAD 32 → 14 мс). Остаток — рубато солиста, такты 1404–1823 мс.</p></div>
+</article><article class="entry k-mix">
+  <div class="meta"><span class="time">16:36</span><span class="kind">частично</span></div>
+  <div class="body"><p>Apple Vision hand pose в стенде: 5 мс на кадр, цикл 21 кадр/с вместо 9–11, все пять кончиков на 18 из 20 кадров с руками. Позже убран из приложения (см. раздел «Эксперименты, которые не вошли»).</p></div>
+</article><article class="entry k-mix">
+  <div class="meta"><span class="time">23:11</span><span class="kind">частично</span></div>
+  <div class="body"><p>Живой звонок на картонке: пианистка играет, помощник держит очки, Айдар на Mac. Канал держал 30 кадров/с весь час, 320 нажатий. Мешали отражение в лаке пианино, дребезг, слипание белых и главное Stage Manager: окно звонка уходило, стенд получал миниатюру 121×143. Сессия закончилась на 5 % заряда очков.</p><blockquote>Так играть совсем невозможно. (оценка Айдара по ходу, в пересказе DC1Fable)</blockquote></div>
+</article></div>
+</section><section class="day" id="d3110">
+  <header class="dayhead"><h3><span class="date">31.10</span> Картонка стала устройством с чертежом</h3></header>
+  <div class="entries"><article class="entry k-info">
+  <div class="meta"><span class="time">утро</span><span class="kind">ход</span></div>
+  <div class="body"><p>По описанию поток «очки»: приложение Meta AI на голосовой разговор отвечает «feature is not available in your region», но видеозвонки и стримы очков (WhatsApp, Messenger, Instagram, Facebook) работают. Developer Mode приложения Meta AI по-прежнему не проверен, риск открыт. Запасной канал записан: очки звонят «Музе».</p></div>
+</article><article class="entry k-ok">
+  <div class="meta"><span class="time">12:47</span><span class="kind">вышло</span></div>
+  <div class="body"><p>Переосмысление Айдара после звонка: картонка копия MIDI-клавиатуры с готовым чертежом (<code>cardboard.py</code>: 24 белых от C4 по 30 мм, 17 чёрных). SAM ищет только чёрные, чертёж ложится гомографией. На живом кадре вчерашнего звонка 12 из 12 чёрных, ошибка 1,8–4,5 px; на фото картонки 17 из 17, все 41 клавиша. Касание по тени (<code>touch_shadow.py</code>) готово в коде, ждёт фото с боковой лампой; синтетика, 150 случаев, перепутано 3 %.</p><blockquote>дело не в скорости, а в том, какой палец с какой клавиши и когда (переосмысление Айдара, в пересказе DC1Fable)</blockquote></div>
+</article></div>
+</section><section class="day" id="d0111">
+  <header class="dayhead"><h3><span class="date">01.11</span> В читаемых источниках записей нет</h3></header>
+  <div class="entries"><article class="entry k-info">
+  <div class="meta"><span class="time">—</span><span class="kind">ход</span></div>
+  <div class="body"><p>Комментариев в поток «очки» и поток LiDAR за этот день нет. В папке проекта лежит файл «Souls of Muse — статус и передача 01.11.2026.md»; по условиям задачи он в список источников не входил и не читался.</p></div>
+</article></div>
+</section><section class="day" id="d0211">
+  <header class="dayhead"><h3><span class="date">02.11</span> Тень закрыта, DINO даёт сигнал, подтверждение по партитуре</h3></header>
+  <div class="entries"><article class="entry k-fail">
+  <div class="meta"><span class="time">17:31</span><span class="kind">не вышло</span></div>
+  <div class="body"><p>Разбор видео пианистки с фонариком (140 с, два отрезка). Свет сверху: тени нет у 29 из 30 кончиков. Свет сбоку: 422 touch / 94 hover / 69 unsure / 154 none, ни одного перехода hover→touch. Кожа пересвечена. Чертёж с рукой над картонкой ложится лишь в 30 кадрах из 121: SAM видит отражение картонки в лаковой крышке пианино <span class="tag guess">предположение</span>. Что сработало: рывок кончика вниз ≥6 px/кадр плюс щелчок по картону в звуке очков (128,03 с и 128,63 с).</p></div>
+</article><article class="entry k-dec">
+  <div class="meta"><span class="time">18:50</span><span class="kind">решение</span></div>
+  <div class="body"><p>Поправка DC1Fable: фраза «лампа стояла высоко» была реконструкцией по теням, не наблюдением. Айдар подтвердил, что свет ставили низко. Вывод: тень не работает сама по себе. Звуковой канал снят с повестки. Новая постановка Айдара: партитура известна, значит стенд не распознаёт ноты, а подтверждает «да/нет» для одной ожидаемой клавиши.</p><blockquote>Метод тени закрыт. (DC1Fable)</blockquote></div>
+</article><article class="entry k-mix">
+  <div class="meta"><span class="time">19:30</span><span class="kind">частично</span></div>
+  <div class="body"><p>Вторая пара глаз рядом с SAM. Llama 3.2 Vision 11B (MLX 4-bit) не годится как судья «палец на клавише»: три постановки дали по 10 из 20, ответ не зависит от картинки. DINOv2 small даёт сигнал: AUC 0,846 против 0,728 у пиксельного контроля на 141 кадре картонки; после поправки (только клавиши в кадре) 0,82 против 0,59, ложных при 90 % пойманных 37 % против 64 %. DINOv3 закрыт лицензией Meta, принять её может только владелец аккаунта.</p></div>
+</article><article class="entry k-info">
+  <div class="meta"><span class="time">23:03</span><span class="kind">ход</span></div>
+  <div class="body"><p>Подготовлен приёмник для записи настоящего пианино: карточка съёмки для пианистки, <code>ingest_clip.py</code>, профиль «пианино» в привязке (синтетика 35 из 36).</p></div>
+</article></div>
+</section><section class="day" id="d0311">
+  <header class="dayhead"><h3><span class="date">03.11</span> Пианино с очков, замок октавы, приложение на три страницы, съёмка</h3></header>
+  <div class="entries"><article class="entry k-mix">
+  <div class="meta"><span class="time">00:05</span><span class="kind">частично</span></div>
+  <div class="body"><p>Первая запись настоящего пианино с очков (161 с, 1552×2064, 120 к/с). Гомография на настоящих клавишах не держится: широкий угол гнёт ряд дугой, SAM сливает соседние чёрные, руки закрывают часть ряда. Написана <code>fit_piano</code>: на синтетике 35 из 36, легла в 1597 кадрах из 1610. DINO на пианино хуже, чем на картонке: AUC 0,77, ложных 48 % при 90 % пойманных (контроль 0,50 / 75 %). Порог не ставим.</p></div>
+</article><article class="entry k-ok">
+  <div class="meta"><span class="time">08:47</span><span class="kind">вышло</span></div>
+  <div class="body"><p>Замок октавы по первой ноте партитуры и слежение по чёрным (4 мс на кадр вместо 94 мс скана). На медленном проходе 12 из 12 пальцев на ожидаемой клавише, 11 из 12 подтверждены DINO, AUC 0,94 / 0,88. Стенд подтверждает 9 из 9 нот партитуры по порядку. Одновременно собрано приложение с тремя страницами.</p><blockquote>DINO отличает «палец на клавише» от «клавиша спокойна», а не «нажата» от «лежит». (DC1Fable)</blockquote></div>
+</article><article class="entry k-info">
+  <div class="meta"><span class="time">08:59</span><span class="kind">ход</span></div>
+  <div class="body"><p>Отчёт обо всех экспериментах очков: 30 экспериментов в шести направлениях, блок «Что не сработало и почему» из восьми пунктов, десять цитат (roadmap-страница, внутренняя).</p></div>
+</article><article class="entry k-mix">
+  <div class="meta"><span class="time">09:22</span><span class="kind">частично</span></div>
+  <div class="body"><p>Подпись «10:30». Регрессии: каждая «улучшающая» правка по очереди ломала эталон 9/9, якорь-шаблон и якорь-палец выключены флагами. Звук шёл в Bluetooth-устройство, исправлено. Ансамбль: на синтетике было −838 мс при 60 восьмых/мин, стало +3 мс. Картонка: чертёж ложится, правила съёмки записаны в карточку.</p></div>
+</article><article class="entry k-ok">
+  <div class="meta"><span class="time">21:27</span><span class="kind">вышло</span></div>
+  <div class="body"><p>Живой прогон консилиума через кнопку <code>/council</code> по «Запускай» Айдара: 206 с, 15 пунктов (14 красных, 1 жёлтый), выжимка по-русски, пакет переговоров. Все три страницы теперь проверены на реальных вызовах.</p></div>
+</article><article class="entry k-mix">
+  <div class="meta"><span class="time">23:58</span><span class="kind">частично</span></div>
+  <div class="body"><p>Съёмка картонки на звонке WhatsApp (прогон 23:00–23:40). Чертёж держится, 28–37 клавиш в кадре, 10 нот подряд в лучшем дубле. Нашлось: окно звонка сворачивается в миниатюру при переключении окон и стенд слепнет, микрофон очков глушит звук Mac, громкость стояла 31 %. По требованию Айдара добавлен режим «виртуальная клавиатура не молчит»: сверху «лежит» и «нажал» неразличимы, звучали все лежащие пальцы. Ролик снят в этот день, LiDAR в него не входит.</p></div>
+</article></div>
+</section><section class="day" id="d0411">
+  <header class="dayhead"><h3><span class="date">04.11</span> Второй взгляд, только SAM, LiDAR за один день, переименование сервисов</h3></header>
+  <div class="entries"><article class="entry k-mix">
+  <div class="meta"><span class="time">00:05</span><span class="kind">частично</span></div>
+  <div class="body"><p>«Делай немедленно»: второй взгляд, iPhone с торца картонки (<code>side_view.py</code>, Apple Vision). Идея: низкий взгляд вдоль клавиш видит высоту пальцев, нажимающий касается картонки. На клипе IMG_1692 кончики находятся почти в каждом кадре. iPhone виден Mac как камера «iPhone», но процессам из Claude macOS камеру не даёт: сервер запускать из Terminal.app. На живой игре не проверено.</p></div>
+</article><article class="entry k-dec">
+  <div class="meta"><span class="time">03:50</span><span class="kind">решение</span></div>
+  <div class="body"><p>Айдар (01:00) сказал, что Apple Vision работает плохо, и спросил, почему SAM управляется текстовым промптом. Ответ: SAM 3.1 принимает слово как понятие, ведение пальцев сделано своё (захват каждый кадр, отсев дублей по IoU, дорожки по перекрытию масок, <code>mask_track.py</code>), боковой вид переведён на SAM (<code>side_sam.py</code>, верх картонки прямой по RANSAC, касание = нижняя точка пальца на грани). Живой дубль с двумя камерами ночью: окно звонка появлялось миниатюрой, стенд клавиш так и не увидел; с Vision-боком были единичные верные касания. Облачные кредиты участника (Baseten, Modal) записаны как ресурс на быстрый облачный SAM, деплой по «Go».</p><blockquote>Apple Vision работает плохо, мы давно решили вернуться к варианту без него. (Айдар, 01:00)</blockquote></div>
+</article><article class="entry k-info">
+  <div class="meta"><span class="time">05:14</span><span class="kind">ход</span></div>
+  <div class="body"><p>DZ1: исследование LiDAR iPhone 13 Pro. Вердикт: x,y не улучшает, но даёт маску руки вычитанием плоскости, высоту кончика и скорость спуска. Cookbook в базе знаний с критериями S0–S5. Приложение Айдара оказалось ScanToPrint (mesh-сканер), а не Carlson Scan3D: меш сглажен, запаздывает, тонкие пальцы в него не попадают, поэтому транспорту нужен покадровый <code>sceneDepth</code>. Сначала линию планировали на финал 09.11; позже cookbook поправлен: финал утром 05.11, окно на всю LiDAR-линию — одна ночь.</p></div>
+</article><article class="entry k-info">
+  <div class="meta"><span class="time">11:46</span><span class="kind">ход</span></div>
+  <div class="body"><p>Айдар записывает 1:25 @ 60 fps в Record3D на настоящем пианино (время записи по имени файла). Куплена Full Version Record3D. Живой поток не снят: iPhone 13 Pro сообщил о жидкости в разъёме Lightning, данные отключены.</p></div>
+</article><article class="entry k-ok">
+  <div class="meta"><span class="time">13:13</span><span class="kind">вышло</span></div>
+  <div class="body"><p>Первый разбор LiDAR (<code>ply_ref.py</code>): шум плоскости клавиш 1,7–1,9 мм, дрейф ARKit до ±8 мм лечится только покадровой поправкой, ложных пятен руки 0 из 300 при τ = 10 мм, самая низкая точка руки при игре p5/p50/p95 = 5,9 / 10,3 / 23,9 мм. S2 закрыт, S3/S4 нет: нет наземной правды.</p><blockquote>Физика есть. (DC1Fable, заголовок разбора)</blockquote></div>
+</article><article class="entry k-dec">
+  <div class="meta"><span class="time">13:17</span><span class="kind">решение</span></div>
+  <div class="body"><p>Айдар: «Go», тяжёлую работу на DZ1. Бриф: модуль <code>keys/depth_receiver.py</code> (живой USB-поток или PLY → <code>out/live/depth.json</code>, критерии S1 ≥15 fps, 0 ложных PRESS на 300 кадрах пустой клавиатуры). Ограничения: SAM основной, Apple Vision не использовать, ничего не ставить через pip без согласования.</p></div>
+</article><article class="entry k-dec">
+  <div class="meta"><span class="time">18:07</span><span class="kind">решение</span></div>
+  <div class="body"><p>DW1 по указанию Айдара: сервисы переименованы (MuseEveryThings, Museon, MuseAudioNotes), хаб в виде 3D-графа по образцу League circle из Portal 2.1; замечания к макетам: персонаж Муза перерисован, а допустим только файл маскота; залитые фиолетовые кнопки; плоские арки. В 18:38 готов кликабельный прототип Glasses 1.0 (проверка Playwright при 390 и 1440, горизонтального скролла нет).</p></div>
+</article><article class="entry k-ok">
+  <div class="meta"><span class="time">18:12</span><span class="kind">вышло</span></div>
+  <div class="body"><p>DZ1: <code>depth_receiver.py</code> готов, <code>--selftest</code> и <code>--replay</code> PASS (1 700 кадров, 0 ложных press до 16-й секунды, 24 press-отрезка, первый на 16,75 с). Вынесен <code>lidar/plylib.py</code>. Урок: <code>low_mm</code> на крутой кромке руки демпфируется вдвое.</p></div>
+</article></div>
+</section><section class="day" id="d0511">
+  <header class="dayhead"><h3><span class="date">05.11</span> Живой LiDAR и сборка отчёта</h3></header>
+  <div class="entries"><article class="entry k-ok">
+  <div class="meta"><span class="time">03:51</span><span class="kind">вышло</span></div>
+  <div class="body"><p>DZ1: живой прогон S1/S2 на iPhone 16 Pro с USB-C по USB-C. 75+ с, 2261 кадр, 30 fps, ноль обрывов; автокалибровка опоры сработала с первого раза; состояния press/hover/none пишутся в <code>out/live/depth.json</code>. По ходу починены два дефекта модуля: пересчёт интринсик (коэффициенты приходят в масштабе RGB-кадра, без пересчёта «объектив» сужался до глазка 10 см) и автопереподключение при закрытии сессии приложением.</p><blockquote>LiDAR-тракт ЗАКРЫТ (DZ1, заголовок комментария)</blockquote></div>
+</article><article class="entry k-info">
+  <div class="meta"><span class="time">утро</span><span class="kind">ход</span></div>
+  <div class="body"><p>Сборка этого отчёта (DC1Fable, Sonnet-сессия) по Linear поток «очки», поток LiDAR, карточкам и cookbook. Сдача 09:00 по Сайгону.</p></div>
+</article></div>
+</section>
+      </section>
+
+      <section class="part" id="rejected">
+        <h2>Эксперименты, которые не вошли</h2>
+        <p class="lead">Отвергнутое и отложенное. Первые пять строк названы в задании на отчёт; где источники молчат, так и написано.</p>
+        <div class="scroll"><table class="plain"><thead><tr><th scope='col'>Что пробовали</th><th scope='col'>Что известно из источников</th><th scope='col'>Статус</th></tr></thead><tbody><tr><td data-label='Что пробовали'>Apple Vision hand pose (позы рук)</td><td data-label='Что известно из источников'>30.10: 5 мс на кадр, цикл 21 кадр/с вместо 9–11, пять кончиков на 18 из 20 кадров. Использовался для кончиков пальцев и бокового вида iPhone. 04.11 03:50 убран из приложения по требованию Айдара: «Apple Vision работает плохо». Сравнительных цифр против SAM в источниках нет. В боковом виде были единичные верные касания.</td><td data-label='Статус'>отвергнуто 04.11 решением Айдара; код <code>hand_pose.py</code> в репозитории</td></tr><tr><td data-label='Что пробовали'>Wi-Fi-стрим Record3D</td><td data-label='Что известно из источников'>В cookbook: Wi-Fi Extension за 1 790 ₸ «не покупать (USB точнее и нам хватает)». Про lossy-глубину в источниках ничего нет, формулировка «из-за lossy-глубины» подтверждения не нашла.</td><td data-label='Статус'>не куплено; причина в источниках иная</td></tr><tr><td data-label='Что пробовали'>Камера Mac как третий вид</td><td data-label='Что известно из источников'>Есть скрипт <code>lidar/mac_cam_snap.py</code> и один сохранённый кадр <code>out/lidar/mac_cam.jpg</code> (1280×720, 04.11 09:40). В банк идей это идея Айдара: камера MacBook как общий вид исполнителя. Результата и причины отказа в источниках нет.</td><td data-label='Статус'>попытка зафиксирована, итога нет</td></tr><tr><td data-label='Что пробовали'>Маркерная точка на пальце или картонке</td><td data-label='Что известно из источников'>В источниках не найдена. Найдены цветные метки на кончиках пальцев (план 30.10: изолента одного цвета) и запись «цветные метки на пальцах больше не нужны» после локального SAM.</td><td data-label='Статус'>как «маркерная точка»: нет данных; цветные метки: отложены</td></tr><tr><td data-label='Что пробовали'>Залитый разъём Lightning (iPhone 13 Pro)</td><td data-label='Что известно из источников'>04.11: «жидкость в разъёме Lightning», данные отключены. Живой USB-стрим на этом телефоне не снят. Выход: экспорт PLY из записи, затем iPhone 16 Pro с USB-C с USB-C.</td><td data-label='Статус'>обойдено</td></tr><tr><td data-label='Что пробовали'>Касание по тени (<code>touch_shadow.py</code>)</td><td data-label='Что известно из источников'>Свет сверху: 29 из 30 «тени нет». Свет сбоку: ни одного перехода hover→touch. Исключение — большой палец. Закрыто 02.11.</td><td data-label='Статус'>закрыто</td></tr><tr><td data-label='Что пробовали'>Правило «квадрат/треугольник» с ракурса очков</td><td data-label='Что известно из источников'>Угол 70° против 60°, признаки на грифе нули, Muse Spark отвечает «curled» на оба клипа. Правило бокового вида. Страницы тренера постановки пальцев в приложении (<code>app/README.md</code>) нет: в итоговые три сервиса он не вошёл.</td><td data-label='Статус'>не работает с очков</td></tr><tr><td data-label='Что пробовали'>Облачный SAM в горячем контуре</td><td data-label='Что известно из источников'>1,4–5,3 с на кадр, видеорежим 4 кадра в секунду. Заменён локальным.</td><td data-label='Статус'>закрыто</td></tr><tr><td data-label='Что пробовали'>Llama 3.2 Vision 11B как судья клавиши</td><td data-label='Что известно из источников'>10 из 20 в трёх постановках, ответ не зависит от картинки.</td><td data-label='Статус'>закрыто</td></tr><tr><td data-label='Что пробовали'>Якорь-шаблон и якорь-палец над клавишами</td><td data-label='Что известно из источников'>Поднимали попадания до 53 из 187 (с 27 по Linear, с 36 по JUDGE), но ломали эталон 9/9 (цепляется за соседнюю октаву). Выключены, остались флагами <code>--anchor</code>, <code>--tip-anchor</code>.</td><td data-label='Статус'>выключено</td></tr><tr><td data-label='Что пробовали'>Звуковой онсет (щелчок по картону)</td><td data-label='Что известно из источников'>Щелчки 22–80 мс видны в звуке очков и совпадают с рывком кончика. Снят с повестки: демонстрация про сегментацию SAM, звук к ней не относится.</td><td data-label='Статус'>отложено</td></tr><tr><td data-label='Что пробовали'>Meta AI в очках, Developer Mode</td><td data-label='Что известно из источников'>Голосовой Meta AI недоступен в регионе. Переключатель Developer Mode в приложении Meta AI не проверен, риск открыт.</td><td data-label='Статус'>риск открыт</td></tr></tbody></table></div>
+      </section>
+
+      <section class="part" id="next">
+        <h2>Что дальше</h2>
+        <div class="scroll"><table class="plain next"><thead><tr><th scope='col'>Шаг</th><th scope='col'>Что нужно и зачем</th></tr></thead><tbody><tr><td data-label='Шаг'>Дубль 2 для S3/S4</td><td data-label='Что нужно и зачем'>Медленные одиночные нажатия с голосовой меткой «раз, два…» (или аудио-синхрон). Даст наземную правду для precision/recall и замер задержки кадр→событие ≤50 мс и тап→звук ≤100 мс (S5).</td></tr><tr><td data-label='Шаг'>Сопоставление клавиш</td><td data-label='Что нужно и зачем'>Один живой кадр, где <code>keys_piano.json</code> откалиброван по RGB того же телефона, чтобы <code>key/midi</code> в <code>depth.json</code> заработал. Затем подключить <code>state</code> из <code>depth.json</code> в <code>air_keys.py</code> вторым каналом подтверждения.</td></tr><tr><td data-label='Шаг'>Android-оболочка с DAT</td><td data-label='Что нужно и зачем'>Приложение на Wearables Device Access Toolkit 1.0 (Kotlin, Android Studio на отдельной машине): стрим камеры очков, звук по Bluetooth, событие в Harness. Сначала проверить Developer Mode в приложении Meta AI. Кто пишет код (Muse Wonder или DC1) не решено.</td></tr><tr><td data-label='Шаг'>Сопровождение (следящий ансамбль)</td><td data-label='Что нужно и зачем'>Проверить на живой игре пианистки: бас и подклад идут за солистом. На синтетике +3 мс, на живой игре не проверено; включать на съёмке только если на репетиции идёт вровень.</td></tr><tr><td data-label='Шаг'>Портал</td><td data-label='Что нужно и зачем'>Перенести три сервиса в дизайн Nocturne по прототипу Glasses 1.0 (DW1). Полный разбор договора выводить в кабинет участника. Детали переноса в читаемых источниках не описаны.</td></tr><tr><td data-label='Шаг'>Консилиум</td><td data-label='Что нужно и зачем'>Настоящие снимки договора с дужки; проверка цитат дел человеком; экран согласия и удаление снимков после разбора; включить трассы MoA; базы права через MCP; плейбук v1.</td></tr><tr><td data-label='Шаг'>Свой ARKit mini-app</td><td data-label='Что нужно и зачем'>Продакшн-тракт глубины вместо Record3D (до 60 fps, свой формат). Снят с финала, остаётся на будущее.</td></tr><tr><td data-label='Шаг'>Облачный SAM</td><td data-label='Что нужно и зачем'>Облачные кредиты участника (Baseten, Modal): потоковый SAM на GPU и видеослежение, замер полного круга из Сайгона. Деплой только по «Go» Айдара.</td></tr></tbody></table></div>
+      </section>
+
+      <section class="part" id="sources">
+        <h2>Источники и границы</h2>
+        <ul><li>Рабочий журнал потока «очки» (план и 29 комментариев, 30.10 – 04.11), внутренний трекер; в публичном виде см. <code>docs/journal/</code>.</li><li>Рабочий журнал потока LiDAR (описание и 4 комментария, 04–05.11), внутренний трекер.</li><li><code>glasses/LIDAR-COOKBOOK-2026-11-04.md</code>, <code>glasses/lidar/REPORT-2026-11-04.md</code>.</li><li><code>glasses/keys/</code> (SHOOT-2026-11-03, SHOOT-PIANO, SHOOT-shadow, VIDEO-2026-11-02, JUDGE-2026-11-02), <code>glasses/council/</code>, <code>glasses/audionotebook/</code>, <code>glasses/app/README.md</code>.</li></ul>
+        <p class="legend">Выводы, сделанные по кадрам и видео, помечены «предположение»: за ними нет прямого измерения. Чего нет в источниках, помечено «не измерено» или «в источниках нет».</p>
+        <footer class="sign">DC1Fable · Sonnet-сессия · 05.11.2026</footer>
+      </section>
+
+    </main>
+  </div>
+</div>
