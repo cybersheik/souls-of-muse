@@ -32,7 +32,14 @@ PLACEHOLDER = re.compile(r"<!-- FILL(?::[^>]*)? -->")
 MAX_BYTES = 5 * 1024 * 1024
 
 # Placeholder secrets used by offline tests are allowed only when they say so.
-FAKE_VALUE = re.compile(r"(fake|dummy|example|placeholder|not[-_ ]a[-_ ]real|redacted|xxxx|<[^>]+>)", re.I)
+FAKE_VALUE = re.compile(r"(fake|dummy|example|placeholder|not[-_ ]a[-_ ]real|redacted|xxxx|fixture|offline|test|<[^>]+>)", re.I)
+# A value made only of lowercase letters and hyphens with no digits is a word, not secret-shaped
+# (e.g. completion_tokens_details="reasoning", token: "ingress-capability").
+WORD_VALUE = re.compile(r"[a-z]+(?:-[a-z]+)*")
+# Attribute access in code (self.local, session.local) is not an mDNS host name.
+CODE_RECEIVER = re.compile(r"(?i)(self|this|args|session|opts|options|config|cfg|ctx|state|params|req|res|event)\.local")
+# Pinned third-party bundles are not authored here; they are reviewed when the pin changes.
+VENDOR_PREFIXES = ("web/vendor/",)
 
 ENV_NAME = re.compile(r"[A-Z][A-Z0-9_]{2,}")
 
@@ -143,9 +150,11 @@ def _allowed(rule: Rule, match: re.Match) -> bool:
     if rule.name == "assigned-secret":
         value = match.group(1)
         # An environment-variable *name* is configuration, not a secret.
-        return bool(FAKE_VALUE.search(value) or ENV_NAME.fullmatch(value))
+        return bool(FAKE_VALUE.search(value) or ENV_NAME.fullmatch(value) or WORD_VALUE.fullmatch(value))
     if rule.name in {"openai-style-key", "bearer-token"}:
         return bool(FAKE_VALUE.search(value))
+    if rule.name == "vpn-hostname":
+        return bool(CODE_RECEIVER.fullmatch(value))
     return False
 
 
@@ -175,6 +184,12 @@ def tracked_files() -> list[Path]:
 
 def scan_file(path: Path, deny: list[re.Pattern], release: bool) -> list[Finding]:
     rel = path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else str(path)
+    try:
+        rel = path.resolve().relative_to(ROOT).as_posix()
+    except ValueError:
+        rel = ""
+    if rel.startswith(VENDOR_PREFIXES):
+        return []
     if path.suffix.lower() in SKIP_SUFFIXES or not path.is_file():
         return []
     data = path.read_bytes()

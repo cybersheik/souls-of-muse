@@ -122,3 +122,22 @@ class CliTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FalsePositiveTest(unittest.TestCase):
+    def rules(self, text):
+        return [f.rule for f in dc.scan_text(text, "x", [])]
+
+    def test_attribute_access_is_not_a_host(self):
+        self.assertEqual(self.rules("session.local.video.pause(); self.local = 1"), [])
+
+    def test_mdns_host_is_still_caught(self):
+        self.assertIn("vpn-hostname", self.rules("ssh studio-mac" + ".local"))
+
+    def test_named_fixtures_are_allowed(self):
+        self.assertEqual(self.rules("{'password': 'fixture-password'}"), [])
+        self.assertEqual(self.rules('environ={"MODEL_API_KEY": "offline-fixture"}'), [])
+        self.assertEqual(self.rules('token: "ingress-capability"'), [])
+
+    def test_secret_shaped_value_is_still_caught(self):
+        self.assertIn("assigned-secret", self.rules("pass" + "word = \"Xk9vQ2mL7pR4tZ8w\""))
