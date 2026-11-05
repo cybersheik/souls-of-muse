@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Souls of Muse · Ray-Ban Meta Experiments</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Макет: светлый «лист» с тёмно-синими «экранными» панелями, как в фирменном SummarizeUI-V1 Roadmap (AI3-901) и в Roadmap AI3-938. Одна колонка, узкие кикеры, карточки по ролям. */
+:root{
+  --bg:#f3f2f2; --surface:#eae9e9; --surface-hi:#dfdddd; --ink:#201e1d; --muted:#5f5955; --faint:#928b86;
+  --rule:#17222e; --rule-soft:#cdc8c4; --accent:#ec3013; --amber:#c88a1e; --som-blue:#385f7e; --som-amber:#bc8a39;
+  --screen-bg:#17222e; --screen-bg-deep:#101a24; --screen-ink:#dce8f2; --screen-muted:#9db6cc; --screen-accent:#7db3e8; --screen-line:rgba(125,179,232,.35);
+  --ok:#2e7d4f; --warn:#c88a1e; --bad:#b3261e;
+  --sans:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --fs-kicker:11px; --fs-meta:12.5px; --fs-body:15px; --fs-lead:17px; --fs-title:clamp(26px,2.4vw,34px); --r-sm:6px; --r-lg:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141a21; --surface:#1b232c; --surface-hi:#232d38; --ink:#e6e9ec; --muted:#aab4bf; --faint:#75808c; --rule:#7db3e8; --rule-soft:#2d3844;
+  --accent:#ff6a4d; --som-blue:#7fb0d6; --screen-bg:#0e151c; --screen-bg-deep:#0a1016; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141a21; --surface:#1b232c; --surface-hi:#232d38; --ink:#e6e9ec; --muted:#aab4bf; --faint:#75808c; --rule:#7db3e8; --rule-soft:#2d3844;
+  --accent:#ff6a4d; --som-blue:#7fb0d6; --screen-bg:#0e151c; --screen-bg-deep:#0a1016; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:var(--fs-body)/1.55 var(--sans);margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:1040px;margin:0 auto}
+.brand-strip{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-block:14px 10px;border-bottom:2px solid var(--rule);font-family:var(--mono);font-size:var(--fs-kicker);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.brand-strip b{color:var(--ink)}
+.eyebrow{font-family:var(--mono);font-size:var(--fs-kicker);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+.masthead{padding-block:34px 22px;border-bottom:1px solid var(--rule-soft)}
+h1{font-size:var(--fs-title);line-height:1.12;margin:0 0 10px;font-weight:800;letter-spacing:-.01em;text-wrap:balance}
+.lead{font-size:var(--fs-lead);color:var(--muted);max-width:66ch;margin:0 0 16px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;font-family:var(--mono);font-size:var(--fs-meta);color:var(--muted)}
+.meta b{color:var(--ink);font-weight:500}
+.pill{display:inline-block;border:1px solid var(--rule);border-radius:999px;padding:2px 10px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.pill.ok{border-color:var(--ok);color:var(--ok)} .pill.warn{border-color:var(--warn);color:var(--warn)} .pill.bad{border-color:var(--bad);color:var(--bad)} .pill.wait{border-color:var(--faint);color:var(--faint)}
+nav.som-nav{display:flex;flex-wrap:wrap;gap:6px 18px;padding-block:14px;border-bottom:1px solid var(--rule-soft);font-family:var(--mono);font-size:var(--fs-meta)}
+nav.som-nav a{color:var(--ink);text-decoration:none;border-bottom:1px solid transparent} nav.som-nav a:hover,nav.som-nav a:focus-visible{border-bottom-color:var(--accent);outline:none}
+.notice{background:var(--surface);border-left:3px solid var(--amber);padding:10px 14px;margin:18px 0 0;font-size:var(--fs-meta);color:var(--muted);border-radius:0 var(--r-sm) var(--r-sm) 0}
+.section{margin-top:46px}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--rule-soft);padding-bottom:8px;margin-bottom:18px}
+.section-head h2{font-size:22px;margin:0;font-weight:700;letter-spacing:-.005em;text-wrap:balance}
+.section-head .count{font-family:var(--mono);font-size:var(--fs-meta);color:var(--faint)}
+.sub{font-family:var(--mono);font-size:var(--fs-kicker);letter-spacing:.14em;text-transform:uppercase;color:var(--som-blue);margin:26px 0 10px;display:flex;gap:10px;align-items:baseline}
+.sub:first-of-type{margin-top:0}
+.sub .count{color:var(--faint);letter-spacing:.06em;text-transform:none}
+/* экранная панель */
+.screen{background:var(--screen-bg);color:var(--screen-ink);border-radius:var(--r-lg);padding:22px 22px 18px;border:1px solid var(--screen-line)}
+.screen .eyebrow{color:var(--screen-accent)} .screen .muted{color:var(--screen-muted)}
+.screen pre{font:12.5px/1.45 var(--mono);margin:0;overflow-x:auto;color:var(--screen-ink)}
+.screen .kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-top:14px}
+.kpi div{border-top:1px solid var(--screen-line);padding-top:8px} .kpi b{display:block;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums} .kpi span{font-size:12px;color:var(--screen-muted)}
+/* таблица метрик внутри экранной панели */
+.screen table{width:100%;border-collapse:collapse;font:12.5px/1.4 var(--mono);margin-top:12px;font-variant-numeric:tabular-nums}
+.screen th,.screen td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--screen-line);vertical-align:top}
+.screen th{color:var(--screen-accent);font-weight:500;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.screen td.g{color:var(--screen-muted);font-family:var(--sans);font-size:12px}
+.screen tr.hd td{color:var(--screen-accent);font-weight:500;padding-top:12px;font-family:var(--sans)}
+.tbl-wrap{overflow-x:auto}
+/* эксперименты */
+.exp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.exp{background:var(--surface);border-radius:var(--r-sm);padding:14px 16px;border:1px solid var(--rule-soft);display:flex;flex-direction:column;gap:8px;min-width:0}
+.exp h3{margin:0;font-size:15.5px;font-weight:700;line-height:1.3}
+.exp h3 small{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--faint);letter-spacing:.06em;margin-left:6px}
+.exp dl{margin:0;display:grid;grid-template-columns:78px 1fr;gap:4px 10px;font-size:13.5px}
+.exp dt{color:var(--faint);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding-top:3px} .exp dd{margin:0;color:var(--ink)}
+.exp .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.verdict{margin-top:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.verdict span.why{font-size:12.5px;color:var(--muted)}
+/* что не сработало */
+.fails{display:grid;gap:10px}
+.fail{display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:start;padding:12px 14px;background:var(--surface);border-radius:var(--r-sm);border:1px solid var(--rule-soft);border-left:3px solid var(--bad)}
+.fail .x{font-family:var(--mono);color:var(--bad);font-weight:700;padding-top:2px}
+.fail h3{margin:0 0 3px;font-size:15px}
+.fail p{margin:0;font-size:14px;color:var(--muted);max-width:80ch}
+.fail p b{color:var(--ink);font-weight:600}
+/* диалог */
+.dialog{display:grid;gap:14px}
+.turn{display:grid;grid-template-columns:64px 1fr;gap:12px;align-items:start}
+.turn .who{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding-top:10px}
+.turn blockquote{margin:0;background:var(--surface);padding:10px 14px;border-radius:var(--r-sm);font-size:14.5px;border:1px solid var(--rule-soft)}
+.turn.aidar blockquote{border-left:3px solid var(--accent)} .turn.dc1 blockquote{border-left:3px solid var(--som-blue)}
+.turn .then{font-size:13px;color:var(--muted);margin:6px 0 0 14px}
+.turn .src{font-family:var(--mono);font-size:11px;color:var(--faint);margin:4px 0 0 14px}
+@media (max-width:620px){.turn{grid-template-columns:1fr}.turn .who{padding-top:0}}
+/* показ */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.card{background:var(--surface);border-radius:var(--r-sm);padding:14px 16px;border:1px solid var(--rule-soft);min-width:0}
+.card h3{margin:4px 0 6px;font-size:15.5px}
+.card p{margin:0;font-size:14px;color:var(--muted)}
+.card ul{margin:8px 0 0;padding:0;list-style:none;font-size:14px}
+.card li{padding:4px 0;border-top:1px solid var(--rule-soft);display:grid;grid-template-columns:22px 1fr;gap:8px}
+.card li:first-child{border-top:0}
+.card li i{font-style:normal}
+.card.show{border-top:3px solid var(--ok)} .card.hide{border-top:3px solid var(--bad)}
+.sources{display:grid;gap:8px;font-size:14px}
+.sources a{color:var(--som-blue)}
+.sources code,.exp code,.fail code,.card code{font-family:var(--mono);font-size:12.5px}
+.footnote{font-size:var(--fs-meta);color:var(--faint);margin-top:40px;border-top:1px solid var(--rule-soft);padding-top:12px;font-family:var(--mono)}
+.arch{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:14px}
+.arch div{border:1px solid var(--screen-line);border-radius:var(--r-sm);padding:10px 12px;font-size:13px}
+.arch b{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--screen-accent);margin-bottom:4px}
+.arch i{font-style:normal;color:var(--screen-muted);font-size:12px;display:block;margin-top:4px;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="brand-strip"><span><b>Souls of Muse</b> · Meta Global AI Developer Hackathon</span><span>AI3-938 · AI3-941 · RAY-BAN META EXPERIMENTS</span></div>
+
+  <header class="masthead">
+    <p class="eyebrow">Хроника экспериментов 30.10 – 03.11</p>
+    <h1>Ray-Ban Meta для Souls of Muse: что проверили за пять дней, что сработало, что нет и почему</h1>
+    <p class="lead">Продолжение фирменного roadmap AI3-938. Здесь — отчёт о всех экспериментах, удачных и неудачных, по трём направлениям (клавиши и пальцы, консилиум по договору, аудиотетрадь), плюс картонная клавиатура и настоящее пианино. Для каждого: гипотеза → что сделали → результат числом → вердикт → что это дало дальше. Отдельно — что не сработало и куски обсуждений, которые повернули работу.</p>
+    <div class="meta"><span>Дата <b>30 октября – 3 ноября 2026</b></span><span>Срок <b>04.11 21:00 ET · 05.11 09:00 Сайгон</b></span><span>Съёмка <b>03.11 15:30</b></span><span>Трек <b>Startup</b></span><span>Ведёт <b>Айдар</b>, исполняет <b>DC1</b></span><span class="pill ok">Заявка: approved</span></div>
+    <nav class="som-nav"><a href="#summary">Итог</a><a href="#keys">Клавиши и пальцы</a><a href="#cardboard">Картонка</a><a href="#piano">Настоящее пианино</a><a href="#ensemble">Ансамбль</a><a href="#council">Консилиум</a><a href="#notebook">Аудиотетрадь</a><a href="#fails">Что не сработало</a><a href="#metrics">Метрики</a><a href="#dialog">Куски дискуссий</a><a href="#show">Что показываем</a><a href="#sources">Источники</a></nav>
+    <div class="notice">Все цифры измерены на ML1 (M4 Max, 128 ГБ) 30.10–03.11 и взяты из рабочих отчётов DC1 (REPORT-2026-10-30-night, JUDGE-2026-11-02, VIDEO-2026-11-02, SHOOT-2026-11-03, ensemble/DESIGN). Что не измерено — помечено «ждёт». Цитаты приведены только те, что есть в файлах, с указанием источника.</div>
+  </header>
+
+  <section class="section" id="summary">
+    <div class="section-head"><div><p class="eyebrow">Пять дней в одной панели</p><h2>Где стоим к утру 3 ноября</h2></div></div>
+    <div class="screen">
+      <p class="eyebrow">Живой контур · всё локально на ML1 · приложение на три страницы</p>
+      <pre>очки ──звонок WhatsApp──▶ окно на Mac ──▶ Apple Vision (5 мс): кончики пальцев
+   (или веб-камера / файл)        │ SAM 3.1 MLX: чёрные клавиши ──▶ чертёж (картонка: гомография · пианино: одномерная модель fit_piano)
+                                  │ слежение по чёрным (4 мс) ──▶ замок октавы по первой ноте партитуры ──▶ якорь над клавишами
+                                  ▼
+       ожидаемая клавиша (жёлтая) ──▶ кончик внутри два кадра + DINOv2 «вид клавиши изменился» &gt; 0,2 ──▶ нота звучит из Mac ──▶ Follower.observe
+http://localhost:8765  /keys · /council (фото страниц → Muse Spark → MoA muse-council → в ухо) · /notebook (сетка с фото → песня)</pre>
+      <div class="kpi">
+        <div><b>12/12</b><span>нот медленного прохода на настоящем пианино: палец на ожидаемой клавише (слежение + замок)</span></div>
+        <div><b>0,94</b><span>AUC DINO на отрезке «по одной ноте» (строго), 21 % ложных при 90 % пойманных</span></div>
+        <div><b>53/187</b><span>на обычном темпе двумя руками с движущейся головой — не решено</span></div>
+        <div><b>18/18</b><span>ловушек демо-договора найдены консилиумом за 160 с</span></div>
+        <div><b>15 с</b><span>сетка «Hallelujah» с фото пюпитра: 48 тактов, форма верна</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="keys">
+    <div class="section-head"><div><p class="eyebrow">Направление 1 · стенд зрения</p><h2>Клавиши и пальцы: от облачного SAM до Vision и судей</h2></div><span class="count">30.10 – 02.11 · 9 экспериментов</span></div>
+    <div class="exp-grid">
+      <article class="exp"><h3>K-1 · Облачный SAM 3.1 как живой цикл<small>30.10</small></h3><dl><dt>Гипотеза</dt><dd>Простой промпт даст быстрый ответ, SAM потянет живой контур</dd><dt>Сделали</dt><dd>480 px, «finger», 5 повторов; «rectangle»/«circle» против «finger»</dd><dt>Результат</dt><dd class="num">0,7–2,2 с на кадр; слово не влияет (1,1–1,7 с любое); сеть из Сайгона 0,6 с</dd><dt>Дальше</dt><dd>SAM только калибрует; живой цикл локально</dd></dl><div class="verdict"><span class="pill bad">не удалось</span><span class="why">физика сети и инференции</span></div></article>
+      <article class="exp"><h3>K-2 · SAM 3.1 локально на M4 Max<small>30.10</small></h3><dl><dt>Гипотеза</dt><dd>3,3 ГБ весов mlx-community побегут на Mac</dd><dt>Сделали</dt><dd><code>sam_local_bench.py</code>, mlx-vlm, три размера входа</dd><dt>Результат</dt><dd class="num">0,67 с @1008 px · 0,21 с @504 · 0,09 с @336; качество как в облаке</dd><dt>Дальше</dt><dd>Вся архитектура ушла на локальный SAM</dd></dl><div class="verdict"><span class="pill ok">удалось</span><span class="why">поворот дня</span></div></article>
+      <article class="exp"><h3>K-3 · Очки → WhatsApp → Mac → SAM, без SDK<small>30.10</small></h3><dl><dt>Гипотеза</dt><dd>Видеозвонок заменит Device Access Toolkit</dd><dt>Сделали</dt><dd>Захват окна звонка по ID, автокалибровка по устойчивому виду</dd><dt>Результат</dt><dd class="num">43 клавиши на пианино Айдара, ноты по нажатиям; три перезапуска из-за Stage Manager</dd><dt>Дальше</dt><dd>Канал стал основным источником кадров</dd></dl><div class="verdict"><span class="pill ok">удалось</span></div></article>
+      <article class="exp"><h3>K-4 · Пальцы через Apple Vision вместо SAM<small>30.10</small></h3><dl><dt>Гипотеза</dt><dd>Встроенный детектор позы рук даст кончики быстрее масок</dd><dt>Сделали</dt><dd><code>hand_pose.py</code>, 21 кадр; <code>--tracker hands</code></dd><dt>Результат</dt><dd class="num">5 мс на кадр, все пять кончиков на 18 из 20 кадров; стенд 21 кадр/с вместо 9–11</dd><dt>Дальше</dt><dd>SAM остался только для клавиш</dd></dl><div class="verdict"><span class="pill ok">удалось</span></div></article>
+      <article class="exp"><h3>K-5 · Настоящий инструмент на выходе<small>30.10</small></h3><dl><dt>Гипотеза</dt><dd>Как у MIDI-клавиатуры: нажал — звучит саксофон</dd><dt>Сделали</dt><dd><code>gm_synth.py</code>: GM-банк Apple, EXS из Logic, перегруз; виртуальный MIDI-порт</dd><dt>Результат</dt><dd>Сакс, труба, Strat, бас без загрузок; дудука и домбры в Logic нет (50 этнических пакетов)</dd><dt>Дальше</dt><dd>Нота на подтверждении звучит из MacBook</dd></dl><div class="verdict"><span class="pill ok">удалось</span><span class="why">дудук/домбра — заглушки</span></div></article>
+      <article class="exp"><h3>K-6 · Постановка пальца на грифе от первого лица<small>30–31.10</small></h3><dl><dt>Гипотеза</dt><dd>SAM отличит «квадрат» от «треугольника»</dd><dt>Сделали</dt><dd>Два клипа Айдара с очков, угол фаланги, VLM-судья Muse Spark</dd><dt>Результат</dt><dd class="num">угол 70° против 60°; VLM «curled» на оба клипа (6/6 и 4/6)</dd><dt>Дальше</dt><dd>Нужен ракурс вдоль грифа или боковая камера; линия снята с показа</dd></dl><div class="verdict"><span class="pill bad">не удалось</span><span class="why">признак вырождается сверху</span></div></article>
+      <article class="exp"><h3>K-7 · Llama 3.2 Vision 11B как судья «попала»<small>02.11</small></h3><dl><dt>Гипотеза</dt><dd>Вторая модель Meta подтвердит «палец на обведённой клавише»</dd><dt>Сделали</dt><dd>20 кропов (10 своя / 10 соседняя), три формулировки, MLX 4-bit</dd><dt>Результат</dt><dd class="num">20 × «yes» или 20 × «different»: 10/20 во всех вариантах, 3,6–5,5 с на кроп</dd><dt>Дальше</dt><dd>Llama как судья геометрии закрыта; Muse — для текста</dd></dl><div class="verdict"><span class="pill bad">не удалось</span><span class="why">ответ не зависит от картинки</span></div></article>
+      <article class="exp"><h3>K-8 · DINOv2 small по виду клавиши<small>02.11</small></h3><dl><dt>Гипотеза</dt><dd>Клавиша под пальцем выглядит иначе, чем спокойная; хватит косинуса к «спокойному» вектору</dd><dt>Сделали</dt><dd><code>press_dino.py</code>: кроп 64×160 → CLS+патчи; 141 кадр Камилы</dd><dt>Результат</dt><dd class="num">AUC 0,846 (честный счёт по клавишам в кадре 0,82), контроль пикселями 0,728; 20 мс на 20 клавиш</dd><dt>Дальше</dt><dd>Третий голос в подтверждении по партитуре</dd></dl><div class="verdict"><span class="pill warn">частично</span><span class="why">сигнал есть, порог — на пианино</span></div></article>
+      <article class="exp"><h3>K-9 · Профиль «пианино» и подсказка октавы<small>02.11</small></h3><dl><dt>Гипотеза</dt><dd>52 белых от A0 лягут тем же кодом; октаву по чёрным не отличить, нужна подсказка</dd><dt>Сделали</dt><dd><code>cardboard.py --profile piano</code>, <code>hint_midi</code>, синтетика <code>piano_fit_synth.py</code></dd><dt>Результат</dt><dd class="num">35/36, поперечная ошибка ≤ 12 px при клавише 72 px; без подсказки промах ровно на октаву</dd><dt>Дальше</dt><dd>Приёмник записи <code>ingest_clip.py</code> готов к первому клипу</dd></dl><div class="verdict"><span class="pill ok">удалось</span><span class="why">на синтетике</span></div></article>
+    </div>
+  </section>
+
+  <section class="section" id="cardboard">
+    <div class="section-head"><div><p class="eyebrow">Картонная клавиатура</p><h2>Картонка: от объекта распознавания к чертежу устройства</h2></div><span class="count">30.10 – 02.11 · 4 эксперимента</span></div>
+    <div class="exp-grid">
+      <article class="exp"><h3>C-1 · Камила на картонке, живой звонок<small>30.10, 22:30–23:10</small></h3><dl><dt>Гипотеза</dt><dd>SAM разметит картонку сам, Vision поймает пальцы, Mac сыграет</dd><dt>Сделали</dt><dd>Час на 30 к/с, Антон держит очки, семь правок стенда по ходу</dd><dt>Результат</dt><dd class="num">карта 19 белых + 13 чёрных по порядку, 320 нажатий; ломали отражение в лаке, уход головы, Stage Manager</dd><dt>Дальше</dt><dd>«Так играть совсем невозможно» → переосмысление ночью</dd></dl><div class="verdict"><span class="pill warn">частично</span></div></article>
+      <article class="exp"><h3>C-2 · Картонка как чертёж, а не объект<small>31.10</small></h3><dl><dt>Гипотеза</dt><dd>Раскладка известна до миллиметра: 24 белых по 30 мм, 17 чёрных; ищем только чёрные, чертёж ложится гомографией</dd><dt>Сделали</dt><dd><code>cardboard.py</code>, RANSAC по трём точкам на чёрную, группы 2/3</dd><dt>Результат</dt><dd class="num">11–17 чёрных сопоставлено, ошибка 1,8–5,7 px; клавиши без дыр там, где SAM слепил блок; перепривязка 0,25 с</dd><dt>Дальше</dt><dd>Та же идея перенесена на настоящее пианино (профили)</dd></dl><div class="verdict"><span class="pill ok">удалось</span><span class="why">поворот Айдара</span></div></article>
+      <article class="exp"><h3>C-3 · Касание по тени от боковой лампы<small>31.10 – 02.11</small></h3><dl><dt>Гипотеза</dt><dd>У висящего пальца есть светлая щель до тени, у касающегося нет</dd><dt>Сделали</dt><dd><code>touch_shadow.py</code>: синтетика 150 случаев; видео Камилы 02.11 (фонарик)</dd><dt>Результат</dt><dd class="num">синтетика: перепутано 3 %. Видео: верхний свет 29/30 «тени нет»; боковой — 422 touch / 94 hover, ни одного перехода hover→touch ≥ 3 кадра</dd><dt>Дальше</dt><dd>Детектор тени закрыт решением Айдара</dd></dl><div class="verdict"><span class="pill bad">не удалось</span><span class="why">на синтетике да, на руке нет</span></div></article>
+      <article class="exp"><h3>C-4 · Подтверждение по партитуре вместо распознавания нот<small>02.11, вечер</small></h3><dl><dt>Гипотеза</dt><dd>Партитура известна → известна следующая ожидаемая клавиша; стенду остаётся «да/нет» для одной клавиши</dd><dt>Сделали</dt><dd><code>air_keys.py --press score --score fur_elise</code>; на картонке октаву замыкать не надо, E5 подсвечена сразу</dd><dt>Результат</dt><dd>Режим в стенде и в приложении <code>/keys</code>; живой прогон на картонке — в работе на утро 03.11</dd><dt>Дальше</dt><dd>Сцена 3 ролика: картонка на столе, ровный свет, нота из Mac</dd></dl><div class="verdict"><span class="pill ok">удалось</span><span class="why">режим готов, прогон ждёт</span></div></article>
+    </div>
+  </section>
+
+  <section class="section" id="piano">
+    <div class="section-head"><div><p class="eyebrow">Настоящее пианино · первая запись с очков</p><h2>Пианино: привязка, замок октавы, слежение, якорь</h2></div><span class="count">02→03.11 · 7 экспериментов</span></div>
+    <div class="exp-grid">
+      <article class="exp"><h3>P-1 · Гомография на настоящих клавишах<small>ночь 02→03.11</small></h3><dl><dt>Гипотеза</dt><dd>Привязка чертежа по чёрным, как на картонке, ляжет и на Steinbach</dd><dt>Сделали</dt><dd>Клип 161 с, 1552×2064, 120 fps; SAM 20–28 чёрных на кадр</dd><dt>Результат</dt><dd class="num">десять кадров одной сцены → четыре разных ответа; широкий угол гнёт ряд дугой, SAM сливает соседние чёрные, зазор между группами лишь ×1,4–1,6</dd><dt>Дальше</dt><dd>Отложено (<code>cardboard_homography_attempt.py</code>)</dd></dl><div class="verdict"><span class="pill bad">не удалось</span></div></article>
+      <article class="exp"><h3>P-2 · Одномерная модель <code>fit_piano</code><small>ночь 02→03.11</small></h3><dl><dt>Гипотеза</dt><dd>Ось клавиатуры — прямая по верхам чёрных; положение вдоль оси — квадратичная функция чертежа</dd><dt>Сделали</dt><dd>Перебор сдвига и масштаба, счёт гипотезы (пары − 0,5·непокрытые − 0,7·лишние), слитые маски режутся по ширине</dd><dt>Результат</dt><dd class="num">синтетика 35/36, ошибка ≤ 4,3 px при клавише 72 px; на кадрах очков 0,08–0,17 ширины белой; 0,08 с на кадр без SAM</dd><dt>Дальше</dt><dd>Основа слежения и замка</dd></dl><div class="verdict"><span class="pill ok">удалось</span></div></article>
+      <article class="exp"><h3>P-3 · Октава и сдвиг<small>ночь 02→03.11</small></h3><dl><dt>Гипотеза</dt><dd>В центре кадра E4 (64)</dd><dt>Сделали</dt><dd>Замок под табличкой (E4/F4) найден на 0,8 ширины кадра</dd><dt>Результат</dt><dd class="num">в центре кадра ≈ A2 (45), не E4; с подсказкой 45 замок ложится в 6 кадрах из 10, остальные сдвиг на 1–2 белых</dd><dt>Дальше</dt><dd>Октаву фиксирует первая нота партитуры, не подсказка</dd></dl><div class="verdict"><span class="pill warn">частично</span><span class="why">предположение было неверным</span></div></article>
+      <article class="exp"><h3>P-4 · DINO на полном клипе пианино<small>ночь 02→03.11</small></h3><dl><dt>Гипотеза</dt><dd>На пианино к занятости клавиши добавится ход вниз, сигнал станет резче</dd><dt>Сделали</dt><dd><code>ingest_clip.py --profile piano --hint 45</code>, 1610 кадров</dd><dt>Результат</dt><dd class="num">AUC 0,77, ложных 48 % при 90 % пойманных (контроль 0,50 / 75 %); 25 мс на 31 клавишу; подпись клавиш плавает (центр 56–78 midi)</dd><dt>Дальше</dt><dd>Порог не ставим без правды по реальному нажатию</dd></dl><div class="verdict"><span class="pill warn">частично</span><span class="why">правда «кончик внутри» шумная</span></div></article>
+      <article class="exp"><h3>P-5 · Правда из звука + слежение по чёрным<small>03.11, утро</small></h3><dl><dt>Гипотеза</dt><dd>Удары видны в аудиодорожке; после первого скана метки можно наследовать по близости</dd><dt>Сделали</dt><dd><code>note_onsets.py</code> (спектральный поток, отрезок 24,7–35 с: E5 D#5 E5 D#5 E5 D#5 E5 B4 D5 C5); <code>fit_piano(prev=…)</code></dd><dt>Результат</dt><dd class="num">131 кадр: 1 скан + 130 слежений, 4 мс на кадр вместо 94; без срывов при привязке каждый 4-й и 10-й кадр</dd><dt>Дальше</dt><dd>Телефонные ракурсы для правды не понадобились</dd></dl><div class="verdict"><span class="pill ok">удалось</span></div></article>
+      <article class="exp"><h3>P-6 · Замок октавы по первой ноте партитуры<small>03.11, утро</small></h3><dl><dt>Гипотеза</dt><dd>Первое нажатие = первая нота партитуры (E5); разница кратна 12 → сдвиг меток</dd><dt>Сделали</dt><dd><code>score_lock.py</code>, оценка <code>piano_eval.py</code> на отрезке 24–37 с</dd><dt>Результат</dt><dd class="num">слежение + замок: 12/12 палец на ожидаемой, 11/12 порогом 0,21; AUC строго 0,94 / жёстко 0,88; ложных 21 %. Без замка: 7/12 (скан) и 0/12 (слежение)</dd><dt>Дальше</dt><dd>Стенд по записи: замок +12, 9/9 нот медленно, лишних нет; обычный темп — нет (1,4 к/с)</dd></dl><div class="verdict"><span class="pill ok">удалось</span><span class="why">медленный проход решён</span></div></article>
+      <article class="exp"><h3>P-7 · Якорь над клавишами против дрейфа<small>03.11, утро</small></h3><dl><dt>Гипотеза</dt><dd>Фактурный участок над чёрными (табличка) даст абсолютную опору слежению на двух руках</dd><dt>Сделали</dt><dd><code>PianoTracker.set_anchor</code>: шаблон 9 мс, штраф 6 очков за белую; полный клип 24–160 с, 187 ударов</dd><dt>Результат</dt><dd class="num">слежение + замок 36/187 → якорь как подсказка 36/187 → якорь в скане 53/187; 118 поправок</dd><dt>Дальше</dt><dd>Неподвижная камера (веб-камера или телефон на штативе) для сцены 5; SAM реже, оптический поток между вызовами</dd></dl><div class="verdict"><span class="pill bad">не удалось</span><span class="why">обычный темп двумя руками не решён</span></div></article>
+    </div>
+  </section>
+
+  <section class="section" id="ensemble">
+    <div class="section-head"><div><p class="eyebrow">Следящий ансамбль · AI3-941</p><h2>Ансамбль идёт за солистом</h2></div><span class="count">30.10 – 03.11 · 5 экспериментов</span></div>
+    <div class="exp-grid">
+      <article class="exp"><h3>E-1 · Следящий по партитуре Бетховена<small>30.10</small></h3><dl><dt>Гипотеза</dt><dd>Сопоставление ±10 нот с предсказанным временем удержит позицию и темп</dd><dt>Сделали</dt><dd><code>follower.py</code>, синтетический солист: разгон, 35 % пропусков, дрожание 25 мс</dd><dt>Результат</dt><dd class="num">73/73 нот, ошибка предсказания 25 мс (макс 0,33 восьмой), темп ±3 %</dd><dt>Дальше</dt><dd>Основа для живого</dd></dl><div class="verdict"><span class="pill ok">удалось</span><span class="why">на синтетике</span></div></article>
+      <article class="exp"><h3>E-2 · Та же партитура на записи Айдара<small>30.10</small></h3><dl><dt>Гипотеза</dt><dd>«К Элизе» есть «К Элизе»</dd><dt>Сделали</dt><dd>Ноты из звука (85), сопоставление; затем <code>learn_score.py</code> снимает партитуру с прогона</dd><dt>Результат</dt><dd class="num">31/85 по Бетховену (восточный лад, 4/4, 148 bpm) → 85/85 по снятой, искажённая копия 52/52</dd><dt>Дальше</dt><dd>Ансамбль учится с одного прогона солиста</dd></dl><div class="verdict"><span class="pill ok">удалось иначе</span></div></article>
+      <article class="exp"><h3>E-3 · «Плывёт», «опаздывает на две четверти»<small>30.10 – 03.11</small></h3><dl><dt>Гипотеза</dt><dd>Ансамбль отстаёт во времени</dd><dt>Сделали</dt><dd><code>measure_beats.py</code>, <code>measure_lag.py</code>; регрессия по 12 нотам, часы долей</dd><dt>Результат</dt><dd class="num">опоздание медиана +1 мс (−285…+122); ровность MAD 32 → 14 мс; остаток — рубато ±13 % и такт, которого у наброска нет (9 %). 03.11: снова «на две четверти» — в работе</dd><dt>Дальше</dt><dd>На съёмке сцены 3 ансамбль не включать, только нота</dd></dl><div class="verdict"><span class="pill warn">частично</span></div></article>
+      <article class="exp"><h3>E-4 · pymatchmaker против своего следящего<small>31.10</small></h3><dl><dt>Гипотеза</dt><dd>Готовый академический следящий (JKU+KAIST) лучше самодельного</dd><dt>Сделали</dt><dd><code>ab_matchmaker.py</code>: пять методов, запись Айдара и синтетика с пропусками 10–30 %</dd><dt>Результат</dt><dd class="num">чистый вход: 0,03 против 0,07 доли; пропуски 20–30 %: теряет позицию в 13–32 % нот, наш 0 %; с 5 % чужих нот 14–98 % против 2–5 %</dd><dt>Дальше</dt><dd>Остаёмся на своём</dd></dl><div class="verdict"><span class="pill bad">не подтвердилось</span></div></article>
+      <article class="exp"><h3>E-5 · Ансамбль без метра<small>31.10</small></h3><dl><dt>Гипотеза</dt><dd>Аккорд и бас по нотам солиста снимут «чужой такт»</dd><dt>Сделали</dt><dd><code>Follower(meter=False)</code>, <code>measure_free.py</code></dd><dt>Результат</dt><dd class="num">12 смен аккорда из 13 тактов ровно на нотах солиста, 7/7 низких нот продублированы басом (0 мс)</dd><dt>Дальше</dt><dd>На слух не проверено</dd></dl><div class="verdict"><span class="pill ok">удалось</span></div></article>
+    </div>
+  </section>
+
+  <section class="section" id="council">
+    <div class="section-head"><div><p class="eyebrow">Направление 2 · консилиум по договору</p><h2>Три Muse и агрегатор читают продюсерский договор</h2></div><span class="count">30.10 – 03.11 · 3 эксперимента</span></div>
+    <div class="exp-grid">
+      <article class="exp"><h3>J-1 · Пресет <code>muse-council</code> в Hermes MoA<small>30.10</small></h3><dl><dt>Гипотеза</dt><dd>MoA из трёх референсов Muse + агрегатор Wonder вызывается без интерактива</dd><dt>Сделали</dt><dd>Провайдер <code>moa</code>, пресет как модель; дымовой тест (George Michael v Sony)</dd><dt>Результат</dt><dd class="num">верно «Panayiotou v Sony Music Entertainment (UK) Ltd, 1994», 16,6 с на цикл</dd><dt>Дальше</dt><dd><code>run_council.sh</code></dd></dl><div class="verdict"><span class="pill ok">удалось</span></div></article>
+      <article class="exp"><h3>J-2 · Страница договора «с фото» → Muse Spark<small>30.10</small></h3><dl><dt>Гипотеза</dt><dd>Отдельный OCR не нужен</dd><dt>Сделали</dt><dd>Синтетическая страница с наклоном 3° и размытием, <code>read_pages.py</code></dd><dt>Результат</dt><dd class="num">транскрипция дословная, 0 ошибок, 10,8 с на страницу, 4 518 токенов (≈ 1 цент)</dd><dt>Дальше</dt><dd>Страницы с дужки — модели напрямую; реальное фото с очков ещё не проверено</dd></dl><div class="verdict"><span class="pill ok">удалось</span></div></article>
+      <article class="exp"><h3>J-3 · Консилиум на демо-договоре с 18 ловушками<small>30.10</small></h3><dl><dt>Гипотеза</dt><dd>Консилиум найдёт заложенные ловушки и даст пакет переговоров</dd><dt>Сделали</dt><dd>Договор Northstar ↔ «ARU», 17 статей; плейбук v0 (19 типов пунктов + формат вывода); запрос 7 049 слов</dd><dt>Результат</dt><dd class="num">18/18 ловушек, 14 ссылок на дела, 160 с; выжимка в ухо 62 слова с дисклеймером; верхняя полоса шкалы ключа</dd><dt>Дальше</dt><dd>Страница <code>/council</code> в приложении: фото → читать → консилиум → «Произнести»; цитаты дел нужна проверка человеком</dd></dl><div class="verdict"><span class="pill ok">удалось</span><span class="why">в текст ролика</span></div></article>
+    </div>
+  </section>
+
+  <section class="section" id="notebook">
+    <div class="section-head"><div><p class="eyebrow">Направление 3 · аудиотетрадь</p><h2>Аккорды в ухо и сетка с фото пюпитра</h2></div><span class="count">30.10 – 03.11 · 2 эксперимента</span></div>
+    <div class="exp-grid">
+      <article class="exp"><h3>N-1 · Аудиотетрадь «Hallelujah»<small>30.10</small></h3><dl><dt>Гипотеза</dt><dd>Такт, аккорд, следующий аккорд и «готовь ми семь» голосом с метрономом</dd><dt>Сделали</dt><dd><code>audionotebook/index.html</code> (Web Audio + Web Speech), приватная страница на claude.ai</dd><dt>Результат</dt><dd>Отсчёт и такты идут, голоса RU/EN, ошибок в консоли нет; живой звук в очках через телефон не проверен</dd><dt>Дальше</dt><dd>Страница <code>/notebook</code> в приложении</dd></dl><div class="verdict"><span class="pill warn">частично</span><span class="why">на очках не проверено</span></div></article>
+      <article class="exp"><h3>N-2 · «Сетка с фото»: фото пюпитра → песня<small>03.11</small></h3><dl><dt>Гипотеза</dt><dd>Muse Spark прочтёт сетку аккордов с фото и соберёт песню для тетради</dd><dt>Сделали</dt><dd><code>audionotebook/read_chart.py</code> → <code>out/notebook/song.json</code></dd><dt>Результат</dt><dd class="num">тестовая сетка Hallelujah прочитана за 15 с, 48 тактов, форма верна</dd><dt>Дальше</dt><dd>Кнопка в приложении</dd></dl><div class="verdict"><span class="pill ok">удалось</span></div></article>
+    </div>
+  </section>
+
+  <section class="section" id="fails">
+    <div class="section-head"><div><p class="eyebrow">Честно</p><h2>Что не сработало и почему</h2></div><span class="count">8 пунктов</span></div>
+    <div class="fails">
+      <div class="fail"><div class="x">×</div><div><h3>Тень при верхнем свете</h3><p>На видео Камилы 02.11 со светом сверху/спереди <b>29 из 30 кончиков → «тени нет»</b>. Касание по тени при таком свете невозможно, как и предполагалось. Метод требует одну низкую боковую лампу, а съёмочной группе удобно иначе.</p></div></div>
+      <div class="fail"><div class="x">×</div><div><h3>Тень при боковом свете тоже</h3><p>Фонарик стоял низко у картонки (это подтвердил Айдар; первая версия отчёта DC1 «лампа за плечом, высоко» была реконструкцией по теням, не наблюдением). Тень есть, но лежит под соседним пальцем и под ладонью: <b>422 touch / 94 hover / 69 unsure / 154 none</b>, ни одного перехода hover→touch длиной ≥ 3 кадра. Исключение — большой палец (hover 0,31 / touch 0,10). Кожа пересвечена, часть считается бумагой. Причина не в постановке света, а в самом методе тени. Детектор закрыт.</p></div></div>
+      <div class="fail"><div class="x">×</div><div><h3>Llama 3.2 Vision как судья — 50 %</h3><p>Три формулировки вопроса, два размера кропа: модель отвечает одним словом на все 20 кропов (<b>10/20</b> во всех вариантах), 3,6–5,5 с на кроп. Ответ не зависит от картинки. Для «палец на клавише» в стенд не берём; облачная Muse остаётся для текста, не для геометрии.</p></div></div>
+      <div class="fail"><div class="x">×</div><div><h3>Гомография на настоящем пианино</h3><p>Широкий угол очков гнёт ряд клавиш дугой; SAM сливает соседние чёрные в одну маску; зазор между группами чёрных лишь в 1,4–1,6 раза больше внутреннего (на картонке вдвое), группировка режет как попало; руки закрывают часть ряда. <b>Десять кадров одной сцены давали четыре разных ответа.</b> Заменена одномерной моделью по оси клавиатуры.</p></div></div>
+      <div class="fail"><div class="x">×</div><div><h3>DINO не отличает «лежит» от «нажата»</h3><p>DINOv2 отличает «палец на клавише» от «клавиша спокойна» (AUC 0,94 строго), но среди клавиш «палец лежит, но не нажата» <b>ложных 75 %</b>. Сильнее всех по DINO почти всегда соседняя чёрная под рукой (C#5, G#5), поэтому top-1 не годится — подтверждать только ожидаемую клавишу. Нажатие как таковое даст только ход клавиши вниз.</p></div></div>
+      <div class="fail"><div class="x">×</div><div><h3>Дрейф меток на двух руках</h3><p>На медленном проходе слежение держится (12/12), на обычном темпе двумя руками с движением головы за 10–20 с метки уползают (центр кадра доходил до midi 92, которого в кадре нет): у слежения нет абсолютной опоры, оно тянется за своей же ошибкой. Якорь по табличке поднял <b>36/187 → 53/187</b> — не решение. Весь дрейф вызван движением головы; для сцены 5 — неподвижная камера.</p></div></div>
+      <div class="fail"><div class="x">×</div><div><h3>Спор про лампу</h3><p>В VIDEO-2026-11-02 изначально стояло «лампа за плечом, высоко» как причина неудачи тени. Айдар подтвердил, что свет был низко у картонки, как и просили в карточке SHOOT-shadow. DC1 поправил отчёт тем же вечером: вывод «виновата постановка света» снят, виноват метод.</p></div></div>
+      <div class="fail"><div class="x">×</div><div><h3>Обычный темп в стенде</h3><p>Прогон по записи: 9/9 нот медленного прохода подтверждены, в обычном темпе подтверждений нет — обработка шла <b>1,4 кадра/с</b> (SAM 504 почти на каждом кадре), окно двух кадров = 0,2 с видео, шестнадцатые быстрее. Нужно: SAM раз в 1–2 с, между вызовами сдвигать карту по оптическому потоку.</p></div></div>
+    </div>
+  </section>
+
+  <section class="section" id="metrics">
+    <div class="section-head"><div><p class="eyebrow">Все числа в одном месте</p><h2>Таблица метрик</h2></div></div>
+    <div class="screen tbl-wrap">
+      <p class="eyebrow">AUC · попадания · задержки · измерено на ML1</p>
+      <table>
+        <thead><tr><th>Что</th><th>Условия</th><th>Значение</th><th>Контроль / оговорка</th></tr></thead>
+        <tbody>
+          <tr class="hd"><td colspan="4">Судьи «палец на клавише» (DINOv2 small, сигнал 1 − cos к спокойному виду)</td></tr>
+          <tr><td>AUC, картонка</td><td class="g">141 кадр Камилы, верхний свет, правда «кончик внутри»</td><td>0,846 (честно по клавишам в кадре 0,82)</td><td class="g">пиксельная разница 0,728 / 0,59; ложных при 90 % пойманных 26,5 % / 37 %</td></tr>
+          <tr><td>AUC, пианино полный клип</td><td class="g">1610 кадров, hint 45</td><td>0,77 · ложных 48 %</td><td class="g">контроль 0,50 / 75 %; правда шумная, подпись плавает</td></tr>
+          <tr><td>AUC, пианино «по одной ноте»</td><td class="g">отрезок 24–37 с, слежение + замок, правда из звука</td><td>строго 0,94 · жёстко 0,88 · ложных 21 %</td><td class="g">без замка: скан 0,81 / 0,72, слежение 0,60 / 0,41; «лежит, но не нажата» — 75 % ложных</td></tr>
+          <tr><td>Llama 3.2 Vision 11B</td><td class="g">20 кропов, три формулировки</td><td>10/20 во всех</td><td class="g">3,6–5,5 с на кроп; закрыто</td></tr>
+          <tr class="hd"><td colspan="4">Попадания</td></tr>
+          <tr><td>Палец на ожидаемой клавише</td><td class="g">медленный проход, 12 нот</td><td>12/12 (11/12 порогом 0,21)</td><td class="g">скан без замка 7/12, слежение без замка 0/12</td></tr>
+          <tr><td>Стенд по записи, медленно</td><td class="g">10 к/с, без звука</td><td>замок +12, 9/9 нот, лишних нет</td><td class="g">обычный темп — 0 (1,4 к/с)</td></tr>
+          <tr><td>Обычный темп, две руки</td><td class="g">клип 24–160 с, 187 ударов из аудио</td><td>36/187 → 53/187 с якорем</td><td class="g">не решено; 118 поправок по якорю</td></tr>
+          <tr><td>Привязка чертежа</td><td class="g">картонка / пианино (синтетика)</td><td>11–17 чёрных, 1,8–5,7 px / 35/36, ≤ 4,3 px</td><td class="g">на кадрах очков 0,08–0,17 ширины белой; замок 6/10 кадров с подсказкой</td></tr>
+          <tr><td>Замок по первой ноте</td><td class="g">запись 02.11</td><td>сырая E4, ожидалась E5 → +12</td><td class="g">при расхождении не кратном 12 — пересканировать</td></tr>
+          <tr><td>Консилиум</td><td class="g">демо-договор, 17 статей</td><td>18/18 ловушек, 14 дел</td><td class="g">цитаты дел — проверка человеком</td></tr>
+          <tr><td>Ансамбль, сопоставление нот</td><td class="g">запись Айдара / синтетика с 30 % пропусков</td><td>85/85 · потеряно 0 %</td><td class="g">pymatchmaker теряет 13–32 % при пропусках</td></tr>
+          <tr class="hd"><td colspan="4">Задержки и скорость</td></tr>
+          <tr><td>Apple Vision, кончики</td><td class="g">любой размер кадра</td><td>5 мс</td><td class="g">SAM-пальцы 90–110 мс</td></tr>
+          <tr><td>SAM 3.1 локально</td><td class="g">336 / 504 / 1008 px</td><td>0,09 / 0,21 / 0,67 с</td><td class="g">облако 0,7–2,2 с + сеть 0,6 с</td></tr>
+          <tr><td>Слежение по чёрным</td><td class="g">вместо скана</td><td>4 мс (скан 94 мс)</td><td class="g">fit_piano без SAM 0,08 с</td></tr>
+          <tr><td>DINO на кадр</td><td class="g">20 / 31 клавиша, MPS</td><td>20 / 25 мс</td><td class="g">якорь шаблоном 9 мс</td></tr>
+          <tr><td>Стенд, кадров/с</td><td class="g">живой звонок / прогон по записи с SAM каждый кадр</td><td>21–30 / 1,4</td><td class="g">звонок WhatsApp + обработка: нота с запозданием около секунды</td></tr>
+          <tr><td>Ансамбль, опоздание</td><td class="g">запись с рубато ±13 %</td><td>медиана +1 мс; сильная доля 51 / 156 мс (90 %)</td><td class="g">цель ≤ 40 / 100 мс; 03.11 «две четверти» — в работе</td></tr>
+          <tr><td>Muse Spark, страница / сетка</td><td class="g">договор / фото пюпитра</td><td>10,8 с / 15 с</td><td class="g">консилиум целиком 160 с</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section" id="dialog">
+    <div class="section-head"><div><p class="eyebrow">Фрагменты обсуждений · только то, что есть в файлах</p><h2>Куски дискуссий</h2></div><span class="count">10 реплик</span></div>
+    <div class="dialog">
+      <div class="turn aidar"><div class="who">Айдар 30.10 04:45</div><div><blockquote>«Он так долго у тебя распознаёт, что ты ему слишком усложнил задачу. SAM не должен вообще определять какие ноты…»</blockquote><p class="then">Замер показал обратное: ноты и так считались локально, 0,7–2,2 с — это облако и сеть. Следующий вопрос, «а он по размеру какой, может, поставим на нашу машину?», дал локальный SAM (K-2).</p><p class="src">ML1-vault, летопись 30.10 · REPORT §1</p></div></div>
+      <div class="turn aidar"><div class="who">Айдар 30.10 16:20</div><div><blockquote>«На Apple всегда свои визуальные модели… FastVLM у нас установлена». И на предложение взять детектор позы рук: «Ну, конечно, делай. Гениальная идея».</blockquote><p class="then">FastVLM масок не даёт, но вопрос привёл к Vision: 5 мс на кадр, стенд 21 кадр/с (K-4).</p><p class="src">REPORT §3з · ML1-vault</p></div></div>
+      <div class="turn aidar"><div class="who">Айдар 30.10 22:50</div><div><blockquote>«Надо признать, что это решение не самое надёжное у Apple… Может, вернёмся к старой схеме?» Потом: «Конечно, он сворачивается. Так играть совсем невозможно».</blockquote><p class="then">По журналу трекер Vision не подвёл ни разу; подводили отражение в лаке, уход головы и Stage Manager, уводивший WhatsApp со сцены (C-1).</p><p class="src">ML1-vault, летопись 30.10 · REPORT §3и</p></div></div>
+      <div class="turn aidar"><div class="who">Айдар 31.10 ~00:00</div><div><blockquote>«Дело абсолютно не в скорости… Сегодня было неверное распознавание, какой палец с чего нажимает и когда… Это должна быть копией MIDI-клавиатуры… готовый чертёж устройства».</blockquote><p class="then">DC1 признал: стенд распознавал картонку заново каждый кадр, хотя её геометрия известна до миллиметра. Картонка стала чертежом в коде (C-2), та же идея потом легла на пианино (P-2).</p><p class="src">REPORT §4</p></div></div>
+      <div class="turn aidar"><div class="who">Айдар 31.10 ~00:40</div><div><blockquote>«Ну конечно, утверждаю. А со светом можно экспериментировать хоть сейчас: белый, красный, зелёный, синий». Про щелчок по картону: «Разве что обставить это как-то художественно».</blockquote><p class="then">План «чертёж, привязка по чёрным, касание по тени» утверждён. Тень дожила до видео 02.11 и там не сработала (C-3).</p><p class="src">ML1-vault, летопись 30.10 · REPORT §4</p></div></div>
+      <div class="turn dc1"><div class="who">DC1 02.11 вечер</div><div><blockquote>«Поправка 02.11 вечером: раньше здесь стояло „лампа за плечом, высоко“. Это была реконструкция DC1 по направлению теней, не наблюдение; Айдар подтвердил, что свет был низко у картонки. Значит, причина не в постановке света, а в самом методе тени».</blockquote><p class="then">Вывод про «неправильный свет» снят; детектор тени закрыт.</p><p class="src">keys/VIDEO-2026-11-02.md</p></div></div>
+      <div class="turn aidar"><div class="who">Айдар 02.11 вечер</div><div><blockquote>Решение (в записи DC1): «Ноты определять на лету не нужно. Партитура известна, значит известно, какая клавиша ожидается следующей. Задача стенда — сегментировать видео и подтвердить, что палец лёг именно на ожидаемую клавишу».</blockquote><p class="then">Вопрос «какая нота» снят, остался «да/нет» для одной клавиши (C-4). Тогда же: отражение в лаке не разбираем — Камила играет на столе или с закрытой крышкой.</p><p class="src">keys/VIDEO-2026-11-02.md · JUDGE §3</p></div></div>
+      <div class="turn aidar"><div class="who">Айдар 02.11 поздно</div><div><blockquote>Выбор: «сначала запись пианино».</blockquote><p class="then">Приёмник <code>ingest_clip.py</code> и карточка съёмки для Камилы готовы в тот же вечер; клип пришёл ночью, 161 с с очков плюс два телефона (P-1…P-4).</p><p class="src">JUDGE §6, §7</p></div></div>
+      <div class="turn dc1"><div class="who">DC1 03.11 утро</div><div><blockquote>«DINO отличает „палец на клавише“ от „клавиша спокойна“, а не „нажата“ от „лежит“… Для демо „палец лёг на ожидаемую клавишу“ этого достаточно; нажатие как таковое даст только ход клавиши вниз».</blockquote><p class="then">Формулировка для кадра: стенд подтверждает, а не распознаёт.</p><p class="src">JUDGE §8</p></div></div>
+      <div class="turn dc1"><div class="who">DC1 03.11 утро</div><div><blockquote>«Честно: обычный темп двумя руками с движущейся головой не решён. Медленный проход по одной ноте — решён».</blockquote><p class="then">Отсюда карточка съёмки: по одной ноте, нота в секунду, головой не крутить; для пианино — неподвижная камера.</p><p class="src">JUDGE §9 · SHOOT-2026-11-03</p></div></div>
+    </div>
+  </section>
+
+  <section class="section" id="show">
+    <div class="section-head"><div><p class="eyebrow">Съёмка 03.11 15:30 · сдача 04.11 21:00 ET</p><h2>Что показываем на хакатоне</h2></div></div>
+    <div class="cards">
+      <article class="card show"><p class="eyebrow">Показываем ✅</p><ul>
+        <li><i>✅</i><span>Очки видят клавиши от первого лица через звонок WhatsApp «Музе»; стенд на Mac, одна команда, одна страница <code>/keys</code></span></li>
+        <li><i>✅</i><span>Картонка с чертежом (24 белых от C4): ожидаемая клавиша жёлтым, подтверждение зелёным, нота звучит из MacBook (сцена 3)</span></li>
+        <li><i>✅</i><span>Настоящее пианино, медленно по одной ноте от E5: замок октавы по первой ноте, 9/9 подтверждений по записи (сцена 5, камера неподвижна)</span></li>
+        <li><i>✅</i><span>Консилиум по договору: фото страниц → Muse Spark → три Muse + Wonder → выжимка в ухо с дисклеймером; разбор 30.10 на 16 пунктов</span></li>
+        <li><i>✅</i><span>Аудиотетрадь: аккорд, следующий, к чему готовиться; «Сетка с фото» — фото пюпитра → песня за 15 с</span></li>
+        <li><i>✅</i><span>Модели Meta в контуре: SAM 3.1 локально, DINOv2, Muse Spark и Wonder</span></li>
+      </ul></article>
+      <article class="card hide"><p class="eyebrow">Не обещаем в кадре ❌</p><ul>
+        <li><i>❌</i><span>Распознавание нот на лету: стенд подтверждает «палец лёг на ожидаемую клавишу», партитура известна заранее</span></li>
+        <li><i>❌</i><span>«Нажата» против «лежит»: DINO этого не отличает (75 % ложных), только ход клавиши вниз даст нажатие</span></li>
+        <li><i>❌</i><span>Обычный темп двумя руками с движущейся головой: 53/187, не решено</span></li>
+        <li><i>❌</i><span>Касание по тени: при верхнем свете 29/30 «тени нет», при боковом сигнала нет; закрыто</span></li>
+        <li><i>❌</i><span>Llama 3.2 Vision как судья «попала»: 10/20, закрыто</span></li>
+        <li><i>❌</i><span>Тренер постановки пальцев от первого лица: угол 70°/60°, VLM «curled» на оба клипа</span></li>
+        <li><i>❌</i><span>Следящий ансамбль в сцене 3: «опаздывает на две четверти» — в работе, на съёмке не включать</span></li>
+        <li><i>❌</i><span>Нота в ту же секунду через звонок: задержка звонка плюс обработка около секунды; для медленной игры нормально</span></li>
+      </ul></article>
+    </div>
+  </section>
+
+  <section class="section" id="sources">
+    <div class="section-head"><div><p class="eyebrow">Опорные материалы</p><h2>Источники и происхождение</h2></div></div>
+    <div class="sources">
+      <a href="https://linear.app/ai3lab/issue/AI3-938/souls-of-muse-ray-ban-meta-trener-postanovki-palcev-konsilium-po" target="_blank" rel="noopener">AI3-938 · очки: план, ход, комментарии по часам ↗</a>
+      <a href="https://linear.app/ai3lab/issue/AI3-941/souls-of-muse-sledyashij-ansambl-po-zreniyu-score-following-cherez-sam" target="_blank" rel="noopener">AI3-941 · следящий ансамбль: отдельная разработка ↗</a>
+      <span>Фирменный roadmap (образец формы): <code>glasses/roadmap/Souls_of_Muse_RayBanMeta_Roadmap_AI3-938.html</code></span>
+      <span>Отчёты DC1: <code>glasses/REPORT-2026-10-30-night.md</code> (30–31.10) · <code>glasses/keys/JUDGE-2026-11-02.md</code> §1–9 (судьи, пианино, замок, якорь, приложение) · <code>glasses/keys/VIDEO-2026-11-02.md</code> (тень) · <code>glasses/keys/SHOOT-2026-11-03.md</code> (карточка съёмки) · <code>glasses/ensemble/DESIGN.md</code> · <code>glasses/app/README.md</code></span>
+      <span>Летопись в ML1-vault: <code>40_projects/AI3-938-941-Ray-Ban-Meta-eksperimenty-2026-10-30.md</code> (раздел «03.11 — итоги»)</span>
+      <span>Код: <code>keys/air_keys.py</code>, <code>keys/cardboard.py</code>, <code>keys/score_lock.py</code>, <code>keys/press_dino.py</code>, <code>keys/piano_eval.py</code>, <code>keys/note_onsets.py</code>, <code>keys/judge_llama.py</code>, <code>keys/touch_shadow.py</code>, <code>ensemble/follower.py</code>, <code>council/run_council.sh</code>, <code>audionotebook/read_chart.py</code>, <code>app/server.py</code></span>
+    </div>
+    <p class="footnote">DC1Fable · AI³ Venture Engine · Souls of Muse · 30.10–03.11.2026 · Формат по образцу Roadmap AI3-938 / SummarizeUI-V1 (AI3-901). Локальная копия, с Linear не синхронизируется.</p>
+  </section>
+</div>
+</html>

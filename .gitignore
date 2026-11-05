@@ -25,3 +25,10 @@ evidence-local/
 
 # Generated GoDaddy upload staging; canonical UI stays in web/
 deploy/godaddy/public/
+
+# glasses stand: local runtime state
+glasses/.venv*/
+glasses/out/
+glasses/clips/
+glasses/council/traps.md
+glasses/lidar/record3d-lib/

@@ -1,0 +1,60 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Консилиум по договору</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"><link rel="stylesheet" href="/static/app.css">
+<style>
+.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.thumbs img{width:84px;height:112px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
+.ear{font-size:18px;line-height:1.5}.ear .btns{margin-top:10px}
+.clause{border-top:1px solid var(--border);padding:12px 0}.clause:first-of-type{border-top:0}.clause .h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.clause .h b{font-size:15px}.clause p{margin:6px 0 0;font-size:14px}.clause .alt{color:var(--ok)}.clause .ref{color:var(--muted);font-size:13px}.clause details summary{cursor:pointer;color:var(--muted);font-size:13px;margin-top:4px}
+.summary{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 10px}.summary span{font-size:13px;color:var(--muted)}
+.tail{white-space:pre-wrap;font-size:14px}.disc{font-size:13px;color:var(--muted);border-top:1px solid var(--border);padding-top:10px;margin-top:10px}
+.step{display:flex;gap:10px;align-items:baseline}.step .n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:800;font-size:13px;flex:0 0 auto}
+.list{font-size:13px;color:var(--muted)}.list label{display:block;padding:3px 0}
+</style></head><body>
+<div class="app two">
+<header class="top"><div><h1>Консилиум по договору</h1><div class="sub">страницы с очков → Muse Spark читает → три Muse и Wonder разбирают → выжимка в ухо</div></div><nav class="nav"><a href="/">Хаб</a><a href="/keys">Клавиши</a><a class="cur" href="/council">Консилиум</a><a href="/notebook">Аудиотетрадь</a></nav></header>
+<div class="col">
+ <section class="card"><div class="step"><span class="n">1</span><h2>Страницы договора</h2></div><div class="hint">Снимите каждую страницу кнопкой на дужке очков (12 Мп), перенесите на Mac и выберите здесь. Фото ложатся в clips/contract/.</div>
+  <div class="btns" style="margin-top:10px"><input type="file" id="files" accept="image/*" multiple><button class="btn ghost" id="btnSave">Сохранить страницы</button></div><div class="thumbs" id="thumbs"></div><div class="status" id="stPages"></div></section>
+ <section class="card"><div class="step"><span class="n">2</span><h2>Прочитать страницы</h2></div><div class="hint">Muse Spark 1.3 читает фото как есть: номера пунктов, печати, рукописные вставки. Отдельный OCR не нужен. Ключ Model API из профиля Jack.</div>
+  <div class="btns" style="margin-top:10px"><button class="btn ghost" id="btnRead" disabled>Прочитать сохранённые страницы</button></div><div class="status" id="stRead"></div><pre class="log" id="logRead" hidden></pre>
+  <h3>Транскрипции</h3><div class="list" id="pagesList">—</div></section>
+ <section class="card"><div class="step"><span class="n">3</span><h2>Собрать консилиум</h2></div><div class="hint">Пресет muse-council в Hermes: референсы muse-wonder-1.0, muse-spark-1.3, muse-spark-1.2 (юрист, менеджер, переговорщик), агрегатор muse-wonder-1.0 с плейбуком договоров музыканта. Английское деловое право. Около трёх минут и единицы долларов за договор.</div>
+  <div class="row" style="margin-top:8px"><label>Договор</label><select id="src"><option value="demo">демо-договор с ловушками (council/demo-contract.md)</option></select></div>
+  <div class="btns"><button class="btn" id="btnRun">Запустить консилиум</button><button class="btn ghost" id="btnStopC">Остановить</button></div><div class="status" id="stRun"></div><pre class="log" id="logRun" hidden></pre></section>
+</div>
+<div class="col">
+ <section class="card"><div class="row"><h2 style="margin:0">Разбор</h2><select id="answers"></select></div>
+  <div class="summary" id="summary"></div>
+  <h3>В ухо</h3><div class="ear" id="ear">—</div><div class="btns ear"><button class="btn ghost" id="btnSpeak">🔊 Произнести</button><button class="btn ghost" id="btnStopSpeak">■</button><span class="hint">через Bluetooth очки слышат это как гарнитура</span></div>
+  <h3>По пунктам</h3><div id="clauses">—</div>
+  <h3>Пакет переговоров</h3><div class="tail" id="tail">—</div>
+  <div class="disc" id="disc"></div></section>
+</div>
+<footer>Souls of Muse · мнение нескольких ИИ-моделей, не юридическая консультация</footer></div>
+<script>
+const $=s=>document.querySelector(s);let saved=[],pages=[],cur=null;
+$('#files').addEventListener('change',()=>{const t=$('#thumbs');t.innerHTML='';[...$('#files').files].forEach(f=>{const im=document.createElement('img');im.src=URL.createObjectURL(f);t.appendChild(im)})});
+const toDataUrl=f=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(f)});
+$('#btnSave').addEventListener('click',async()=>{const fs=[...$('#files').files];if(!fs.length){$('#stPages').textContent='выберите фото';return}
+ const images=[];for(const f of fs)images.push({name:f.name,data:await toDataUrl(f)});
+ const r=await (await fetch('/api/council/pages',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({images})})).json();saved=r.saved||[];$('#stPages').innerHTML=`сохранено ${saved.length} стр. → ${r.dir}`;$('#btnRead').disabled=!saved.length});
+$('#btnRead').addEventListener('click',async()=>{await fetch('/api/council/read',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({files:saved})});$('#logRead').hidden=false});
+$('#btnRun').addEventListener('click',async()=>{if(!confirm('Запустить консилиум? Это вызов Meta Model API (единицы долларов за договор).'))return;await fetch('/api/council/run',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({contract:$('#src').value})});$('#logRun').hidden=false});
+$('#btnStopC').addEventListener('click',async()=>{await fetch('/api/council/stop',{method:'POST',body:'{}'})});
+$('#btnSpeak').addEventListener('click',()=>{if(!('speechSynthesis' in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance($('#ear').textContent);u.lang='ru-RU';u.rate=1.05;const v=speechSynthesis.getVoices().find(v=>/^ru/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u)});
+$('#btnStopSpeak').addEventListener('click',()=>speechSynthesis.cancel());
+$('#answers').addEventListener('change',()=>{cur=$('#answers').value;load()});
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function render(p){if(!p){$('#ear').textContent='—';return}$('#ear').textContent=p.ear||'—';
+ const cnt={red:0,amber:0,green:0};p.clauses.forEach(c=>cnt[c.severity]++);$('#summary').innerHTML=`<span><span class="chip red">${cnt.red}</span> вычеркнуть или переписать</span><span><span class="chip amber">${cnt.amber}</span> обсудить</span><span><span class="chip green">${cnt.green}</span> приемлемо</span><span>пунктов ${p.clauses.length}</span>`;
+ $('#clauses').innerHTML=p.clauses.map(c=>`<div class="clause"><div class="h"><span class="chip ${c.severity}">${c.severity==='red'?'красный':c.severity==='amber'?'жёлтый':'зелёный'}</span><b>Пункт ${esc(c.num)} · ${esc(c.title)}</b></div><p>${esc(c.finding)}</p>${c.alt?`<p class="alt"><b>Как честно:</b> ${esc(c.alt)}</p>`:''}${c.ref?`<details><summary>право и прецеденты</summary><p class="ref">${esc(c.ref)}</p></details>`:''}</div>`).join('')||(p.intro?`<p>${esc(p.intro)}</p>`:'—');
+ $('#tail').textContent=p.tail||'—';$('#disc').textContent=p.disclaimer||''}
+async function load(){try{const s=await (await fetch('/api/council/status'+(cur?'?answer='+cur:''))).json();
+ const sel=$('#answers');if(sel.options.length!==s.answers.length){sel.innerHTML=s.answers.map(a=>`<option value="${a.stamp}">${a.stamp}</option>`).join('')}
+ if(s.current){sel.value=s.current.stamp;render(s.parsed)}
+ $('#stRead').innerHTML=s.job_pages==='running'?'<span class="amber">читаю страницы…</span>':s.job_pages==='idle'?'':`чтение: ${s.job_pages}`;$('#logRead').textContent=s.log_pages||'';
+ $('#stRun').innerHTML=s.job_council==='running'?`<span class="amber">консилиум совещается… ${s.elapsed} с</span>`:s.job_council==='idle'?'':`консилиум: ${s.job_council}`;$('#logRun').textContent=s.log_council||'';
+ const src=$('#src');const want=['demo',...s.pages.map(p=>p.path)];if(src.options.length!==want.length){src.innerHTML=`<option value="demo">демо-договор с ловушками (council/demo-contract.md)</option>`+s.pages.map(p=>`<option value="${p.path}">транскрипция ${p.name}</option>`).join('')}
+ $('#pagesList').innerHTML=s.pages.length?s.pages.map(p=>`<label>${p.name} · ${Math.round(p.size/1024)} КБ</label>`).join(''):'—';
+}catch(e){}}
+load();setInterval(load,2500);
+</script></body></html>

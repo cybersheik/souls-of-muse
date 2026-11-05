@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#151a26">
+<title>Аудиотетрадь Muse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+  :root {
+    --bg: #151a26;
+    --surface: #1d2333;
+    --surface-2: #262d40;
+    --text: #e9ebf3;
+    --muted: #9aa3b9;
+    --accent: #9184d9;
+    --accent-strong: #ada2ef;
+    --accent-ink: #11131f;
+    --danger: #e07a7a;
+    --ok: #7ad39a;
+    --border: rgba(255,255,255,.08);
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+    --radius: 18px;
+    --gutter: 16px;
+    --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f2f3f8;
+      --surface: #ffffff;
+      --surface-2: #eceef6;
+      --text: #1b2030;
+      --muted: #5e677d;
+      --accent: #6b5ccd;
+      --accent-strong: #5748b8;
+      --accent-ink: #ffffff;
+      --danger: #c9524f;
+      --ok: #2f9a5f;
+      --border: rgba(0,0,0,.08);
+      --shadow: 0 10px 30px rgba(20,24,40,.10);
+    }
+  }
+  :root[data-theme="dark"] { color-scheme: dark; }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 16px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    min-height: 100dvh;
+    padding: calc(env(safe-area-inset-top) + 12px) var(--gutter) calc(env(safe-area-inset-bottom) + 16px);
+  }
+  button, input { font-family: inherit; font-size: inherit; color: inherit; }
+  button { cursor: pointer; }
+
+  .app { max-width: 1040px; margin: 0 auto; display: grid; gap: 16px; }
+  @media (min-width: 900px) {
+    .app { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); align-items: start; }
+    .col-left, .col-right { display: grid; gap: 16px; }
+    .col-right { position: sticky; top: 12px; }
+  }
+
+  header.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; padding: 4px 2px; }
+  header.top h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.01em; }
+  header.top .sub { color: var(--muted); font-size: 14px; margin-top: 2px; }
+  .badge { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--accent-strong); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+
+  /* ---- big display ---- */
+  .display { text-align: center; padding: 20px 16px 18px; min-height: 260px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; position: relative; overflow: hidden; }
+  .display .section { font-size: 15px; font-weight: 600; color: var(--muted); letter-spacing: .02em; min-height: 1.4em; }
+  .display .section strong { color: var(--accent-strong); }
+  .display .chord { font-size: clamp(84px, 26vw, 150px); font-weight: 800; line-height: 1; letter-spacing: -.03em; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+  .display .chord.flash { animation: flash .22s ease-out; }
+  @keyframes flash { from { transform: scale(1.05); color: var(--accent-strong); } to { transform: scale(1); } }
+  .display .next { font-size: 18px; color: var(--muted); min-height: 1.5em; }
+  .display .next b { color: var(--text); font-weight: 700; font-size: 22px; }
+  .beats { display: flex; justify-content: center; gap: 12px; margin-top: 8px; }
+  .beats i { width: 14px; height: 14px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); transition: transform .08s, background .08s; }
+  .beats i.on { background: var(--accent); transform: scale(1.35); }
+  .beats i.accent.on { background: var(--accent-strong); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent); }
+  .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--surface-2); }
+  .progress > span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s linear; }
+
+  /* ---- controls ---- */
+  .btn-start { width: 100%; height: 68px; border: 0; border-radius: 16px; background: var(--accent); color: var(--accent-ink); font-size: 22px; font-weight: 800; letter-spacing: .01em; box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 35%, transparent); transition: transform .08s, background .15s; }
+  .btn-start:active { transform: scale(.985); }
+  .btn-start.stop { background: var(--danger); color: #fff; box-shadow: none; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); }
+  .row:first-of-type { border-top: 0; padding-top: 4px; }
+  .row label.t { font-weight: 600; }
+  .hint { font-size: 13px; color: var(--muted); font-weight: 400; }
+  .row .hint { display: block; margin-top: 2px; }
+  .val { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--accent-strong); min-width: 3.2em; text-align: right; }
+  input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 32px; background: transparent; margin: 0; }
+  input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: var(--surface-2); }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); border: 3px solid var(--surface); margin-top: -11px; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+  input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--surface-2); }
+  input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); border: 3px solid var(--surface); }
+  .slider-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 10px 0 4px; }
+  .slider-row .head { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline; }
+  .slider-row input { grid-column: 1 / -1; }
+
+  .switch { position: relative; width: 54px; height: 32px; flex: 0 0 auto; }
+  .switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); transition: background .15s; }
+  .switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+  .switch input:checked + span { background: var(--accent); border-color: var(--accent); }
+  .switch input:checked + span::after { transform: translateX(22px); background: #fff; }
+  .switch input:focus-visible + span { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+
+  .seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 3px; }
+  .seg label { position: relative; }
+  .seg input { position: absolute; opacity: 0; inset: 0; }
+  .seg span { display: block; padding: 8px 16px; border-radius: 9px; font-weight: 700; font-size: 15px; color: var(--muted); min-width: 56px; text-align: center; }
+  .seg input:checked + span { background: var(--accent); color: var(--accent-ink); }
+
+  .btn-ghost { border: 1px solid var(--border); background: transparent; color: var(--text); border-radius: 12px; padding: 10px 14px; font-weight: 600; font-size: 15px; }
+  .btn-ghost:active { background: var(--surface-2); }
+
+  .status { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 2px 2px 0; }
+  .status .ok { color: var(--ok); }
+  .status .warn { color: var(--danger); }
+
+  /* ---- chart ---- */
+  .chart h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+  .chart .meta { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+  .chart-scroll { max-height: 46vh; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+  @media (min-width: 900px) { .chart-scroll { max-height: calc(100vh - 160px); } }
+  .sec { margin-bottom: 14px; }
+  .sec h3 { margin: 0 0 6px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .bars { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .bar { position: relative; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; min-height: 52px; padding: 6px 6px 4px; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; font-size: 18px; transition: background .12s, border-color .12s; }
+  .bar small { position: absolute; top: 3px; left: 6px; font-size: 10px; font-weight: 600; color: var(--muted); }
+  .bar .sep { color: var(--muted); font-weight: 400; }
+  .bar.cur { background: color-mix(in srgb, var(--accent) 28%, var(--surface-2)); border-color: var(--accent); }
+  .bar.cur span.on { color: var(--accent-strong); }
+  .bar.done { opacity: .55; }
+
+  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 10px 0 0; grid-column: 1 / -1; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="col-left">
+    <header class="top">
+      <div>
+        <h1>Аудиотетрадь</h1>
+        <div class="sub" id="songTitle">—</div>
+      </div>
+      <div class="badge">Souls of Muse</div>
+    </header>
+
+    <section class="card display" id="display" aria-live="off">
+      <div class="section" id="dSection">Нажмите «Старт»</div>
+      <div class="chord" id="dChord">C</div>
+      <div class="next" id="dNext">&nbsp;</div>
+      <div class="beats" id="dBeats"></div>
+      <div class="progress"><span id="dProgress"></span></div>
+    </section>
+
+    <section class="card">
+      <button class="btn-start" id="btnStart" type="button">▶ Старт</button>
+      <div class="status" id="status" aria-live="polite"></div>
+    </section>
+
+    <section class="card controls">
+      <div class="slider-row">
+        <div class="head"><label class="t" for="tempo">Темп <span class="hint">♩. = пульс 6/8</span></label><span class="val" id="tempoVal">60</span></div>
+        <input type="range" id="tempo" min="40" max="140" step="1" value="60" aria-label="Темп">
+      </div>
+      <div class="row">
+        <label class="t">Язык подсказок<span class="hint">Голос в наушниках очков</span></label>
+        <div class="seg" role="radiogroup" aria-label="Язык подсказок">
+          <label><input type="radio" name="lang" value="ru" checked><span>RU</span></label>
+          <label><input type="radio" name="lang" value="en"><span>EN</span></label>
+        </div>
+      </div>
+      <div class="row">
+        <label class="t" for="optBars">Назови такт<span class="hint">Номер такта внутри части</span></label>
+        <label class="switch"><input type="checkbox" id="optBars"><span></span></label>
+      </div>
+      <div class="row">
+        <label class="t" for="optClick">Метроном<span class="hint">Тихий щелчок, акцент на «раз»</span></label>
+        <label class="switch"><input type="checkbox" id="optClick" checked><span></span></label>
+      </div>
+      <div class="row">
+        <label class="t" for="optCountIn">Отсчёт<span class="hint">Один такт отсчёта перед началом</span></label>
+        <label class="switch"><input type="checkbox" id="optCountIn" checked><span></span></label>
+      </div>
+      <div class="slider-row">
+        <div class="head"><label class="t" for="volume">Громкость щелчка</label><span class="val" id="volumeVal">60%</span></div>
+        <input type="range" id="volume" min="0" max="100" step="1" value="60" aria-label="Громкость щелчка">
+      </div>
+      <div class="row">
+        <label class="t">Проверка голоса<span class="hint">Скажет пробную подсказку</span></label>
+        <button class="btn-ghost" id="btnVoice" type="button">Проверить</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-right">
+    <section class="card chart">
+      <h2 id="chartTitle">Аккордовая схема</h2>
+      <div class="meta" id="chartMeta"></div>
+      <div class="chart-scroll" id="chart"></div>
+    </section>
+    <section class="card chart" id="photoCard">
+      <h2>Сетка с фото</h2>
+      <div class="meta">Снимите пюпитр или тетрадь очками, выберите фото: Muse Spark прочитает аккорды по тактам, страница перезагрузится с этой песней.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="file" id="chartFile" accept="image/*"><button class="btn-ghost" id="btnChart" type="button">Прочитать</button><button class="btn-ghost" id="btnChartReset" type="button">Вернуть Hallelujah</button></div>
+      <div class="status" id="chartStatus" aria-live="polite"></div>
+    </section>
+  </div>
+
+  <footer>Souls of Muse · прототип аудиотетради · звук только по вашему действию</footer>
+</div>
+
+<!-- ======================================================================
+     ЯДРО: песня (редактируемый JSON) + чистые функции без DOM.
+     Этот блок можно тестировать в node (см. test в отчёте).
+     ====================================================================== -->
+<script id="core">
+// ---------- ПЕСНЯ: вставьте сюда другую песню в том же формате ----------
+// Только аккорды и структура тактов, без текста.
+const SONG = window.__SONG__ || {
+  "title": "Hallelujah",
+  "artist": "Leonard Cohen",
+  "key": "C",
+  "timeSignature": "6/8",
+  "beatsPerBar": 2,          // пульс = четверть с точкой, 2 удара на такт
+  "subdivision": 3,          // восьмых в одном пульсе (тихие под-тики), 1 = выкл
+  "defaultTempo": 60,        // BPM для пульса (четверть с точкой)
+  "cueLeadBeats": 1,         // за сколько ударов до смены называть следующий аккорд
+  "sections": {
+    "verse":  { "name": { "en": "Verse",  "ru": "Куплет" },
+                "bars": [["C"], ["Am"], ["C"], ["Am"], ["F"], ["G"], ["C"], ["G"]] },
+    "bridge": { "name": { "en": "Bridge", "ru": "Переход" },
+                "bars": [["C"], ["F", "G"], ["Am"], ["F"], ["G"], ["E7"], ["Am"], ["Am"]] },
+    "chorus": { "name": { "en": "Chorus", "ru": "Припев" },
+                "bars": [["F"], ["F"], ["Am"], ["Am"], ["F"], ["F"], ["C", "G"], ["C"]] }
+  },
+  "form": ["verse", "bridge", "chorus", "verse", "bridge", "chorus"],
+  "hints": [
+    { "chord": "E7", "leadBeats": 2, "en": "prepare E seven", "ru": "готовь ми семь" }
+  ]
+};
+
+// ---------- Произношение аккордов ----------
+const NOTE_RU = { C: "до", D: "ре", E: "ми", F: "фа", G: "соль", A: "ля", B: "си" };
+const QUALITY = {
+  "":     { en: "",             ru: "" },
+  "m":    { en: "minor",        ru: "минор" },
+  "min":  { en: "minor",        ru: "минор" },
+  "7":    { en: "seven",        ru: "семь" },
+  "m7":   { en: "minor seven",  ru: "минор семь" },
+  "maj7": { en: "major seven",  ru: "мажор семь" },
+  "dim":  { en: "diminished",   ru: "уменьшенный" },
+  "dim7": { en: "diminished seven", ru: "уменьшенный семь" },
+  "aug":  { en: "augmented",    ru: "увеличенный" },
+  "sus2": { en: "sus two",      ru: "сус два" },
+  "sus4": { en: "sus four",     ru: "сус четыре" },
+  "6":    { en: "six",          ru: "шесть" },
+  "m6":   { en: "minor six",    ru: "минор шесть" },
+  "9":    { en: "nine",         ru: "девять" },
+  "add9": { en: "add nine",     ru: "адд девять" },
+  "5":    { en: "five",         ru: "пять" }
+};
+
+function noteToSpeech(root, acc, lang) {
+  const base = lang === "ru" ? (NOTE_RU[root] || root) : root;
+  if (acc === "#") return base + (lang === "ru" ? " диез" : " sharp");
+  if (acc === "b") return base + (lang === "ru" ? " бемоль" : " flat");
+  return base;
+}
+
+function chordToSpeech(symbol, lang) {
+  const m = /^([A-G])([#b]?)([^/\s]*)(?:\/([A-G])([#b]?))?$/.exec(String(symbol).trim());
+  if (!m) return String(symbol);
+  const root = noteToSpeech(m[1], m[2], lang);
+  const q = QUALITY[m[3]] ? QUALITY[m[3]][lang] : m[3];
+  let out = q ? root + " " + q : root;
+  if (m[4]) {
+    const bass = noteToSpeech(m[4], m[5], lang);
+    out += lang === "ru" ? " с басом " + bass : " over " + bass;
+  }
+  return out;
+}
+
+// ---------- Развёртка формы в плоский список тактов ----------
+function flattenSong(song) {
+  const bars = [];
+  const passCount = {};
+  (song.form || Object.keys(song.sections)).forEach((sectionId, formIndex) => {
+    const sec = song.sections[sectionId];
+    if (!sec) throw new Error("Unknown section in form: " + sectionId);
+    passCount[sectionId] = (passCount[sectionId] || 0) + 1;
+    sec.bars.forEach((chords, barInSection) => {
+      bars.push({
+        index: bars.length,
+        sectionId,
+        sectionName: sec.name,
+        formIndex,
+        pass: passCount[sectionId],
+        barInSection,
+        barsInSection: sec.bars.length,
+        chords: Array.isArray(chords) ? chords.slice() : [String(chords)]
+      });
+    });
+  });
+  return bars;
+}
+
+// ---------- Построение таймлайна (чистая функция) ----------
+// Возвращает отсортированные события: beat (в ударах от t0), t (секунды при данном темпе).
+// Типы: "beat" (щелчок + экран), "sub" (тихий под-тик), "speak" (голосовая подсказка), "end".
+function buildTimeline(song, options) {
+  const o = Object.assign({
+    tempo: song.defaultTempo || 60,
+    lang: "ru",
+    announceBars: false,
+    countIn: true,
+    cueLeadBeats: song.cueLeadBeats != null ? song.cueLeadBeats : 1
+  }, options || {});
+  const lang = o.lang === "en" ? "en" : "ru";
+  const bpb = song.beatsPerBar || 2;
+  const sub = Math.max(1, song.subdivision || 1);
+  const spb = 60 / o.tempo;
+  const bars = flattenSong(song);
+  const countInBeats = o.countIn ? bpb : 0;
+  const events = [];
+  const push = (beat, ev) => events.push(Object.assign({ beat, t: +(beat * spb).toFixed(6) }, ev));
+
+  // Все "слоты" аккордов: абсолютный удар, на котором аккорд вступает.
+  const slots = [];
+  bars.forEach((bar, i) => {
+    const barStart = countInBeats + i * bpb;
+    bar.chords.forEach((chord, k) => {
+      slots.push({ beat: barStart + (k * bpb) / bar.chords.length, chord, barIndex: i, slotIndex: k });
+    });
+  });
+  const slotAt = (beat) => {
+    let cur = slots[0];
+    for (const s of slots) { if (s.beat <= beat + 1e-9) cur = s; else break; }
+    return cur;
+  };
+  const nextChangeAfter = (slot) => {
+    const i = slots.indexOf(slot);
+    for (let j = i + 1; j < slots.length; j++) if (slots[j].chord !== slot.chord) return slots[j];
+    return null;
+  };
+  const sectionLabel = (bar) => (bar.sectionName && bar.sectionName[lang]) || bar.sectionId;
+
+  // Вступление (count-in)
+  for (let b = 0; b < countInBeats; b++) {
+    push(b, { type: "beat", bar: -1, beatInBar: b, accent: b === 0,
+      display: { countIn: true, count: b + 1, chord: slots[0] ? slots[0].chord : "", nextChord: "", section: null, progress: 0 } });
+    for (let s = 1; s < sub; s++) push(b + s / sub, { type: "sub", bar: -1 });
+  }
+
+  // Такты
+  const totalBars = bars.length;
+  bars.forEach((bar, i) => {
+    const barStart = countInBeats + i * bpb;
+    for (let b = 0; b < bpb; b++) {
+      const beat = barStart + b;
+      const cur = slotAt(beat);
+      const nxt = nextChangeAfter(cur);
+      push(beat, { type: "beat", bar: i, beatInBar: b, accent: b === 0,
+        display: {
+          countIn: false,
+          section: sectionLabel(bar), sectionId: bar.sectionId, pass: bar.pass,
+          barInSection: bar.barInSection + 1, barsInSection: bar.barsInSection,
+          chord: cur.chord, chordsInBar: bar.chords, slotIndex: cur.barIndex === i ? cur.slotIndex : 0,
+          nextChord: nxt ? nxt.chord : "",
+          progress: i / totalBars
+        } });
+      for (let s = 1; s < sub; s++) push(beat + s / sub, { type: "sub", bar: i });
+    }
+  });
+
+  // Голосовые подсказки
+  const hints = song.hints || [];
+  let prevChord = null;
+  slots.forEach((slot) => {
+    const bar = bars[slot.barIndex];
+    const isBarStart = slot.slotIndex === 0;
+    const isSectionStart = isBarStart && bar.barInSection === 0;
+    const changed = slot.chord !== prevChord;
+    const parts = [];
+    let lead = o.cueLeadBeats;
+    let kind = "chord";
+    if (isSectionStart) { parts.push(sectionLabel(bar)); kind = "section"; }
+    if (isBarStart && o.announceBars) parts.push((lang === "ru" ? "такт " : "bar ") + (bar.barInSection + 1));
+    const hint = changed ? hints.find((h) => h.chord === slot.chord) : null;
+    if (hint) {
+      parts.push(hint[lang] || hint.en || chordToSpeech(slot.chord, lang));
+      lead = hint.leadBeats != null ? hint.leadBeats : Math.max(lead, 2);
+      kind = "hint";
+    } else if (changed || isSectionStart) {
+      parts.push(chordToSpeech(slot.chord, lang));
+    }
+    if (parts.length) {
+      push(Math.max(0, slot.beat - lead), { type: "speak", kind, text: parts.join(". "), bar: slot.barIndex, chord: slot.chord, lang });
+    }
+    prevChord = slot.chord;
+  });
+
+  const totalBeats = countInBeats + totalBars * bpb;
+  push(totalBeats, { type: "end" });
+
+  const order = { speak: 0, beat: 1, sub: 2, end: 3 };
+  events.sort((a, b) => (a.beat - b.beat) || (order[a.type] - order[b.type]));
+  return { events, bars, slots, secondsPerBeat: spb, beatsPerBar: bpb, subdivision: sub, countInBeats, totalBeats, tempo: o.tempo, lang };
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { SONG, buildTimeline, flattenSong, chordToSpeech };
+}
+</script>
+
+<!-- ======================================================================
+     ПРИЛОЖЕНИЕ: Web Audio (lookahead-планировщик), Web Speech, Wake Lock, UI
+     ====================================================================== -->
+<script id="app">
+(() => {
+  "use strict";
+  const $ = (s) => document.querySelector(s);
+  const el = {
+    songTitle: $("#songTitle"), dSection: $("#dSection"), dChord: $("#dChord"), dNext: $("#dNext"),
+    dBeats: $("#dBeats"), dProgress: $("#dProgress"), btnStart: $("#btnStart"), status: $("#status"),
+    tempo: $("#tempo"), tempoVal: $("#tempoVal"), volume: $("#volume"), volumeVal: $("#volumeVal"),
+    optBars: $("#optBars"), optClick: $("#optClick"), optCountIn: $("#optCountIn"),
+    btnVoice: $("#btnVoice"), chart: $("#chart"), chartMeta: $("#chartMeta")
+  };
+
+  const LOOKAHEAD = 0.12;        // сек: окно планирования аудио
+  const TICK_MS = 25;            // период планировщика
+  const SPEECH_LATENCY = 0.15;   // сек: запускать речь чуть раньше (задержка TTS)
+
+  const state = {
+    playing: false,
+    tempo: SONG.defaultTempo || 60,
+    lang: "ru",
+    announceBars: false,
+    metronome: true,
+    countIn: true,
+    volume: 0.6,
+    ctx: null, master: null,
+    timeline: null, startTime: 0, nextIndex: 0,
+    lastScheduledBeat: -1, lastScheduledTime: 0,
+    timer: null, raf: 0, uiQueue: [], speechTimers: new Set(),
+    wakeLock: null, voices: [], voiceFor: { ru: null, en: null },
+    currentBar: -1
+  };
+
+  // ---------- настройки (localStorage, опционально) ----------
+  function loadPrefs() {
+    try {
+      const p = JSON.parse(localStorage.getItem("audionotebook.prefs") || "{}");
+      if (p.tempo) state.tempo = Math.min(140, Math.max(40, +p.tempo));
+      if (p.lang === "en" || p.lang === "ru") state.lang = p.lang;
+      if (typeof p.announceBars === "boolean") state.announceBars = p.announceBars;
+      if (typeof p.metronome === "boolean") state.metronome = p.metronome;
+      if (typeof p.countIn === "boolean") state.countIn = p.countIn;
+      if (typeof p.volume === "number") state.volume = Math.min(1, Math.max(0, p.volume));
+    } catch (e) { /* приватный режим и т.п. */ }
+  }
+  function savePrefs() {
+    try {
+      localStorage.setItem("audionotebook.prefs", JSON.stringify({
+        tempo: state.tempo, lang: state.lang, announceBars: state.announceBars,
+        metronome: state.metronome, countIn: state.countIn, volume: state.volume
+      }));
+    } catch (e) { /* ignore */ }
+  }
+
+  // ---------- Web Audio ----------
+  function ensureAudio() {
+    if (!state.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      state.ctx = new AC({ latencyHint: "interactive" });
+      state.master = state.ctx.createGain();
+      state.master.gain.value = state.volume;
+      state.master.connect(state.ctx.destination);
+    }
+    if (state.ctx.state !== "running") state.ctx.resume();
+    return state.ctx;
+  }
+  function scheduleClick(time, kind) {
+    if (!state.metronome || !state.ctx) return;
+    const ctx = state.ctx;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    let freq = 880, peak = 0.55, dur = 0.05;
+    if (kind === "accent") { freq = 1320; peak = 1.0; dur = 0.065; }
+    if (kind === "sub") { freq = 1760; peak = 0.14; dur = 0.025; }
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, time);
+    g.gain.setValueAtTime(0.0001, time);
+    g.gain.exponentialRampToValueAtTime(peak, time + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+    osc.connect(g).connect(state.master);
+    osc.start(time);
+    osc.stop(time + dur + 0.02);
+  }
+
+  // ---------- Web Speech ----------
+  function refreshVoices() {
+    if (!("speechSynthesis" in window)) return;
+    state.voices = speechSynthesis.getVoices() || [];
+    const pick = (prefix, exact) => {
+      const cands = state.voices.filter((v) => (v.lang || "").toLowerCase().replace("_", "-").startsWith(prefix));
+      if (!cands.length) return null;
+      const score = (v) => {
+        const l = (v.lang || "").toLowerCase().replace("_", "-");
+        let s = 0;
+        if (exact && l === exact) s += 4;
+        if (/google/i.test(v.name)) s += 3;
+        if (v.localService) s += 1;
+        if (v.default) s += 1;
+        return s;
+      };
+      return cands.sort((a, b) => score(b) - score(a))[0];
+    };
+    state.voiceFor.ru = pick("ru", "ru-ru");
+    state.voiceFor.en = pick("en", "en-us");
+    renderStatus();
+  }
+  function speak(text, lang) {
+    if (!("speechSynthesis" in window)) return;
+    const ss = window.speechSynthesis;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang === "en" ? "en-US" : "ru-RU";
+    const v = state.voiceFor[lang === "en" ? "en" : "ru"];
+    if (v) u.voice = v;
+    u.rate = 1.15; u.pitch = 1; u.volume = 1;
+    if (ss.speaking || ss.pending) {
+      // новая подсказка важнее хвоста старой — не даём им накладываться
+      ss.cancel();
+      const t = setTimeout(() => { state.speechTimers.delete(t); ss.speak(u); }, 20);
+      state.speechTimers.add(t);
+    } else {
+      ss.speak(u);
+    }
+  }
+  function unlockSpeech() {
+    // Android Chrome: первый speak должен произойти внутри пользовательского жеста
+    if (!("speechSynthesis" in window)) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(" ");
+      u.volume = 0; u.rate = 2;
+      speechSynthesis.speak(u);
+    } catch (e) { /* ignore */ }
+  }
+  function cancelSpeech() {
+    state.speechTimers.forEach((t) => clearTimeout(t));
+    state.speechTimers.clear();
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
+  }
+
+  // ---------- Wake Lock ----------
+  async function acquireWakeLock() {
+    if (!("wakeLock" in navigator)) return;
+    try {
+      state.wakeLock = await navigator.wakeLock.request("screen");
+      state.wakeLock.addEventListener("release", () => { state.wakeLock = null; renderStatus(); });
+    } catch (e) { state.wakeLock = null; }
+    renderStatus();
+  }
+  function releaseWakeLock() {
+    if (state.wakeLock) { state.wakeLock.release().catch(() => {}); state.wakeLock = null; }
+    renderStatus();
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && state.playing && !state.wakeLock) acquireWakeLock();
+  });
+
+  // ---------- Планировщик (lookahead по времени AudioContext) ----------
+  function buildCurrentTimeline() {
+    return buildTimeline(SONG, { tempo: state.tempo, lang: state.lang, announceBars: state.announceBars, countIn: state.countIn });
+  }
+  function start() {
+    if (state.playing) return;
+    const ctx = ensureAudio();
+    unlockSpeech();
+    state.master.gain.cancelScheduledValues(ctx.currentTime);
+    state.master.gain.setValueAtTime(state.volume, ctx.currentTime);
+    state.timeline = buildCurrentTimeline();
+    state.startTime = ctx.currentTime + 0.25;
+    state.nextIndex = 0;
+    state.lastScheduledBeat = -1;
+    state.lastScheduledTime = state.startTime;
+    state.uiQueue = [];
+    state.currentBar = -1;
+    state.playing = true;
+    el.btnStart.textContent = "■ Стоп";
+    el.btnStart.classList.add("stop");
+    renderChart();
+    acquireWakeLock();
+    state.timer = setInterval(tick, TICK_MS);
+    tick();
+    state.raf = requestAnimationFrame(uiLoop);
+    renderStatus();
+  }
+  function stop(finished) {
+    if (!state.playing) return;
+    state.playing = false;
+    clearInterval(state.timer); state.timer = null;
+    cancelAnimationFrame(state.raf);
+    cancelSpeech();
+    if (state.ctx) {
+      const now = state.ctx.currentTime;
+      state.master.gain.cancelScheduledValues(now);
+      state.master.gain.setValueAtTime(0, now);
+    }
+    releaseWakeLock();
+    el.btnStart.textContent = "▶ Старт";
+    el.btnStart.classList.remove("stop");
+    if (finished) {
+      el.dSection.textContent = state.lang === "en" ? "Done" : "Готово";
+      el.dNext.innerHTML = "&nbsp;";
+      el.dProgress.style.width = "100%";
+    } else {
+      el.dSection.textContent = state.lang === "en" ? "Stopped" : "Остановлено";
+    }
+    setBeatDots(-1);
+    renderStatus();
+  }
+  function tick() {
+    if (!state.playing) return;
+    const ctx = state.ctx;
+    const tl = state.timeline;
+    const horizon = ctx.currentTime + LOOKAHEAD;
+    while (state.nextIndex < tl.events.length) {
+      const ev = tl.events[state.nextIndex];
+      const when = state.startTime + ev.t;
+      if (when > horizon) break;
+      state.nextIndex++;
+      state.lastScheduledBeat = ev.beat;
+      state.lastScheduledTime = when;
+      if (ev.type === "beat") {
+        scheduleClick(when, ev.accent ? "accent" : "beat");
+        state.uiQueue.push({ when, ev });
+      } else if (ev.type === "sub") {
+        scheduleClick(when, "sub");
+      } else if (ev.type === "speak") {
+        const delay = Math.max(0, (when - ctx.currentTime - SPEECH_LATENCY) * 1000);
+        const t = setTimeout(() => { state.speechTimers.delete(t); if (state.playing) speak(ev.text, ev.lang); }, delay);
+        state.speechTimers.add(t);
+      } else if (ev.type === "end") {
+        state.uiQueue.push({ when, ev });
+      }
+    }
+  }
+  // Перестроить таймлайн на лету (темп/язык/такты) без сбоя сетки ударов
+  function rebuildLive() {
+    if (!state.playing) return;
+    const tl = buildCurrentTimeline();
+    const fromBeat = state.lastScheduledBeat;
+    if (fromBeat < 0) { state.timeline = tl; state.nextIndex = 0; return; } // ещё ничего не запланировано
+    let idx = tl.events.findIndex((e) => e.beat > fromBeat + 1e-9);
+    if (idx < 0) idx = tl.events.length;
+    // непрерывность: удар fromBeat уже запланирован на lastScheduledTime
+    state.startTime = state.lastScheduledTime - fromBeat * tl.secondsPerBeat;
+    state.timeline = tl;
+    state.nextIndex = idx;
+  }
+  function uiLoop() {
+    if (!state.playing) return;
+    const now = state.ctx.currentTime;
+    while (state.uiQueue.length && state.uiQueue[0].when <= now + 0.005) {
+      const { ev } = state.uiQueue.shift();
+      if (ev.type === "end") { stop(true); return; }
+      renderBeat(ev);
+    }
+    state.raf = requestAnimationFrame(uiLoop);
+  }
+
+  // ---------- Рендер ----------
+  function setBeatDots(active, accentIndex) {
+    const dots = el.dBeats.children;
+    for (let i = 0; i < dots.length; i++) {
+      dots[i].classList.toggle("on", i === active);
+    }
+  }
+  function renderBeat(ev) {
+    const d = ev.display;
+    const L = state.lang;
+    if (d.countIn) {
+      el.dSection.textContent = L === "en" ? "Count-in" : "Отсчёт";
+      el.dChord.textContent = String(d.count);
+      el.dNext.innerHTML = (L === "en" ? "first chord " : "первый аккорд ") + "<b>" + esc(d.chord) + "</b>";
+      el.dProgress.style.width = "0%";
+    } else {
+      el.dSection.innerHTML = "<strong>" + esc(d.section) + (d.pass > 1 ? " " + d.pass : "") + "</strong> · " +
+        (L === "en" ? "bar " : "такт ") + d.barInSection + " / " + d.barsInSection;
+      if (el.dChord.textContent !== d.chord) {
+        el.dChord.textContent = d.chord;
+        el.dChord.classList.remove("flash"); void el.dChord.offsetWidth; el.dChord.classList.add("flash");
+      }
+      el.dNext.innerHTML = d.nextChord ? "→ <b>" + esc(d.nextChord) + "</b>" : "&nbsp;";
+      el.dProgress.style.width = (d.progress * 100).toFixed(1) + "%";
+    }
+    setBeatDots(ev.beatInBar);
+    if (ev.bar !== state.currentBar) {
+      state.currentBar = ev.bar;
+      highlightBar(ev.bar);
+    }
+    // подсветить текущий слот в такте с двумя аккордами
+    if (!d.countIn) {
+      const cell = el.chart.querySelector('.bar[data-i="' + ev.bar + '"]');
+      if (cell) [...cell.querySelectorAll("span.ch")].forEach((s, k) => s.classList.toggle("on", k === d.slotIndex));
+    }
+  }
+  function highlightBar(idx) {
+    const cells = el.chart.querySelectorAll(".bar");
+    cells.forEach((c) => {
+      const i = +c.dataset.i;
+      c.classList.toggle("cur", i === idx);
+      c.classList.toggle("done", idx >= 0 && i < idx);
+    });
+    const cell = el.chart.querySelector('.bar[data-i="' + idx + '"]');
+    if (cell) {
+      const box = el.chart.getBoundingClientRect();
+      const r = cell.getBoundingClientRect();
+      if (r.top < box.top + 40 || r.bottom > box.bottom - 40) {
+        el.chart.scrollTo({ top: el.chart.scrollTop + (r.top - box.top) - box.height / 2 + r.height / 2, behavior: "smooth" });
+      }
+    }
+  }
+  function renderChart() {
+    const bars = flattenSong(SONG);
+    const L = state.lang;
+    let html = "";
+    let lastForm = -1;
+    bars.forEach((b) => {
+      if (b.formIndex !== lastForm) {
+        if (lastForm >= 0) html += "</div></div>";
+        lastForm = b.formIndex;
+        const name = (b.sectionName && b.sectionName[L]) || b.sectionId;
+        html += '<div class="sec"><h3>' + esc(name) + (b.pass > 1 ? " " + b.pass : "") + "</h3><div class=\"bars\">";
+      }
+      html += '<div class="bar' + (b.index === state.currentBar ? " cur" : "") + (state.currentBar > b.index ? " done" : "") + '" data-i="' + b.index + '"><small>' + (b.barInSection + 1) + "</small>" +
+        b.chords.map((c) => '<span class="ch">' + esc(c) + "</span>").join('<span class="sep">·</span>') + "</div>";
+    });
+    if (lastForm >= 0) html += "</div></div>";
+    el.chart.innerHTML = html;
+    el.chartMeta.textContent = SONG.title + " · " + SONG.artist + " · " + SONG.key + " · " + SONG.timeSignature + " · " + bars.length + (L === "en" ? " bars" : " тактов");
+  }
+  function renderStatus() {
+    const parts = [];
+    if (!("speechSynthesis" in window)) parts.push('<span class="warn">Нет Web Speech API</span>');
+    else {
+      const ru = state.voiceFor.ru, en = state.voiceFor.en;
+      parts.push("Голос RU: " + (ru ? '<span class="ok">' + esc(ru.name) + "</span>" : '<span class="warn">системный</span>'));
+      parts.push("EN: " + (en ? '<span class="ok">' + esc(en.name) + "</span>" : '<span class="warn">системный</span>'));
+    }
+    if ("wakeLock" in navigator) parts.push("Экран: " + (state.wakeLock ? '<span class="ok">не гаснет</span>' : "обычный"));
+    else parts.push("Wake Lock недоступен");
+    if (state.playing) parts.push("♩. = " + state.tempo);
+    el.status.innerHTML = parts.map((p) => "<span>" + p + "</span>").join("");
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+  // ---------- UI: привязка ----------
+  function syncControls() {
+    el.tempo.value = state.tempo; el.tempoVal.textContent = state.tempo;
+    el.volume.value = Math.round(state.volume * 100); el.volumeVal.textContent = Math.round(state.volume * 100) + "%";
+    el.optBars.checked = state.announceBars; el.optClick.checked = state.metronome; el.optCountIn.checked = state.countIn;
+    document.querySelectorAll('input[name="lang"]').forEach((r) => { r.checked = r.value === state.lang; });
+  }
+  el.btnStart.addEventListener("click", () => { if (state.playing) stop(false); else start(); });
+  el.tempo.addEventListener("input", () => { state.tempo = +el.tempo.value; el.tempoVal.textContent = state.tempo; rebuildLive(); renderStatus(); });
+  el.tempo.addEventListener("change", savePrefs);
+  el.volume.addEventListener("input", () => {
+    state.volume = +el.volume.value / 100; el.volumeVal.textContent = el.volume.value + "%";
+    if (state.master && state.playing) state.master.gain.setTargetAtTime(state.volume, state.ctx.currentTime, 0.02);
+  });
+  el.volume.addEventListener("change", savePrefs);
+  document.querySelectorAll('input[name="lang"]').forEach((r) => r.addEventListener("change", () => {
+    if (r.checked) { state.lang = r.value; savePrefs(); renderChart(); rebuildLive(); if (!state.playing) el.dSection.textContent = state.lang === "en" ? "Tap Start" : "Нажмите «Старт»"; }
+  }));
+  el.optBars.addEventListener("change", () => { state.announceBars = el.optBars.checked; savePrefs(); rebuildLive(); });
+  el.optClick.addEventListener("change", () => { state.metronome = el.optClick.checked; savePrefs(); });
+  el.optCountIn.addEventListener("change", () => { state.countIn = el.optCountIn.checked; savePrefs(); });
+  el.btnVoice.addEventListener("click", () => {
+    ensureAudio();
+    refreshVoices();
+    cancelSpeech();
+    const sample = state.lang === "en" ? "Chorus. A minor. Prepare E seven." : "Припев. Ля минор. Готовь ми семь.";
+    speak(sample, state.lang);
+  });
+  if ("speechSynthesis" in window) {
+    speechSynthesis.addEventListener("voiceschanged", refreshVoices);
+    refreshVoices();
+  }
+
+  // ---------- init ----------
+  loadPrefs();
+  syncControls();
+  el.songTitle.textContent = SONG.title + " — " + SONG.artist + " · " + SONG.key + " · " + SONG.timeSignature;
+  el.dChord.textContent = flattenSong(SONG)[0].chords[0];
+  const bpb = SONG.beatsPerBar || 2;
+  el.dBeats.innerHTML = Array.from({ length: bpb }, (_, i) => '<i class="' + (i === 0 ? "accent" : "") + '"></i>').join("");
+  renderChart();
+  renderStatus();
+  window.addEventListener("pagehide", () => { if (state.playing) stop(false); });
+
+  // ---------- сетка с фото (Muse Spark через app/server.py) ----------
+  const cf = document.getElementById("chartFile"), cs = document.getElementById("chartStatus");
+  if (window.__SONG__ && window.__SONG__.source) cs.innerHTML = '<span class="ok">песня с фото: ' + esc(window.__SONG__.source.image.split("/").pop()) + " · " + esc(window.__SONG__.source.model) + "</span>";
+  document.getElementById("btnChart").addEventListener("click", async () => {
+    const f = cf.files && cf.files[0]; if (!f) { cs.textContent = "выберите фото"; return; }
+    const data = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); });
+    cs.innerHTML = '<span>читаю через Muse Spark…</span>';
+    await fetch("/api/notebook/read", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ data }) });
+    const t = setInterval(async () => {
+      const s = await (await fetch("/api/notebook/song")).json();
+      if (s.job === "running") return;
+      clearInterval(t);
+      if (s.job === "done" && s.song) location.reload(); else cs.innerHTML = '<span class="warn">не прочиталось</span><pre style="white-space:pre-wrap;font-size:12px">' + esc(s.log || "") + "</pre>";
+    }, 1500);
+  });
+  document.getElementById("btnChartReset").addEventListener("click", async () => { await fetch("/api/notebook/clear", { method: "POST", body: "{}" }); location.reload(); });
+})();
+</script>
+</body>
+</html>

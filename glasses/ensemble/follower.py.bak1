@@ -1,0 +1,117 @@
+"""Следящий ансамбль: по потоку нажатий солиста (момент, midi) оценивает позицию в партитуре и темп,
+и играет партии аккомпанемента (бас, подклад) на предсказанные доли. Пропуски нот допустимы —
+сопоставляются только увиденные ноты.
+
+  from follower import Follower
+  f = Follower(score=fur_elise, out=player)   # player.note_on(ch, midi, vel) / note_off(ch, midi)
+  f.observe(t_sec, midi)                       # из air_keys при каждом ON
+  f.start(); ... f.stop()
+"""
+from __future__ import annotations
+import math, threading, time
+
+class Follower:
+    def __init__(self, score, out=None, sec_per_eighth: float = 0.6, log=print, min_matches: int = 4, window: int = 10):
+        self.score = score
+        self.melody = sorted(score.MELODY)            # (t, midi, dur)
+        self.out = out; self.log = log
+        self.T = sec_per_eighth                       # сек на восьмую (темп)
+        self.pos = None                               # позиция партитуры (восьмые, без свёртки по кругу)
+        self.t_pos = None                             # реальное время, в которое pos была верна
+        self.idx = None                               # индекс последней сопоставленной ноты (с учётом кругов: idx = k*len + j)
+        self.matches = 0; self.min_matches = min_matches; self.window = window
+        self.lock = threading.Lock(); self._run = False
+        self._bass_last = None; self._pad = []; self._pad_chord = None; self._next_eighth = None; self.hist = []; self._pluck_last = None
+
+    # ---------- слежение
+    def _score_time(self, idx):
+        n = len(self.melody); k, j = divmod(idx, n)
+        return self.melody[j][0] + k * self.score.LENGTH
+    def predicted(self, now: float):
+        if self.pos is None: return None
+        return self.pos + (now - self.t_pos) / self.T
+    def observe(self, t: float, midi: int):
+        n = len(self.melody); pc = midi % 12
+        with self.lock:
+            if self.idx is None:
+                # старт: первая нота с нужным классом высоты — предпочитаем начало фразы (E5/D#5 затакта)
+                cands = [j for j in range(n) if self.melody[j][1] % 12 == pc]
+                if not cands: return None
+                j = min(cands, key=lambda j: (abs(self.melody[j][1] - midi), self.melody[j][0]))
+                self.idx, self.pos, self.t_pos, self.matches = j, self.melody[j][0], t, 1; self.hist = [(self.melody[j][0], t)]
+                self.log(f"старт слежения: нота {midi} → индекс {j}, t={self.melody[j][0]:.1f}"); return j
+            pred = self.predicted(t)
+            best = None
+            for d in range(-2, self.window + 1):                       # кандидаты: чуть назад и вперёд по партитуре
+                i = self.idx + d
+                if i < 0: continue
+                m = self.melody[i % n][1]
+                if m % 12 != pc: continue
+                st = self._score_time(i)
+                err = abs(st - pred)                                  # ошибка во времени партитуры (восьмых)
+                cost = err + (0.0 if m == midi else 0.7) + 0.05 * max(0, d)
+                if best is None or cost < best[0]: best = (cost, i, st, err)
+            if best is None or best[3] > 3.0:
+                return None                                           # не похоже на партитуру — игнорируем (украшение, ошибка, чужая нота)
+            cost, i, st, err = best
+            if i > self.idx:
+                self.hist.append((st, t)); self.hist = self.hist[-8:]
+                if len(self.hist) >= 3:                               # темп = наклон МНК по последним сопоставлениям (устойчив к дрожанию)
+                    xs = [a for a, _ in self.hist]; ys = [b for _, b in self.hist]
+                    mx, my = sum(xs) / len(xs), sum(ys) / len(ys)
+                    vxx = sum((x - mx) ** 2 for x in xs); vxy = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+                    if vxx > 0.5:
+                        T_obs = vxy / vxx
+                        if 0.5 * self.T <= T_obs <= 2.0 * self.T: self.T = 0.5 * self.T + 0.5 * T_obs
+            else:
+                self.hist = []
+            self.idx, self.pos, self.t_pos = i, st, t
+            self.matches += 1
+            return i
+
+    # ---------- аккомпанемент
+    def _emit_pad(self, root, kind, now):
+        if self.out is None: return
+        for m in self._pad: self.out.note_off(1, m)
+        r = 48 + (root % 12)
+        self._pad = [r, r + 7, r + 12]                                 # квинта и октава: под перегруз чисто, без грязи от терции
+        for m in self._pad: self.out.note_on(1, m, 50)
+    def _emit_bass(self, root, now, strong: bool):
+        if self.out is None: return
+        if self._bass_last is not None: self.out.note_off(0, self._bass_last)
+        self._bass_last = 36 + (root % 12)                           # бас C2–B2
+        self.out.note_on(0, self._bass_last, 95 if strong else 70)
+    def _loop(self):
+        while self._run:
+            now = time.perf_counter()
+            with self.lock:
+                p = self.predicted(now); ok = self.matches >= self.min_matches and self.t_pos is not None and now - self.t_pos < 4.0
+            if not ok or p is None:
+                if self._pad or self._bass_last is not None:
+                    if self.out:
+                        for m in self._pad: self.out.note_off(1, m)
+                        if self._bass_last is not None: self.out.note_off(0, self._bass_last)
+                    self._pad, self._bass_last, self._pad_chord, self._next_eighth = [], None, None, None
+                time.sleep(0.01); continue
+            if self._next_eighth is None: self._next_eighth = math.ceil(p)
+            while p + 0.03 >= self._next_eighth:                       # доля наступила (с опережением 30 мс на атаку)
+                e = self._next_eighth; root, kind = self.score.chord_at(e)
+                if (root, kind) != self._pad_chord: self._emit_pad(root, kind, now); self._pad_chord = (root, kind)
+                if int(e) % 3 == 0: self._emit_bass(root, now, strong=True)
+                elif int(e) % 3 == 2: self._emit_bass(root + 7, now, strong=False)   # квинта на третью восьмую — лёгкое качание
+                if int(e) % 3 != 0 and self.out is not None:                          # щипок на слабых восьмых: тоны аккорда по очереди
+                    tones = self.score.CHORD_TONES.get(kind, [0, 4, 7]); iv = tones[(int(e) // 3 + int(e) % 3) % len(tones)]
+                    m = 60 + ((root + iv) % 12) + (12 if int(e) % 2 else 0)
+                    if self._pluck_last is not None: self.out.note_off(2, self._pluck_last)
+                    self.out.note_on(2, m, 72); self._pluck_last = m
+                self.log(f"доля {e:.0f} ({kind}) темп {60/(self.T*2):.0f} bpm четвертями")
+                self._next_eighth += 1
+            time.sleep(0.005)
+    def start(self):
+        self._run = True; threading.Thread(target=self._loop, daemon=True).start()
+    def stop(self):
+        self._run = False; time.sleep(0.03)
+        if self.out:
+            for m in self._pad: self.out.note_off(1, m)
+            if self._bass_last is not None: self.out.note_off(0, self._bass_last)
+            if self._pluck_last is not None: self.out.note_off(2, self._pluck_last)

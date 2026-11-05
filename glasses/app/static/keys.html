@@ -1,0 +1,55 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Клавиши по партитуре</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"><link rel="stylesheet" href="/static/app.css">
+<style>
+.frame{position:relative;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:3/4;max-height:70vh}.frame img{width:100%;height:100%;object-fit:contain;display:block}.frame .none{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted)}
+.big{text-align:center;padding:18px 12px}.big .lbl{font-size:14px;color:var(--muted);font-weight:600}.big .note{font-size:clamp(72px,18vw,120px);font-weight:800;line-height:1;letter-spacing:-.03em;margin:4px 0}.big .note.ok{color:var(--ok)}.big .note.exp{color:var(--warn)}.big .sub{color:var(--muted);font-size:15px}
+.ribbon{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.ribbon span{min-width:44px;text-align:center;padding:6px 8px;border-radius:9px;background:var(--surface-2);border:1px solid var(--border);font-weight:700;font-size:15px}.ribbon span.done{background:color-mix(in srgb,var(--ok) 25%,var(--surface-2));border-color:var(--ok);opacity:.8}.ribbon span.cur{background:color-mix(in srgb,var(--warn) 35%,var(--surface-2));border-color:var(--warn)}
+.ev{font-size:13px;color:var(--muted);margin-top:8px}.ev b{color:var(--ok)}
+.flash{animation:fl .4s ease-out}@keyframes fl{from{transform:scale(1.08)}to{transform:scale(1)}}
+</style></head><body>
+<div class="app two">
+<header class="top"><div><h1>Клавиши по партитуре</h1><div class="sub" id="sub">стенд остановлен</div></div><nav class="nav"><a href="/">Хаб</a><a class="cur" href="/keys">Клавиши</a><a href="/council">Консилиум</a><a href="/notebook">Аудиотетрадь</a></nav></header>
+<div class="col">
+ <section class="card big"><div class="lbl" id="lbl">ожидаю</div><div class="note exp" id="note">—</div><div class="sub" id="prog">—</div><div class="ribbon" id="ribbon"></div><div class="ev" id="ev"></div></section>
+ <section class="card"><div class="frame"><img id="frame" alt=""><div class="none" id="noframe">кадра нет: стенд не запущен</div></div><div class="frame side" id="sideBox" hidden><img id="side" alt=""></div><div class="status" id="st"></div></section>
+</div>
+<div class="col">
+ <section class="card"><h2>Запуск стенда</h2>
+  <div class="row"><label>Инструмент<span class="hint">настоящее пианино или картонка Камилы</span></label><div class="seg"><label><input type="radio" name="layout" value="piano" checked><span>Пианино</span></label><label><input type="radio" name="layout" value="cardboard"><span>Картонка</span></label></div></div>
+  <div class="row"><label>Откуда кадры<span class="hint">очки → звонок WhatsApp на Mac → окно; или веб-камера; или файл</span></label><select id="source"><option value="window">Окно WhatsApp</option><option value="webcam">Веб-камера</option><option value="video">Видеофайл</option><option value="screen">Экран</option></select></div>
+  <div class="row" id="rowWindow"><label>Окно<span class="hint">подстрока названия</span></label><input type="text" id="window" value="WhatsApp" style="max-width:200px"></div>
+  <div class="row" id="rowFile" hidden><label>Файл<span class="hint">полный путь к mp4/mov, старт (с), шаг кадров</span></label></div>
+  <div id="fileBox" hidden><input type="text" id="file" value="/Users/aidarkozhakhmetov/Downloads/20261102_224544_bf773d59.mp4"><div class="btns" style="margin-top:8px"><input type="number" id="start" value="22" min="0" step="1" style="width:90px"> с <input type="number" id="step" value="12" min="1" style="width:80px"> шаг</div></div>
+  <div class="row"><label>Партитура</label><select id="score"><option value="fur_elise">К Элизе (Бетховен)</option></select></div>
+  <div class="row"><label>Звук<span class="hint">нота на подтверждении, GM-синтезатор macOS</span></label><div class="btns"><label class="hint"><input type="checkbox" id="sound" checked> звук</label><input type="text" id="instrument" value="piano" placeholder="piano" style="max-width:120px"><label class="hint"><input type="checkbox" id="ensemble"> ансамбль</label></div></div>
+  <div class="row"><label>Порог DINO<span class="hint">«вид клавиши изменился»; 0 = только кончик внутри клавиши</span></label><input type="number" id="dinoThr" value="0.15" min="0" max="1" step="0.05" style="width:90px"></div>
+  <div class="row"><label>Боковая камера<span class="hint">iPhone как Continuity Camera с торца картонки, объектив у стола; номер камеры (пусто = без второго взгляда), торец</span></label><input type="number" id="sideCam" placeholder="1" style="max-width:80px"> <select id="sideEnd"><option value="treble">справа (дискант)</option><option value="bass">слева (бас)</option></select></div>
+  <div class="row"><label>Устройство вывода<span class="hint">подстрока имени колонки; пусто = системное по умолчанию</span></label><input type="text" id="audioOut" value="Динамики" placeholder="например USB или JBL" style="max-width:200px"></div>
+  <div class="btns" style="margin-top:12px"><button class="btn" id="btnStart">▶ Запустить</button><button class="btn stop" id="btnStop">■ Стоп</button></div>
+  <div class="status" id="job"></div><pre class="log" id="log"></pre>
+ </section>
+ <section class="card"><h2>Как это работает</h2><div class="hint">SAM 3.1 обводит чёрные клавиши → чертёж клавиатуры (52+36 от A0) ложится на кадр и дальше следит за чёрными; первое нажатие замыкает октаву по первой ноте партитуры; ожидаемая клавиша подсвечена жёлтым; подтверждение = кончик пальца внутри неё два кадра подряд и вид клавиши изменился (DINOv2). Это подтверждение «палец лёг на ожидаемую клавишу», а не распознавание нот.</div></section>
+</div>
+<footer>Souls of Muse · стенд клавиш · играет человек, ИИ подтверждает</footer></div>
+<script>
+const $=s=>document.querySelector(s);let lastI=-1,running=false;
+$('#source').addEventListener('change',()=>{const v=$('#source').value;$('#rowWindow').hidden=v!=='window';$('#rowFile').hidden=v!=='video';$('#fileBox').hidden=v!=='video'});
+$('#btnStart').addEventListener('click',async()=>{const b={layout:document.querySelector('input[name=layout]:checked').value,source:$('#source').value,window:$('#window').value,file:$('#file').value,start:+$('#start').value,step:+$('#step').value,score:$('#score').value,no_sound:!$('#sound').checked,instrument:$('#instrument').value||null,ensemble:$('#ensemble').checked,audio_out:$('#audioOut').value||null,side_cam:$('#sideCam').value===''?null:+$('#sideCam').value,side_end:$('#sideEnd').value,dino_thr:+$('#dinoThr').value};
+ const r=await (await fetch('/api/keys/start',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)})).json();$('#job').innerHTML='запущен, pid '+r.pid;lastI=-1;});
+$('#btnStop').addEventListener('click',async()=>{await fetch('/api/keys/stop',{method:'POST',body:'{}'});});
+function ribbon(s){const el=$('#ribbon');if(!s.notes){el.innerHTML='';return}el.innerHTML=s.notes.map((n,i)=>`<span class="${i<s.i?'done':i===s.i?'cur':''}">${n}</span>`).join('')}
+async function poll(){try{const s=await (await fetch('/api/keys/status')).json();running=s.job==='running';
+ $('#job').innerHTML=`стенд: <span class="${running?'ok':'warn'}">${s.job}</span>`+(s.fps?` · ${s.fps} к/с · клавиш ${s.keys} · кончиков ${s.tips}`:'');$('#log').textContent=s.log||'';
+ if(s.notes){$('#sub').textContent=`${s.layout==='piano'?'пианино':'картонка'} · ${s.score} · ${s.locked?'октава замкнута ('+(s.delta>=0?'+':'')+s.delta+')':'жду первого нажатия'}`;
+  $('#prog').textContent=`нота ${Math.min(s.i+1,s.total)} из ${s.total}`;ribbon(s);
+  if(s.held){$('#lbl').textContent='подтверждена';$('#note').textContent=s.held;$('#note').className='note ok'}else{$('#lbl').textContent=s.i>=s.total?'партитура сыграна':'ожидаю';$('#note').textContent=s.expected||'✓';$('#note').className='note exp'}
+  if(s.i!==lastI){$('#note').classList.remove('flash');void $('#note').offsetWidth;$('#note').classList.add('flash');lastI=s.i}
+  $('#ev').innerHTML=(s.events||[]).slice(-6).map(e=>`<b>✓ ${e[1]}</b> кадр ${e[2]}`).join(' · ')+(s.under&&s.under.length?`<br>под пальцами: ${s.under.join(' ')}`:'');
+ } else if(!running){$('#sub').textContent='стенд остановлен'}
+ $('#st').innerHTML=s.age!=null?`кадр ${s.age} с назад`:'';
+}catch(e){}}
+async function sideFrame(){if(!running)return;const im=$('#side');const r=await fetch('/api/keys/side?ts='+Date.now());if(r.ok){const b=await r.blob();const u=URL.createObjectURL(b);im.onload=()=>URL.revokeObjectURL(u);im.src=u;$('#sideBox').hidden=false}}
+setInterval(sideFrame,700);
+async function frame(){if(!running)return;const im=$('#frame');const r=await fetch('/api/keys/frame?ts='+Date.now());if(r.ok){const b=await r.blob();const u=URL.createObjectURL(b);im.onload=()=>URL.revokeObjectURL(u);im.src=u;$('#noframe').hidden=true}}
+setInterval(poll,350);setInterval(frame,400);poll();
+</script></body></html>

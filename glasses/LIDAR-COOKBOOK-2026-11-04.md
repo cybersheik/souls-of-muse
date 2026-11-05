@@ -1,0 +1,1 @@
+/Users/aidarkozhakhmetov/AI3Lab/data/ML1-vault/40_projects/AI3-895 Soul of Music — Душа музыки/LiDAR iPhone 13 Pro — cookbook для DC1 — 2026-11-04.md

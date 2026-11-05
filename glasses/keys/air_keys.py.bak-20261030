@@ -1,0 +1,379 @@
+#!/usr/bin/env python3
+"""Souls of Muse · «Картонные клавиши»: нарисованная клавиатура → SAM 3.1 размечает клавиши один раз →
+локальный трекер цветных меток на кончиках пальцев → нота → звук (встроенный синтезатор) и MIDI (виртуальный порт).
+
+Источники кадров:
+  --source webcam [--cam 0]                 веб-камера Mac
+  --source screen --region X,Y,W,H          область экрана (например окно звонка WhatsApp)
+  --source window --window WhatsApp         окно приложения по имени владельца (границы берутся через Quartz)
+  --source video --file clip.mp4            файл, для отладки
+
+Режимы:
+  --calibrate      снять кадр, спросить SAM 3.1 «white key» и «black key», сохранить keys.json и keys_calib.jpg
+  (без флага)      играть: трекер меток → ноты. Клавиши берутся из keys.json.
+
+Примеры:
+  .venv/bin/python keys/air_keys.py --source webcam --calibrate --env-file ~/.hermes/profiles/jack/.env
+  .venv/bin/python keys/air_keys.py --source webcam --marker green
+  .venv/bin/python keys/air_keys.py --source window --window WhatsApp --marker pink
+Клавиши: q — выход, c — перекалибровать по текущему кадру, m — показать маску меток, +/- — порог срабатывания.
+"""
+from __future__ import annotations
+
+import argparse, asyncio, json, math, sys, threading, time
+from dataclasses import dataclass, field
+from pathlib import Path
+
+import cv2
+import numpy as np
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+import importlib.util
+_spec = importlib.util.spec_from_file_location("samtest", ROOT / "sam_fret_test.py")
+samtest = importlib.util.module_from_spec(_spec); sys.modules["samtest"] = samtest; _spec.loader.exec_module(samtest)
+
+# ----------------------------------------------------------------------------- источники кадров
+
+class Source:
+    def read(self):  # -> frame BGR or None
+        raise NotImplementedError
+    def release(self): pass
+
+class WebcamSource(Source):
+    def __init__(self, index: int = 0, width: int = 1280, height: int = 720):
+        self.cap = cv2.VideoCapture(index)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width); self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        if not self.cap.isOpened():
+            raise SystemExit("веб-камера не открылась: дайте приложению доступ к камере (Системные настройки → Конфиденциальность → Камера)")
+    def read(self):
+        ok, f = self.cap.read(); return f if ok else None
+    def release(self): self.cap.release()
+
+class VideoSource(Source):
+    def __init__(self, path: str):
+        self.cap = cv2.VideoCapture(path)
+        if not self.cap.isOpened(): raise SystemExit(f"не открыть {path}")
+        self.fps = self.cap.get(cv2.CAP_PROP_FPS) or 30.0
+    def read(self):
+        ok, f = self.cap.read()
+        if not ok:
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0); ok, f = self.cap.read()
+        time.sleep(1.0 / self.fps)
+        return f if ok else None
+    def release(self): self.cap.release()
+
+class ScreenSource(Source):
+    """Захват области экрана через mss (нужно разрешение «Запись экрана» для приложения-хоста)."""
+    def __init__(self, region: tuple[int, int, int, int] | None = None, window: str | None = None):
+        import mss
+        self.sct = mss.mss()
+        self.window = window
+        self.region = region
+        if window and not region:
+            self.region = self.find_window(window)
+            if not self.region: raise SystemExit(f"окно «{window}» не найдено (оно должно быть открыто и видно)")
+        if not self.region:
+            m = self.sct.monitors[1]; self.region = (m["left"], m["top"], m["width"], m["height"])
+        print(f"захват экрана: {self.region}")
+    @staticmethod
+    def find_window(owner_substr: str):
+        try:
+            import Quartz
+        except Exception:
+            return None
+        wins = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly | Quartz.kCGWindowListExcludeDesktopElements, Quartz.kCGNullWindowID)
+        best = None
+        for w in wins:
+            if owner_substr.lower() in str(w.get("kCGWindowOwnerName", "")).lower():
+                b = w.get("kCGWindowBounds", {})
+                area = b.get("Width", 0) * b.get("Height", 0)
+                if area > 200 * 200 and (best is None or area > best[0]):
+                    best = (area, (int(b["X"]), int(b["Y"]), int(b["Width"]), int(b["Height"])))
+        return best[1] if best else None
+    def read(self):
+        x, y, w, h = self.region
+        img = np.array(self.sct.grab({"left": x, "top": y, "width": w, "height": h}))
+        return cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+
+def make_source(args) -> Source:
+    if args.source == "webcam": return WebcamSource(args.cam)
+    if args.source == "video": return VideoSource(args.file)
+    if args.source == "screen":
+        region = tuple(int(v) for v in args.region.split(",")) if args.region else None
+        return ScreenSource(region=region)
+    if args.source == "window": return ScreenSource(window=args.window)
+    raise SystemExit("неизвестный источник")
+
+# ----------------------------------------------------------------------------- калибровка клавиш через SAM 3.1
+
+NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+WHITE_PCS = [0, 2, 4, 5, 7, 9, 11]
+
+def poly_from_mask(mask: np.ndarray):
+    cnts, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not cnts: return None
+    c = max(cnts, key=cv2.contourArea)
+    if cv2.contourArea(c) < 80: return None
+    eps = 0.01 * cv2.arcLength(c, True)
+    return cv2.approxPolyDP(c, eps, True).reshape(-1, 2).tolist()
+
+async def calibrate_async(frame: np.ndarray, env_file: str | None, base_octave: int = 4, max_side: int = 1280):
+    from openai import AsyncOpenAI
+    client = AsyncOpenAI(base_url="https://api.meta.ai/v1", api_key=samtest.load_key(env_file))
+    H, W = frame.shape[:2]
+    url = samtest.jpeg_data_url(frame, max_side=max_side)
+    scale = min(1.0, max_side / max(H, W)); Hs, Ws = int(H * scale), int(W * scale)
+    t0 = time.perf_counter()
+    whites, blacks = await asyncio.gather(
+        samtest.segment_image(client, url, "white piano key", (Hs, Ws)),
+        samtest.segment_image(client, url, "black piano key", (Hs, Ws)),
+    )
+    dt = time.perf_counter() - t0
+    keys = []
+    def add(masks, kind):
+        for oid, m, conf in masks:
+            if scale < 1.0:
+                m = cv2.resize(m, (W, H), interpolation=cv2.INTER_NEAREST)
+            poly = poly_from_mask(m)
+            if poly is None: continue
+            xs = [p[0] for p in poly]; ys = [p[1] for p in poly]
+            keys.append({"kind": kind, "poly": poly, "cx": float(np.mean(xs)), "cy": float(np.mean(ys)),
+                         "area": float(cv2.contourArea(np.array(poly, dtype=np.int32))), "conf": conf})
+    add(whites, "white"); add(blacks, "black")
+    # убрать дубли (SAM иногда отдаёт и клавишу, и всю клавиатуру): выкидываем маски, площадь которых > 4 медиан
+    if keys:
+        med = float(np.median([k["area"] for k in keys]))
+        keys = [k for k in keys if k["area"] <= 4 * med]
+    # назначение нот: белые слева направо от C базовой октавы; чёрные — по положению между белыми
+    wk = sorted([k for k in keys if k["kind"] == "white"], key=lambda k: k["cx"])
+    bk = sorted([k for k in keys if k["kind"] == "black"], key=lambda k: k["cx"])
+    for i, k in enumerate(wk):
+        octave = base_octave + i // 7
+        k["midi"] = 12 * (octave + 1) + WHITE_PCS[i % 7]
+    for k in bk:
+        left = [w for w in wk if w["cx"] < k["cx"]]
+        if left:
+            w = left[-1]; pc = w["midi"] % 12
+            k["midi"] = w["midi"] + 1 if pc in (0, 2, 5, 7, 9) else w["midi"]  # после E и B чёрных нет
+        else:
+            k["midi"] = None
+    keys = [k for k in wk + bk if k.get("midi") is not None]
+    for k in keys:
+        k["name"] = NOTE_NAMES[k["midi"] % 12] + str(k["midi"] // 12 - 1)
+    return keys, dt
+
+def calibrate(frame, env_file, base_octave):
+    return asyncio.run(calibrate_async(frame, env_file, base_octave))
+
+def draw_keys(img, keys, active: set[int]):
+    for k in keys:
+        pts = np.array(k["poly"], dtype=np.int32)
+        col = (90, 200, 255) if k["kind"] == "white" else (255, 160, 60)
+        if k["midi"] in active:
+            cv2.fillPoly(img, [pts], (60, 220, 120))
+        cv2.polylines(img, [pts], True, col, 2)
+        cv2.putText(img, k["name"], (int(k["cx"]) - 14, int(k["cy"])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3, cv2.LINE_AA)
+        cv2.putText(img, k["name"], (int(k["cx"]) - 14, int(k["cy"])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+
+# ----------------------------------------------------------------------------- трекер меток
+
+MARKERS = {   # диапазоны HSV (OpenCV: H 0..180)
+    "green":  [((40, 80, 70), (85, 255, 255))],
+    "pink":   [((140, 70, 90), (175, 255, 255))],
+    "blue":   [((95, 90, 70), (130, 255, 255))],
+    "yellow": [((20, 90, 110), (38, 255, 255))],
+    "orange": [((5, 120, 120), (20, 255, 255))],
+    "red":    [((0, 120, 90), (8, 255, 255)), ((170, 120, 90), (180, 255, 255))],
+}
+
+def find_markers(frame, marker: str, min_area: int = 40, max_n: int = 6):
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    mask = None
+    for lo, hi in MARKERS[marker]:
+        m = cv2.inRange(hsv, np.array(lo), np.array(hi))
+        mask = m if mask is None else cv2.bitwise_or(mask, m)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+    mask = cv2.dilate(mask, np.ones((5, 5), np.uint8))
+    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    blobs = []
+    for c in cnts:
+        a = cv2.contourArea(c)
+        if a < min_area: continue
+        M = cv2.moments(c)
+        blobs.append((a, M["m10"] / M["m00"], M["m01"] / M["m00"]))
+    blobs.sort(reverse=True)
+    return [(x, y) for _, x, y in blobs[:max_n]], mask
+
+@dataclass
+class Track:
+    x: float; y: float
+    vy: float = 0.0
+    key: int | None = None
+    pressed: bool = False
+    last_seen: float = 0.0
+
+def key_at(keys, x, y):
+    # чёрные проверяем первыми: они лежат поверх белых
+    for k in sorted(keys, key=lambda k: 0 if k["kind"] == "black" else 1):
+        if cv2.pointPolygonTest(np.array(k["poly"], dtype=np.int32), (float(x), float(y)), False) >= 0:
+            return k["midi"]
+    return None
+
+# ----------------------------------------------------------------------------- звук и MIDI
+
+class Synth:
+    """Полифонический синтезатор: затухающий тон с обертонами, без внешних зависимостей кроме sounddevice."""
+    def __init__(self, sr: int = 44100, volume: float = 0.35):
+        import sounddevice as sd
+        self.sr = sr; self.volume = volume
+        self.voices: dict[int, dict] = {}
+        self.lock = threading.Lock()
+        self.stream = sd.OutputStream(samplerate=sr, channels=1, dtype="float32", blocksize=256, callback=self._cb, latency="low")
+        self.stream.start()
+        self.midi_out = None
+        try:
+            import rtmidi
+            self.midi_out = rtmidi.MidiOut(); self.midi_out.open_virtual_port("Souls of Muse Air Keys")
+            print("MIDI: виртуальный порт «Souls of Muse Air Keys» открыт (виден в GarageBand/Logic)")
+        except Exception as e:
+            print("MIDI недоступен:", e)
+    def note_on(self, midi: int, vel: int = 100):
+        with self.lock:
+            self.voices[midi] = {"f": 440.0 * 2 ** ((midi - 69) / 12), "t": 0, "amp": vel / 127, "rel": False, "phase": 0.0}
+        if self.midi_out: self.midi_out.send_message([0x90, midi, vel])
+    def note_off(self, midi: int):
+        with self.lock:
+            v = self.voices.get(midi)
+            if v: v["rel"] = True
+        if self.midi_out: self.midi_out.send_message([0x80, midi, 0])
+    def _cb(self, out, frames, time_info, status):
+        buf = np.zeros(frames, dtype=np.float32)
+        t = np.arange(frames, dtype=np.float32) / self.sr
+        with self.lock:
+            dead = []
+            for midi, v in self.voices.items():
+                env_t = (v["t"] + np.arange(frames)) / self.sr
+                env = np.exp(-env_t * 1.6)                      # естественное затухание
+                if v["rel"]:
+                    env *= np.exp(-(np.arange(frames)) / (0.06 * self.sr))  # быстрый спад после отпускания
+                ph = v["phase"] + 2 * np.pi * v["f"] * t
+                wave = np.sin(ph) + 0.45 * np.sin(2 * ph) + 0.2 * np.sin(3 * ph) + 0.08 * np.sin(4 * ph)
+                buf += (v["amp"] * env * wave * 0.5).astype(np.float32)
+                v["phase"] = float((ph[-1] + 2 * np.pi * v["f"] / self.sr) % (2 * np.pi))
+                v["t"] += frames
+                if v["rel"] and env[-1] < 1e-3 or v["t"] > self.sr * 6: dead.append(midi)
+                if v["rel"]: v["amp"] *= float(np.exp(-frames / (0.06 * self.sr)))
+            for d in dead: self.voices.pop(d, None)
+        out[:, 0] = np.tanh(buf * self.volume * 2.5)
+
+# ----------------------------------------------------------------------------- главный цикл
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--source", choices=["webcam", "screen", "window", "video"], default="webcam")
+    ap.add_argument("--cam", type=int, default=0)
+    ap.add_argument("--file", default=None)
+    ap.add_argument("--region", default=None)
+    ap.add_argument("--window", default="WhatsApp")
+    ap.add_argument("--keys", default=str(Path(__file__).parent / "keys.json"))
+    ap.add_argument("--calibrate", action="store_true")
+    ap.add_argument("--env-file", default=None)
+    ap.add_argument("--base-octave", type=int, default=4)
+    ap.add_argument("--marker", choices=list(MARKERS), default="green")
+    ap.add_argument("--press-vy", type=float, default=2.0, help="мин. скорость вниз (px/кадр) перед остановкой = нажатие")
+    ap.add_argument("--no-sound", action="store_true")
+    ap.add_argument("--headless", action="store_true", help="без окна (для тестов)")
+    ap.add_argument("--max-frames", type=int, default=0)
+    args = ap.parse_args()
+
+    src = make_source(args)
+    keys = []
+    kp = Path(args.keys)
+    if args.calibrate or not kp.exists():
+        frame = None
+        for _ in range(10):
+            frame = src.read()
+        if frame is None: raise SystemExit("нет кадра для калибровки")
+        print("калибровка: спрашиваю SAM 3.1 про белые и чёрные клавиши…")
+        keys, dt = calibrate(frame, args.env_file, args.base_octave)
+        print(f"клавиш найдено: {len(keys)} за {dt:.1f} с → {[k['name'] for k in keys]}")
+        kp.write_text(json.dumps(keys, ensure_ascii=False, indent=1))
+        vis = frame.copy(); draw_keys(vis, keys, set()); cv2.imwrite(str(kp.with_name("keys_calib.jpg")), vis)
+        print("сохранено:", kp, kp.with_name("keys_calib.jpg"))
+        if args.calibrate and args.headless:
+            return
+    else:
+        keys = json.loads(kp.read_text())
+        print(f"клавиши из {kp}: {len(keys)}")
+
+    synth = None if args.no_sound else Synth()
+    tracks: list[Track] = []
+    show_mask = False
+    active: set[int] = set()
+    n = 0; t_last = time.perf_counter(); fps = 0.0
+    while True:
+        frame = src.read()
+        if frame is None: break
+        n += 1
+        pts, mask = find_markers(frame, args.marker)
+        now = time.perf_counter()
+        # сопоставление меток с треками по ближайшему соседу
+        new_tracks = []
+        for (x, y) in pts:
+            best = None
+            for tr in tracks:
+                d = math.hypot(tr.x - x, tr.y - y)
+                if d < 60 and (best is None or d < best[0]): best = (d, tr)
+            if best:
+                tr = best[1]; tracks.remove(tr)
+                tr.vy = 0.6 * tr.vy + 0.4 * (y - tr.y); tr.x, tr.y = x, y
+            else:
+                tr = Track(x, y)
+            tr.last_seen = now
+            new_tracks.append(tr)
+        # отпускаем ноты у пропавших меток
+        for tr in tracks:
+            if tr.pressed and synth: synth.note_off(tr.key)
+            if tr.pressed: active.discard(tr.key)
+        tracks = new_tracks
+        # логика нажатия: метка внутри клавиши и движение вниз остановилось → нажатие; вышла из клавиши или пошла вверх → отпускание
+        for tr in tracks:
+            k = key_at(keys, tr.x, tr.y)
+            peak = getattr(tr, "_peak_vy", 0.0)
+            # нажатие: метка над клавишей, перед этим шла вниз быстрее порога и теперь остановилась
+            if k is not None and not tr.pressed and abs(tr.vy) < 1.0 and peak >= args.press_vy:
+                tr.pressed = True; tr.key = k; active.add(k)
+                if synth: synth.note_on(k, int(min(127, 60 + 20 * peak)))
+                tr._peak_vy = 0.0
+            elif tr.pressed and (k != tr.key or tr.vy < -1.5):
+                if synth: synth.note_off(tr.key)
+                active.discard(tr.key); tr.pressed = False; tr.key = None
+            if not tr.pressed:
+                tr._peak_vy = max(getattr(tr, "_peak_vy", 0.0) * 0.9, tr.vy)
+        if n % 10 == 0:
+            fps = 10 / (now - t_last); t_last = now
+        if not args.headless:
+            vis = frame.copy()
+            draw_keys(vis, keys, active)
+            for tr in tracks:
+                cv2.circle(vis, (int(tr.x), int(tr.y)), 9, (0, 0, 255) if tr.pressed else (255, 255, 255), 2)
+            cv2.putText(vis, f"{fps:4.1f} fps  marker={args.marker}  keys={len(keys)}  active={sorted(active)}", (8, 22),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2, cv2.LINE_AA)
+            cv2.imshow("Souls of Muse · Air Keys", vis)
+            if show_mask: cv2.imshow("marker mask", mask)
+            kcode = cv2.waitKey(1) & 0xFF
+            if kcode == ord("q"): break
+            if kcode == ord("m"): show_mask = not show_mask
+            if kcode == ord("c"):
+                keys, dt = calibrate(frame, args.env_file, args.base_octave); kp.write_text(json.dumps(keys, ensure_ascii=False, indent=1))
+                print(f"перекалибровка: {len(keys)} клавиш за {dt:.1f} с")
+            if kcode == ord("+"): args.press_vy += 0.5; print("press_vy", args.press_vy)
+            if kcode == ord("-"): args.press_vy = max(0.5, args.press_vy - 0.5); print("press_vy", args.press_vy)
+        if args.max_frames and n >= args.max_frames: break
+    src.release()
+    if not args.headless: cv2.destroyAllWindows()
+    print(f"кадров {n}, последний fps {fps:.1f}")
+
+if __name__ == "__main__":
+    main()

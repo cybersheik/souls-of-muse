@@ -1,0 +1,17 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Souls of Muse · очки</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"><link rel="stylesheet" href="/static/app.css">
+<style>.grid{display:grid;gap:16px}@media (min-width:760px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}.tile{display:block;text-decoration:none;color:inherit}.tile h2{font-size:20px;margin:0 0 6px}.tile p{margin:0 0 10px;color:var(--muted);font-size:14px}.tile .st{font-size:13px}</style></head><body>
+<div class="app"><header class="top"><div><h1>Souls of Muse · Ray-Ban Meta</h1><div class="sub">три направления: глаза Muse плюс голос в ухо</div></div><nav class="nav"><a class="cur" href="/">Хаб</a><a href="/keys">Клавиши</a><a href="/council">Консилиум</a><a href="/notebook">Аудиотетрадь</a></nav></header>
+<div class="grid">
+<a class="card tile" href="/keys"><h2>Клавиши по партитуре</h2><p>Камила играет «К Элизе»; стенд видит клавиатуру глазами очков, подсвечивает ожидаемую клавишу и подтверждает: палец лёг на неё. Настоящее пианино и картонка.</p><div class="st" id="stKeys">…</div></a>
+<a class="card tile" href="/council"><h2>Консилиум по договору</h2><p>Страницы договора, снятые очками → Muse Spark читает → три Muse и агрегатор Wonder разбирают: что вычеркнуть, что обсудить, какую цифру торговать. Выжимка в ухо.</p><div class="st" id="stCouncil">…</div></a>
+<a class="card tile" href="/notebook"><h2>Аудиотетрадь</h2><p>Сетка аккордов с фото или готовая песня; телефон ведёт по тактам голосом в ухо: аккорд, следующий, к чему готовиться, тихий щелчок.</p><div class="st" id="stNotebook">…</div></a>
+</div>
+<section class="card"><b>К съёмке 15:30:</b> <a href="/shoot">карточка съёмки</a> — что включить, откуда кадры, как играть, что говорить в кадре.</section>
+<footer>Souls of Muse · прототипы хакатона Meta · ИИ видит, читает и подсказывает, играет человек</footer></div>
+<script>
+async function j(u){try{return await (await fetch(u)).json()}catch(e){return null}}
+(async()=>{const k=await j('/api/keys/status');document.getElementById('stKeys').innerHTML=k&&k.job==='running'?`<span class="ok">стенд работает</span> · ожидаю <b>${k.expected||'—'}</b> · ${k.i||0}/${k.total||0}`:'стенд остановлен';
+const c=await j('/api/council/status');document.getElementById('stCouncil').innerHTML=c&&c.current?`последний разбор ${c.current.stamp}, пунктов ${c.parsed.clauses.length}`+(c.job_council==='running'?' · <span class="amber">консилиум идёт</span>':''):'разборов ещё нет';
+const n=await j('/api/notebook/song');document.getElementById('stNotebook').innerHTML=n&&n.song?`песня с фото: <b>${n.song.title||'без названия'}</b>`:'песня по умолчанию: Hallelujah';})();
+</script></body></html>
