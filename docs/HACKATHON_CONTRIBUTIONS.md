@@ -1,5 +1,7 @@
 # Hackathon contribution boundaries
 
+> **Update, 5 Nov 2026.** This file records the first day of the event (27 Oct). The full event record is in `docs/workstreams/01`–`09`; the jury dossier is at https://soulsofmuse.app/dossier/.
+
 Event: Meta Global AI Developer Hackathon 2026, Startup track.
 
 ## Before the event
