@@ -8,10 +8,12 @@ Status vocabulary on this page: **Live** (works publicly; "Working" in DISCLOSUR
 ## During the event
 | Item | Status | Evidence |
 |---|---|---|
-| Public community pages | Live (Facebook page); Instagram not cited | https://www.facebook.com/soulsofmuse/ · https://soulsofmuse.app/ (Convention in 19 languages) |
+| Public community pages | Live (Facebook and Instagram pages) | https://www.facebook.com/soulsofmuse/ · https://www.instagram.com/soulsofmuse/ · https://soulsofmuse.app/ (Convention in 19 languages) |
 | Organic growth plan built on the notation signature | Plan (v2 after independent reviews; the first stage, signing by comment, was tried 29 Oct–2 Nov and dropped; nothing further run) | Summary below. Signing is always free and voluntary; the source of a signature is not recorded or shown. |
 | Regional outreach design (Asia) | Plan (designed) | Summary below. Nothing has been sent. |
 | Short educational videos for social channels | Live on the site; not yet posted to social channels | https://soulsofmuse.app/sci-sound-labs/ · see [06](06-media.md) |
+| Final live-action film | Live on YouTube (accepted by the project owner; 2:55.733) | https://www.youtube.com/shorts/1EAl-cj0DJ4 · see [06](06-media.md). Its narrator and the studio's spoken question are staged playback of macOS voices, not model-generated replies |
+| Jury dossier | Live | https://soulsofmuse.app/dossier/ · PDF https://soulsofmuse.app/dossier/Souls-of-Muse-Jury-Dossier.pdf |
 
 ### Growth plan (sanitized summary)
 1. A person reads the Convention, signs, and receives a card with their name written as music (see [04](04-community-and-governance.md)).
@@ -31,14 +33,14 @@ Idea of the project owner: invite 10–15 live-music musicians in Japan and Sout
 ## Who did the work
 Every task in the team tracker is formally assigned to the project owner. This table names who actually did each part.
 
-| Part | Meta model | Agent (callsign → model behind it) | Owner |
+| Part | Meta model | Agent (tool and maker) | Owner |
 |---|---|---|---|
-| Week-1 post captions (English and Russian) and invitations in Vietnamese and Hindi | **Meta AI** on meta.ai (the interface does not show which model; credited as "Meta AI") | Two sessions, recorded by DW1 (Claude in Cowork, Anthropic) | Approved positioning and language rules |
-| Facebook page and group set-up, pinned Convention post | — | DW1 (Claude in Cowork, Anthropic), per internal task records of 29 Oct (page details behind the login wall were not re-checked publicly) | Owner decisions on wording and language |
-| Growth plan v2 | — | DW1 (Claude in Cowork, Anthropic), after reviews by CX1 (Codex, OpenAI), GB1 (Grok bot, xAI) and Kimi (Moonshot AI) | Rules: free, voluntary, source never recorded |
-| Regional outreach plan (Japan, South Korea) | — | DW1 (Claude in Cowork, Anthropic) | Original idea |
-| Educational shorts used as post material | **Muse Wonder Full** (muse-wonder-full-1.0) in Meta's Muse Code terminal | Design approval: DW1 + Claude Design; fact check: CX1 (Codex) | Asked for the films |
-| Convention translations used on the site | — | DW1 (Claude in Cowork, Anthropic) | Russian original |
+| Week-1 post captions (English and Russian) and invitations in Vietnamese and Hindi | **Meta AI** on meta.ai (the interface does not show which model; credited as "Meta AI") | Two sessions, recorded by Claude in the Cowork app (Anthropic) | Approved positioning and language rules |
+| Facebook page and group set-up, pinned Convention post | — | Claude in the Cowork app (Anthropic), per internal task records of 29 Oct (page details behind the login wall were not re-checked publicly) | Owner decisions on wording and language |
+| Growth plan v2 | — | Claude in the Cowork app (Anthropic), after reviews by Codex (OpenAI), a Grok-based review bot (xAI) and Kimi (Moonshot AI) | Rules: free, voluntary, source never recorded |
+| Regional outreach plan (Japan, South Korea) | — | Claude in the Cowork app (Anthropic) | Original idea |
+| Educational shorts used as post material | **Muse Wonder Full** (muse-wonder-full-1.0) in Meta's Muse Code terminal | Design approval: Claude (Anthropic) with Claude Design; fact check: Codex (OpenAI) | Asked for the films |
+| Convention translations used on the site | — | Claude in the Cowork app (Anthropic) | Russian original |
 
 **Muse credit, stated separately:** Meta models produced the week-1 captions and invitations (Meta AI on meta.ai) and the two educational shorts (Muse Wonder Full). The outreach plans themselves were written by non-Meta agents.
 
@@ -51,7 +53,7 @@ Every task in the team tracker is formally assigned to the project owner. This t
 
 ## Not claimed
 - No number of Convention signatures, members or reach is claimed beyond the page metadata above.
-- No Instagram account is cited; no other social channel is claimed as active.
+- The Instagram page exists; no follower or reach figure from it is claimed, and no other social channel is claimed as active.
 - No message has been sent to musicians in Japan or South Korea, and no names of musicians are published.
 - No paid campaign, ad reach or ad spend.
 - The outreach plans were written by non-Meta agents; only the captions, invitations and shorts are credited to Meta models.

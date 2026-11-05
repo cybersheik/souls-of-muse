@@ -106,7 +106,7 @@ Rules:
 - Numbers (test counts, latencies, costs, participants) state their source and date; estimates say "estimated".
 - Model names are written as the vendor publishes them. Work by other tools is never credited to Meta models.
 - A claim that was published and later found wrong is corrected in place with a dated note, never silently edited away.
-- The scope the owner set as mandatory for the submission (voice for both lesson participants, real lesson hours in agent journals, tactile metronome) is claimed only at the status actually verified on submission day.
+- The scope the owner set as mandatory for the submission (voice for both lesson participants, an application on a real watch (Galaxy Watch 6 Classic), a physical tactile metronome) is claimed only at the status actually verified on submission day.
 
 ## 6. Pre-event and event work
 

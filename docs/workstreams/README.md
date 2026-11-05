@@ -1,6 +1,6 @@
 # Workstreams
 
-Souls of Muse is more than one codebase. During the hackathon (26 Oct – 4 Nov 2026) the work ran in seven parallel workstreams (plus two cross-cutting pages, 08 and 09), carried out by the project owner together with a team of AI agents built on Meta models.
+Souls of Muse is more than one codebase. During the hackathon (26 Oct – 5 Nov 2026) the work ran in seven parallel workstreams (plus two cross-cutting pages, 08 and 09), carried out by the project owner together with a team of AI agents built on Meta models.
 
 | # | Workstream | Main judging criteria | Main evidence |
 |---|---|---|---|
@@ -11,8 +11,10 @@ Souls of Muse is more than one codebase. During the hackathon (26 Oct – 4 Nov 
 | [05](05-outreach.md) | Outreach | Impact | Aggregate community metrics, channel strategy |
 | [06](06-media.md) | Media | Demo, Meta tooling | Demo video, promo videos, generated design material |
 | [07](07-process-and-provenance.md) | Process and provenance | Technical depth (supports all) | Timeline, attribution, timestamp evidence, decision records |
-| [08](08-who-did-the-work.md) | Who did the work | Meta tooling | Call signs paired with the Meta models behind them; Muse deliverables listed separately |
-| [09](09-dead-ends.md) | Paths that did not work | Technical depth | Dead ends with measurements and what replaced them |
+| [08](08-who-did-the-work.md) | Who did the work: tools and the Meta models behind them | Meta tooling | Each tool or harness paired with the Meta model behind it; deliverables of Meta models listed separately |
+| [09](09-dead-ends.md) | Paths that did not work | Technical depth | Dated dead ends with measurements, followed by the later resolution where one exists |
+
+The current summary of the eight developments is the [jury dossier](https://soulsofmuse.app/dossier/) ([PDF](https://soulsofmuse.app/dossier/Souls-of-Muse-Jury-Dossier.pdf)); the live-action film is public on [YouTube](https://www.youtube.com/shorts/1EAl-cj0DJ4).
 
 Every workstream page follows the same structure:
 - why it matters;

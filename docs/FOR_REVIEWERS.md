@@ -7,6 +7,8 @@ This page maps each judging criterion to evidence in this repository. Every stat
 ## In one paragraph
 Souls of Muse is a service for an international community of musicians, dedicated to keeping the human skills of playing instruments and singing alive. The hackathon work, carried out by the project owner with a team of AI agents on Meta models, spans seven workstreams: the lesson service, engineering on Meta models, research, community and governance, outreach, media, and process. Code is one of them, not all of them.
 
+The [jury dossier](https://soulsofmuse.app/dossier/) ([PDF](https://soulsofmuse.app/dossier/Souls-of-Muse-Jury-Dossier.pdf)) presents eight developments: Souls of Muse & Muse Lesson; MetaMezonin rehearsal room; TopDog Colors music-video studio; three Ray-Ban Meta services; Sol Muse robot; Sound Made Visible; musical signature & community; music and filmmaking with Muse.
+
 ## Impact (30%)
 - Mission and problem: `README.md`, [04 Community and governance](workstreams/04-community-and-governance.md)
 - Who still plays music, and why it matters: [03 Research](workstreams/03-research-with-muse.md)
@@ -15,7 +17,8 @@ Souls of Muse is a service for an international community of musicians, dedicate
 ## Use of Meta AI tooling (25%)
 - Model roles and the generation/review pattern: [02 Engineering on Meta models](workstreams/02-meta-model-engineering.md)
 - Research driven by Muse: [03 Research](workstreams/03-research-with-muse.md)
-- Media generated with Muse Image: [06 Media](workstreams/06-media.md)
+- Media with Muse (Ganesha screenplay, direction and composed score by Muse Wonder and Muse Wonder Full; reference images by Muse Image): [06 Media](workstreams/06-media.md)
+- Who did the work: tools and the Meta models behind them: [08](workstreams/08-who-did-the-work.md) · paths that did not work: [09](workstreams/09-dead-ends.md)
 - Journal of model participation (sanitized from the team's session registry): [`docs/journal/`](journal/)
 
 ## Technical depth and execution (20%)
@@ -32,8 +35,8 @@ cd harness-bench && python3 -m venv .venv && .venv/bin/python -m pip install -r 
 ```
 
 ## Demo (25%)
-- Demo video: https://www.youtube.com/shorts/1EAl-cj0DJ4 (2:56) · jury dossier: https://soulsofmuse.app/dossier/
-- Live preview: linked from `README.md`
+- Live-action film: https://www.youtube.com/shorts/1EAl-cj0DJ4 (2:56) · jury dossier: https://soulsofmuse.app/dossier/ · PDF: https://soulsofmuse.app/dossier/Souls-of-Muse-Jury-Dossier.pdf
+- Live service: https://soulsofmuse.app/ (built from main)
 - What is real and what is simulated: [01 Service and lesson](workstreams/01-service-and-lesson.md)
 
 ## What existed before the event

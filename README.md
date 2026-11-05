@@ -9,7 +9,8 @@ This public repository contains the site served at https://soulsofmuse.app and t
 ## For the jury
 
 - Jury dossier (eight developments, 5 Nov 2026): https://soulsofmuse.app/dossier/ · PDF: https://soulsofmuse.app/dossier/Souls-of-Muse-Jury-Dossier.pdf
-- Demo film (2:56): https://www.youtube.com/shorts/1EAl-cj0DJ4
+- The eight developments: Souls of Muse & Muse Lesson; MetaMezonin rehearsal room; TopDog Colors music-video studio; three Ray-Ban Meta services; Sol Muse robot; Sound Made Visible; musical signature & community; music and filmmaking with Muse.
+- Live-action film (2:56): https://www.youtube.com/shorts/1EAl-cj0DJ4
 - Live service: https://soulsofmuse.app/ · capability report: https://soulsofmuse.app/api/harness/health
 - Research: https://soulsofmuse.app/sci-sound-labs/
 - Reviewer map: `docs/FOR_REVIEWERS.md` · workstreams: `docs/workstreams/` (including who did the work and the paths that did not work)
@@ -39,10 +40,10 @@ No API key or paid request is needed for the offline suite. Read `harness-bench/
 
 ## Hackathon contribution record
 
-The project concept and interface work predate the hackathon. Work done during the event (26 Oct – 5 Nov 2026) is recorded per workstream in `docs/workstreams/01`–`07`, with the agents and the Meta models behind them in `docs/workstreams/08-who-did-the-work.md` and the abandoned paths in `docs/workstreams/09-dead-ends.md`. The 27 October record in `docs/HACKATHON_CONTRIBUTIONS.md` covers the first day only. This repository does not claim that every feature of the broader project was created during the event.
+The project concept and interface work predate the hackathon. Work done during the event (26 Oct – 5 Nov 2026) is recorded per workstream in `docs/workstreams/01`–`07`, with the tools and the Meta models behind them in `docs/workstreams/08-who-did-the-work.md` and the abandoned paths in `docs/workstreams/09-dead-ends.md`. The 27 October record in `docs/HACKATHON_CONTRIBUTIONS.md` covers the first day only. This repository does not claim that every feature of the broader project was created during the event.
 
 ## Attribution and rights
 
-Aidar Kozhakhmetov directs the project, requirements, architecture and acceptance decisions. Meta Muse models (Muse Wonder, Muse Wonder Full, Muse Spark, Muse Image) did much of the code, research and media work, often running inside agent harnesses under call signs; `docs/workstreams/08-who-did-the-work.md` pairs each call sign with the model behind it. CX1 (Codex) integrated and verified many of the resulting artifacts. Prior interface work was prepared in Claude Design, and the initial Harness bench was prepared by Kimi. AI-generated implementation is labelled as such.
+Aidar Kozhakhmetov directs the project, requirements, architecture and acceptance decisions. Meta Muse models (Muse Wonder, Muse Wonder Full, Muse Spark, Muse Image) did much of the code, research, music and media work, often running inside agent harnesses such as Muse Code, Hermes Agent, OpenCode, MetaMezonin and TopDog Colors; `docs/workstreams/08-who-did-the-work.md` pairs each tool with the model behind it. Codex (OpenAI) integrated and verified many of the resulting artifacts. Prior interface work was prepared in Claude Design, and the initial Harness bench was prepared by Kimi. AI-generated implementation is labelled as such.
 
 Public availability permits inspection through GitHub. No general reuse or patent license is granted by this notice; an open-source license requires the project owner's explicit choice. Third-party libraries, model weights and assets retain their own licenses. A timestamp is evidence of existence of particular bytes at or before a time, not copyright registration or proof of legal ownership.
