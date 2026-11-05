@@ -93,7 +93,7 @@ class ReasoningGuardTests(unittest.TestCase):
             documented_usage(completion_tokens_details={"reasoning_tokens": "10"}),
             documented_usage(completion_tokens_details={"reasoning_tokens": None}),
             documented_usage(completion_tokens_details=10),
-            documented_usage(completion_tokens_details="reasoning"),
+            documented_usage(completion_tokens_details="reasoning"),  # disclosure: allow (test fixture: usage field name, not a secret)
             documented_usage(completion_tokens_details=["reasoning_tokens"]),
             documented_usage(completion_tokens_details={"reasoning_tokens": 10, "extra": 1}),
             documented_usage(completion_tokens_details={"unknown_tokens": 10}),

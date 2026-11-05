@@ -129,7 +129,7 @@ class FalsePositiveTest(unittest.TestCase):
         return [f.rule for f in dc.scan_text(text, "x", [])]
 
     def test_attribute_access_is_not_a_host(self):
-        self.assertEqual(self.rules("session.local.video.pause(); self.local = 1"), [])
+        self.assertEqual(self.rules("session" + ".local.video.pause(); if path == self" + ".local:"), [])
 
     def test_mdns_host_is_still_caught(self):
         self.assertIn("vpn-hostname", self.rules("ssh studio-mac" + ".local"))
@@ -137,7 +137,15 @@ class FalsePositiveTest(unittest.TestCase):
     def test_named_fixtures_are_allowed(self):
         self.assertEqual(self.rules("{'password': 'fixture-password'}"), [])
         self.assertEqual(self.rules('environ={"MODEL_API_KEY": "offline-fixture"}'), [])
-        self.assertEqual(self.rules('token: "ingress-capability"'), [])
+        self.assertEqual(self.rules('token: "ingress-capability"  // disclosure: allow (test fixture)'), [])
+        self.assertIn("assigned-secret", self.rules('tok' + 'en: "ingress-capability"'))
 
     def test_secret_shaped_value_is_still_caught(self):
         self.assertIn("assigned-secret", self.rules("pass" + "word = \"Xk9vQ2mL7pR4tZ8w\""))
+
+    def test_all_letter_secret_is_still_caught(self):
+        self.assertIn("assigned-secret", self.rules("pass" + "word = \"correcthorsebatterystaple\""))
+
+    def test_quoted_or_url_host_named_like_code_is_still_caught(self):
+        self.assertIn("vpn-hostname", self.rules("url = \"http://session" + ".local:8080\""))
+        self.assertIn("vpn-hostname", self.rules("host = 'self" + ".local'"))

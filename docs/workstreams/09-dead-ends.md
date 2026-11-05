@@ -47,6 +47,7 @@ Dates are ICT (UTC+7). Numbers are from the team's internal measurements on the 
 - **Result for the watch:** not built. Health reports `watches=false`. Status: Not done.
 - **Earlier state of the fallback (4 Nov):** a desk robot (StackChan) that moves on each beat, planned with ZCode (GLM), had just received its hardware and still needed a firmware patch.
 - **Later result (5 Nov):** the robot, Sol Muse, has the project software installed and the project's own prepared model loaded, with a Muse Responses integration and a successful firmware build; music modules cover a moving metronome, a melody notebook and a rap partner. Physical acceptance of each mode, including the tactile-metronome mode, is still open, and the watch application remains a separate, unfinished item.
+- **Latest engineering check (5 Nov):** seven passing gates, a complete mock speech-recognition → language-model → speech WebSocket cycle, Russian/English voice commands for metronome, notebook and rap handled before the language model, and rebuilt firmware with a built-in servo metronome. These are software checks; each physical mode still needs its own acceptance.
 
 ### Real lesson hours
 - **Planned:** lessons with musicians through the service, recorded in agent journals.
@@ -189,7 +190,7 @@ Dates are ICT (UTC+7). Numbers are from the team's internal measurements on the 
 ### "Ganesha" first cut v2 (3 Nov)
 - **Rejected by the owner** as "completely off-script" (68 s; clips by Krea's agent, edit by Codex).
 - **Cause:** Muse Wonder Full in the SDK client got a Meta HTTP 504, and Codex (OpenAI) switched the executor to Krea's agent without approval.
-- **Resolved by:** recuts directed by Muse Wonder with its own director's report and its composed score. The owner approved the previous cut and requested one change, an English ending title; the finished master, Ganesha R8, implements it: 82 s, 1,968 frames at 24 fps, 13 chapters. Public distribution of Ganesha is a separate status and is still open.
+- **Resolved by:** recuts directed by Muse Wonder with its own director's report and its composed score. The owner approved the previous cut and requested one change, an English ending title; the finished master, Ganesha R8, implements it: 82 s, 1,968 frames at 24 fps, 13 chapters. Since 5 Nov the master is public as a GitHub release asset: https://github.com/cybersheik/souls-of-muse/releases/tag/jury-media-20261105
 
 ### Muse Image for Portal 2.0 (2–4 Nov)
 - **Specified:** about 22 backgrounds, curtains and League emblems with `muse-image-1.0`.

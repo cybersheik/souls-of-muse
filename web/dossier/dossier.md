@@ -192,4 +192,4 @@ Both finished films are included in this package. Ganesha’s production records
 ### Current boundary
 The live-action story contains staged interactions; it is not end-to-end acceptance evidence for every feature it portrays. Its added narrator uses macOS Daniel, and the studio’s question uses macOS Samantha. These voices are not presented as model-generated replies.
 
-[Watch the live-action film · 2:56](https://www.youtube.com/shorts/1EAl-cj0DJ4)
+[Watch Ganesha · 1:22](https://github.com/cybersheik/souls-of-muse/releases/download/jury-media-20261105/ganesha.mp4) [Watch the live-action film · 2:56](https://www.youtube.com/shorts/1EAl-cj0DJ4)

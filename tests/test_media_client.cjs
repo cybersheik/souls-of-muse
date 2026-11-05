@@ -24,7 +24,7 @@ function client() {
       if (verb === "leave" && state.failLeave) { state.failLeave=false; return {ok:false,json:async()=>({detail:"cleanup_pending"})}; }
       return { ok: true, json: async () => verb === "join" ? {
         url: "ws://127.0.0.1", generation: "generation-" + state.calls.filter(x => x.verb === "join").length,
-        ingress: { token: "ingress-capability" }, playback: { token: "playback-capability" },
+        ingress: { token: "ingress-capability" }, playback: { token: "playback-capability" },  // disclosure: allow (test fixture capabilities, not credentials)
       } : { state: "closed" } };
     } };
   vm.runInNewContext(fs.readFileSync(require.resolve("../web/media-client.js"), "utf8"), context);

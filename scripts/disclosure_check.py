@@ -33,9 +33,6 @@ MAX_BYTES = 5 * 1024 * 1024
 
 # Placeholder secrets used by offline tests are allowed only when they say so.
 FAKE_VALUE = re.compile(r"(fake|dummy|example|placeholder|not[-_ ]a[-_ ]real|redacted|xxxx|fixture|offline|test|<[^>]+>)", re.I)
-# A value made only of lowercase letters and hyphens with no digits is a word, not secret-shaped
-# (e.g. completion_tokens_details="reasoning", token: "ingress-capability").
-WORD_VALUE = re.compile(r"[a-z]+(?:-[a-z]+)*")
 # Attribute access in code (self.local, session.local) is not an mDNS host name.
 CODE_RECEIVER = re.compile(r"(?i)(self|this|args|session|opts|options|config|cfg|ctx|state|params|req|res|event)\.local")
 # Pinned third-party bundles are not authored here; they are reviewed when the pin changes.
@@ -150,11 +147,17 @@ def _allowed(rule: Rule, match: re.Match) -> bool:
     if rule.name == "assigned-secret":
         value = match.group(1)
         # An environment-variable *name* is configuration, not a secret.
-        return bool(FAKE_VALUE.search(value) or ENV_NAME.fullmatch(value) or WORD_VALUE.fullmatch(value))
+        return bool(FAKE_VALUE.search(value) or ENV_NAME.fullmatch(value))
     if rule.name in {"openai-style-key", "bearer-token"}:
         return bool(FAKE_VALUE.search(value))
     if rule.name == "vpn-hostname":
-        return bool(CODE_RECEIVER.fullmatch(value))
+        # Only bare code such as session.local.video; a quoted value or URL host is still a host.
+        text, start, end = match.string, match.start(), match.end()
+        before = text[start - 1] if start else ""
+        after = text[end:end + 2]
+        quoted_or_url = (before != "" and before in "/@'\"`") or (after[:1] != "" and after[:1] in "/'\"`")
+        has_port = after[:1] == ":" and after[1:2].isdigit()
+        return bool(CODE_RECEIVER.fullmatch(value)) and not quoted_or_url and not has_port
     return False
 
 
