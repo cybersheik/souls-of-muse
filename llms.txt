@@ -1,0 +1,28 @@
+# Souls of Muse
+
+> A service for an international community of musicians, dedicated to keeping the human skills of playing musical instruments and singing alive. Submission to the Meta Global AI Developer Hackathon 2026, Startup track. Work spans seven workstreams; code is one of them. Each claim is labelled Working, Prototype, Offline-tested, Designed or Planned. Simulated parts are named.
+
+## Start here
+- [For reviewers](docs/FOR_REVIEWERS.md): judging criteria mapped to evidence
+- [README](README.md): current state, how to run the offline checks, attribution
+- [Hackathon contribution boundaries](docs/HACKATHON_CONTRIBUTIONS.md): what existed before 26 Oct 2026 and what was built during the event
+
+## Workstreams
+- [Index](docs/workstreams/README.md)
+- [01 Service and lesson](docs/workstreams/01-service-and-lesson.md)
+- [02 Engineering on Meta models](docs/workstreams/02-meta-model-engineering.md)
+- [03 Research with Muse](docs/workstreams/03-research-with-muse.md)
+- [04 Community and governance](docs/workstreams/04-community-and-governance.md)
+- [05 Outreach](docs/workstreams/05-outreach.md)
+- [06 Media](docs/workstreams/06-media.md)
+- [07 Process and provenance](docs/workstreams/07-process-and-provenance.md)
+
+## Engineering evidence
+- [Decision records](docs/decisions/README.md)
+- [Budget safety for paid Meta model calls](harness-bench/docs/BUDGET_SAFETY.md)
+- [Lesson admission runtime](runtime/README.md)
+- [Source provenance (OpenTimestamps)](docs/SOURCE_PROVENANCE.md)
+- [Disclosure policy](docs/DISCLOSURE_POLICY.md)
+
+## Optional
+- [Rights and provenance notice](NOTICE.md)
